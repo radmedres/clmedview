@@ -1,0 +1,966 @@
+\input texinfo
+@c -*-texinfo-*-
+@c %**start of header
+@setfilename clmedview.info
+@settitle clmedview - A medical image viewer
+@afourwide
+@exampleindent 0
+@paragraphindent 0
+@c %**end of header
+
+@copying
+This manual is for clmedview, which is a program to work with medical images.
+
+Copyright @copyright{} 2015 Marc Geerlings <m.geerlings@@mumc.nl>.
+
+@quotation
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the section entitled
+``GNU Free Documentation License''.
+@end quotation
+@end copying
+
+@titlepage
+  @title clmedview
+  @subtitle A medical image viewer for drawing regions of interest.
+  @author Roel Janssen
+  @page
+  @vskip 0pt plus 1filll
+  @insertcopying
+  @vskip 0pt plus 1filll
+@end titlepage
+
+@contents
+
+
+@c -----------------------------------------------------------------------------
+@c CHAPTER: Introduction
+@c -----------------------------------------------------------------------------
+@node Introduction
+@chapter Introduction
+
+  This project is an attempt to create a cross-platform medical image viewer
+  specialized in drawing "regions of interests".@*
+  @*
+  First off, the project aims to create a useful toolkit for displaying and
+  interacting with medical images. Currently, only some NIFTII file types are
+  implemented. Feel free to add (or request) support for other formats.@*
+  @*
+  Secondly, the project aims to provide a useful user interface. The first
+  user interface created for this project was a graphical user interface, using
+  GTK3 and Clutter. The second user interface that was added to this project
+  is the Graphical ROI Editing Language (@code{GREL}) interface, which primarily
+  serves as a way to automate tasks performed by the GUI.@*
+  @*
+  This documentation targets users @emph{and} developers. I find examples
+  helpful so I included as much examples as possible. Please don't be afraid of
+  ``programming examples'' or ``code'' at all. By taking a little effort to
+  improve this program you will not only help yourself, but possibly others
+  too. Parts like adding drawing tools, adding lookup tables or changing
+  default settings are made fairly easy.@*
+  @*
+  Whenever something is unclear, or if you have a question not answered in this
+  manual, please contact @email{j.slenter@@mumc.nl} or @email{m.geerlings@@mumc.nl}.
+
+
+@c -----------------------------------------------------------------------------
+@c CHAPTER: Installation
+@c -----------------------------------------------------------------------------
+@node Installation
+@chapter Installation
+
+  Installing @code{clmedview} involves compiling the source code. Fortunately,
+  this should be fairly straightforward if you're familiar with GNU Autotools
+  (no, I'm not kidding). You can find step-by-step instructions at
+  @ref{build_instructions,,Build instructions for GNU/Linux} for how to compile
+  a working program.@*
+  @*
+  The hardest part is probably installing the tools needed to build the
+  program. Precise instructions to install these tools are provided for 
+  Debian, Fedora and Arch Linux.
+
+@section Dependencies
+
+  Make sure you have the following libraries, development packages and build 
+  tools installed:
+
+  @itemize
+    @item GCC or CLANG
+    @item Automake
+    @item Autoconf
+    @item Make
+    @item Gtk+-3.0 and GLib-2.0
+    @item Clutter and Clutter-Gtk
+    @item zlib
+    @item Guile 2.0
+  @end itemize
+
+  To build the documentation you need some more programs:
+  @itemize
+    @item Texinfo
+    @item Dia
+    @item Doxygen
+    @item Dot (for diagrams inside Doxygen output)
+    @item ps2pdf
+  @end itemize
+
+@subsection Installing dependencies on Debian
+
+  By copying and pasting the following commands in a terminal you will have
+  a complete build environment for @code{clmedview}:
+@example
+@cartouche
+su -
+apt-get install gcc make automake autoconf libgtk-3-dev libglib2.0-dev \
+libclutter-1.0-dev libclutter-gtk-1.0-dev zlib1g-dev guile-2.0-dev libvte291-dev
+@end cartouche
+@end example
+
+@subsection Installing dependencies on Fedora
+  By copying and pasting the following commands in a terminal you will have
+  a complete build environment for @code{clmedview}:
+@example
+@cartouche
+yum install gcc make automake autoconf gtk3-devel glib2-devel clutter-devel \
+clutter-gtk-devel zlib guile-devel vte291-devel
+@end cartouche
+@end example
+
+@subsection Installing dependencies on Arch Linux
+  By copying and pasting the following commands in a terminal you will have
+  a complete build environment for @code{clmedview}:
+@example
+@cartouche
+*** TODO ***
+@end cartouche
+@end example
+
+@anchor{build_instructions}
+@section Build instructions for GNU/Linux
+  When you have resolved the dependencies listed above you can build 
+  the program by running:
+@example
+@cartouche
+autoreconf -i
+./configure
+make
+@end cartouche
+@end example
+  @*
+  @noindent Additionally you can add compiler flags:
+@example
+@cartouche
+autoreconf -i
+./configure CFLAGS="-Wall -O2 -march=native"
+make
+@end cartouche
+@end example
+  @*
+  @noindent Optionally you can generate developer documentation using Doxygen.
+@example
+@cartouche
+make docs-doxygen
+@end cartouche
+@end example
+
+@section Build instructions for Windows
+
+@b{WARNING:} The Windows build currently doesn't work.
+
+@enumerate
+  @item Install MSYS2 from @url{https://msys2.github.io}.
+  @item Resolve the dependencies for this project.
+  @item Follow the instructions for GNU/Linux.
+@end enumerate
+
+@section Build instructions for Mac OSX
+
+@b{WARNING:} You need to comply with Apple's terms when installing XCode (which
+is required to build @code{clmedview} on Mac OSX.
+
+@enumerate
+  @item Install MacPorts from @url{https://www.macports.org/}.
+  @item Resolve the dependencies for this project.
+  @item Follow the instructions for GNU/Linux.
+@end enumerate
+
+@section Debugging options
+
+  The following compiler flags enable debug messages:
+
+  @itemize
+    @item @code{-DENABLE_DEBUG_FUNCTIONS}: Print the name of a function when called.
+    @item @code{-DENABLE_DEBUG_EVENTS}:    Print the name of an event handler when called.
+    @item @code{-DENABLE_DEBUG_EXTRA}:     Print extra debug messages.
+    @item @code{-DENABLE_DEBUG_WARNING}:   Print warning messages.
+    @item @code{-DENABLE_DEBUG_ERROR}:     Print error messages.
+    @item @code{-DENABLE_DEBUG}:           Enable all of the above.
+  @end itemize
+
+  @noindent Typically you can enable debugging by running:
+@example
+@cartouche
+./configure CFLAGS="-DENABLE_DEBUG"
+@end cartouche
+@end example
+
+
+@c -----------------------------------------------------------------------------
+@c CHAPTER: Basic usage: Using the graphical user interface
+@c -----------------------------------------------------------------------------
+@node Basic usage: Using the graphical user interface
+@chapter Basic usage: Using the graphical user interface
+
+  The program's default user interface is the graphical user interface (GUI).
+  A minimal resolution of 1280x800px is preferred. The GUI has been optimized
+  for widescreen resolutions (16:9 and 16:10). The developers used a 
+  1920x1080px screen resolution.
+
+@section Default key bindings
+
+  Below you'll find a table with all key bindings explained. You are free to
+  modify these keys using a configuration file. How to do this is explained
+  in @ref{change_keybindings,,Changing the default key bindings}.@*
+  @*
+  A few abbreviations are used in the table. @code{LMB} means 
+  ``left mouse button'', @code{RMB} means ``right mouse button''. The 
+  @code{Meta} key may be better known as the @code{Alt} key. @code{Move} and
+  @code{Scroll} are actions mostly performed with a computer mouse.
+
+@multitable @columnfractions .22 .78
+@headitem Key combination   @tab Description
+@item
+@tex
+\leaders\vrule height 2.5pt depth -1.5pt \hfill \null
+@end tex
+@tab
+@tex
+\leaders\vrule height 2.5pt depth -1.5pt \hfill \null
+@end tex
+@c --------------------------------------------------------------------------
+@item @code{a}              @tab Toggle @emph{auto-close-mode}:
+                                 When drawing, the line will be automatically
+                                 closed when releasing the mouse button.
+
+@item @code{f}              @tab Toggle @emph{follow-mode}:
+                                 When hovering a viewer, automatically
+                                 ``follow'' the position in other viewers.
+
+@item @code{1}              @tab Display the axial viewport.
+
+@item @code{2}              @tab Display the sagital viewport.
+
+@item @code{3}              @tab Display the coronal viewport.
+
+@item @code{4}              @tab Display all viewport in a split view.
+
+@item @code{r}              @tab Toggle macro recording.
+
+@item @code{p}              @tab Replay the last macro recording.
+
+@item @code{t}              @tab Replay the last macro recording over all time
+                                 series.
+
+@item @code{Scroll}         @tab Go the next or previous slice in a volume.
+
+@item @code{LMB + Move}     @tab Draw on the active mask layer.
+
+@item @code{RMB + Move}     @tab Change the window/level settings.
+
+@item @code{Ctrl + LMB}     @tab Drag the image inside the viewport.
+
+@item @code{Ctrl + Scroll}  @tab Zoom in or out on a viewport. 
+
+@item @code{Ctrl + z}       @tab Undo the last draw action.
+
+@item @code{Ctrl + y}       @tab Redo the last draw action.
+
+@item @code{Shift + LMB + Move} @tab Erase instead of draw.
+
+@item @code{Meta + LMB + Move}  @tab Change the angle used for displaying a
+                                     slice from a volume.
+
+@item @code{Ctrl + g}       @tab Toggle the @code{GREL} shell.
+
+@item @code{Ctrl + s}       @tab Toggle the sidebar.
+
+@end multitable
+
+@anchor{change_keybindings}
+@section Changing the default key bindings
+
+  Changing the default key bindings can be done using @code{GREL} (see 
+  @ref{grel_usage,,Advanced usage: Using @code{GREL}}. To make changes survive
+  when restarting the program consider adding the following code to your
+  @code{GREL} init file (see @ref{grel_init_file,,Execute @code{GREL} code at
+  startup.}):
+@cartouche
+@example
+(grel-override-key "viewport-split" "+")
+(grel-override-key "toggle-grel"    " ")
+@end example
+@end cartouche
+
+  Unfortunately, the key binding system as it is right now doesn't allow
+  changing the modifier keys (@code{Ctrl}, @code{Meta} and @code{Shift}).@*
+  @*
+  Here's the table of all configurable key bindings:
+
+@multitable @columnfractions .75 .25
+@headitem Configurable name   @tab Default key
+@item
+@tex
+\leaders\vrule height 2.5pt depth -1.5pt \hfill \null
+@end tex
+@tab
+@tex
+\leaders\vrule height 2.5pt depth -1.5pt \hfill \null
+@end tex
+@c --------------------------------------------------------------------------
+@item @code{toggle-follow-mode}         @tab @code{f}
+@item @code{toggle-autoclose-mode}      @tab @code{a}
+@item @code{undo}                       @tab @code{z}
+@item @code{redo}                       @tab @code{y}
+@item @code{viewport-axial}             @tab @code{1}
+@item @code{viewport-sagital}           @tab @code{2}
+@item @code{viewport-coronal}           @tab @code{3}
+@item @code{viewport-split}             @tab @code{4}
+@item @code{toggle-grel}                @tab @code{g}
+@item @code{toggle-sidebar}             @tab @code{s}
+@end multitable
+
+@section Using the draw tools
+
+@subsection Drawing with multiple values (or colors)
+
+  On a single ROI layer, you cannot use different values (represented by colors)
+  to draw over each other. To mark the same coordinate with different values you
+  can create a new ROI layer.
+
+@subsection Drawing polygons
+
+  The polygon draw tool differs from the others in that it introduces a
+  different way of drawing lines. Using the @code{LMB} to mark some coordinates,
+  a line will be drawn through each coordinate. To draw a new polygon you need
+  to use the @code{RMB} to tell the program to start over with a list of
+  markers.
+
+
+@c -----------------------------------------------------------------------------
+@c CHAPTER: Advanced usage: Using GREL
+@c -----------------------------------------------------------------------------
+@node Advanced usage: Using @code{GREL}
+@chapter Advanced usage: Using @code{GREL}
+@anchor{grel_usage}
+
+  The Graphical ROI Editing Language (@code{GREL}), can be used to automate the
+  drawing of regions of interests (ROIs). @code{GREL} is graphical because the
+  functions of this language are derived from actions a person would take using
+  the graphical user interface.
+
+@section Opening the @code{GREL} shell
+  A GREL shell starts up automatically when the graphical user interface starts.
+  Use the ``Show GREL'' button, or the shortcut @code{Ctrl + g} to open the GREL
+  shell.
+
+@section Generate @code{GREL} scripts using the graphical user interface
+
+  @b{NOTE:} This feature is a novel feature. It isn't implemented (yet).@*
+  @*
+  The fast way of applying the same actions to multiple files, or multiple
+  slices in a single file is by recording the actions in the graphical user
+  interface. The program will output a GREL script that you can run later.
+
+@anchor{grel_init_file}
+@section Execute @code{GREL} code at startup.
+
+  On startup, @code{GREL} executes code from a file at 
+  @file{grel-scripts/init.scm}. In this file you can apply any customization
+  allowed by the language. Here's an example of a startup file:
+@cartouche
+@example
+@emph{;; Loads three files into the memory tree.}
+(define load-multiple-files
+  (lambda ()
+    (grel-file-load "data/default.nii")
+    (grel-overlay-load "data/default-overlay.nii")
+    (grel-file-load "data/another-file.nii")
+    (grel-file-load "data/and-another-file.nii")))
+
+@emph{;; Load multiple files using the function defined above}
+(load-multiple-files)
+(newline)
+
+@emph{;; Set some custom keybindings.}
+(grel-override-key "viewport-split" "+")
+(grel-override-key "toggle-grel"    " ")
+@end example
+@end cartouche
+
+@section Function overview
+
+@subsection Workspace settings
+
+  This section contains functions to change the default settings of the
+  program's workspace. This includes: changing keybindings, changing the
+  default viewport and loading extra lookup tables.
+
+  @code{*** WIP ***}
+
+@subsection File input and output
+
+  The function @code{grel-file-load} allows you to load a file. It is the
+  equivalent of opening a file using the graphical user interface.
+  Unsurprisingly, @code{grel-file-save} outputs a layer to a file. Here's a
+  simple example to load a file, add a layer and save that layer:
+@cartouche
+@example
+(begin
+  @emph{;; Loading the file.}
+  (grel-file-load "/path/to/file.nii")
+
+  @emph{;; Adding a layer.}
+  (grel-overlay-load "file-layer-2.nii")
+
+  @emph{;; Saving the layer to a file.}
+  (grel-file-save "file-layer-2.nii", "/path/to/file-layer-2.nii"))
+@end example
+@end cartouche
+
+@subsection Drawing and filtering
+
+  Now that we can load and save files, it is time to do something interesting.
+  You can retrieve a voxel's value with @code{grel-get-voxel-value}. To set a
+  voxel's value, you can use @code{grel-set-voxel-value}. Here's an example of
+  how to use these functions:
+@cartouche
+@example
+(begin
+  (if (= (grel-get-voxel-value ("file.nii" 120 80)) 0)
+
+    @emph{;; Run when TRUE}
+    (grel-set-voxel-value ("file-layer-2.nii" 120 80 1))
+
+    @emph{;; Run when FALSE (in this case, nothing)}
+    ()))
+@end example
+@end cartouche
+
+
+@c -----------------------------------------------------------------------------
+@c CHAPTER: Extending clmedview
+@c -----------------------------------------------------------------------------
+@node Extending @code{clmedview}: Writing plug-ins
+@chapter Extending @code{clmedview}: Writing plug-ins
+
+  Probably the easiest way to get more out of @code{clmedview} is by writing
+  a plug-in. With a plug-in you can add paint tools to the program. Plug-ins
+  are divided into two categories: @emph{brushes} and @emph{line tools}.@*
+  @*
+  Let's analyze an example plug-in that acts like a normal pen. A plugin
+  should implement two functions: a function to supply metadata and a function
+  to do data manipulation.
+
+
+@section Metadata function
+@cartouche
+@example
+void
+CLM_Plugin_Metadata (char **name, unsigned char **icon, int *version,
+                     PluginType *type)
+@{
+  *name = calloc (1, 13);
+  memcpy (*name, "pencil-brush", 12);
+  *version = 1;
+  *type = PLUGIN_TYPE_BRUSH;
+  *icon = calloc (1, 16 * 16 * 4 + 2);
+  memcpy (*icon, /* Place your image here. */, 16 * 16 * 4 + 1);
+@}
+@end example
+@end cartouche
+  @*
+  This function describes what the plugin is and what to display. If you
+  look carefully, you will have noticed the placeholder
+  @code{/* Place your image here. */}. With GNU Gimp you can export an image
+  as ``C source file'', which will produce the string you need to paste onto
+  the placeholder text.@*
+  @*
+  The image should be a @math{16x16} pixels image. If no image is supplied,
+  the name of the plugin is used instead. Make sure to change the line to
+  @code{*icon = NULL;} to disable the image displayment.
+
+
+@section Data manipulation function
+
+  More interestingly, the following function should be implemented to make the
+  plugin do something. For our simple pen plugin we should change the voxel's
+  value at a given coordinate. Depending on the @emph{brush scale} variable,
+  we should mark one or more voxels at a time.@*
+  @*
+  To make things a little bit more easy, we can use global functions to get
+  and set voxel values.
+
+@page
+
+@cartouche
+@example
+void
+CLM_Plugin_Brush_Apply (UNUSED PixelData *original, PixelData *mask, 
+                        PixelData *selection, Coordinate point, 
+                        unsigned int scale, unsigned int value,
+                        PixelAction action)
+@{
+  int lower_value;
+  int upper_value;
+
+  if (scale > 1)
+  @{
+    scale = scale / 2;
+    lower_value = -scale;
+    upper_value = scale;
+  @}
+  else
+  @{
+    CLM_Plugin_DrawPixelAtPoint (mask, selection, point, value, action);
+    return;
+  @}
+
+  // Center the brush position.
+  point.y = point.y - scale - 1; 
+
+  Coordinate draw_point;
+  int counter, rows = 1;
+  for (counter = lower_value; counter < upper_value; counter++)
+  @{
+    int columns;
+    for (columns = lower_value; columns < upper_value; columns++)
+    @{
+      draw_point.x = point.x + columns;
+      draw_point.y = point.y + rows;
+
+      CLM_Plugin_DrawPixelAtPoint (mask, selection, draw_point, value, action);
+    @}
+
+    rows++;
+  @}
+@}
+@end example
+@end cartouche
+
+  Taking the code apart:
+
+@cartouche
+@example
+void
+CLM_Plugin_Brush_Apply (UNUSED PixelData *original, PixelData *mask, 
+                        PixelData *selection, Coordinate point, 
+                        unsigned int scale, unsigned int value,
+                        PixelAction action)
+@end example
+@end cartouche
+
+  This is the function header. For parameters you don't use you should add the
+  @code{UNUSED} macro. The @code{PixelData} type can be used to manipulate
+  voxels. You are given three @code{PixelData} objects: @code{original} containing
+  the original image, @code{mask} containing the active mask to draw on,
+  @code{selection} containing a selection layer. This selection layer can be
+  @code{NULL}.
+
+@cartouche
+@example
+CLM_Plugin_DrawPixelAtPoint (mask, selection, point, value, action);
+@end example
+@end cartouche
+
+  This is a function you can use to set a voxel's value. Please don't change
+  the original image data. These changes won't be saved.
+
+@c -----------------------------------------------------------------------------
+@c CHAPTER: Program design overview
+@c -----------------------------------------------------------------------------
+@node Program design overview
+@anchor{program_design_overview}
+@chapter Program design overview
+
+  This chapter is mostly dedicated to the internal ``core'' part of
+  @code{clmedview}. It is written for software developers. The program has
+  been divided into several components@footnote{``Components'' are sometimes 
+  referred to as ``modules''. These words are used as synonyms in this 
+  document.}. The diagram below displays this division:
+
+  @center @image{images/component-diagram, 470pt, ,pdf}
+
+@section Reference manual
+
+  You can generate a reference manual from the source code with @code{Doxygen}.
+  By running @code{make docs-doxygen} a HTML version and a @LaTeX{} version
+  of the reference manual will be generated in @file{doc/doxygen/html} and
+  @file{doc/doxygen/latex/}.
+
+@section Use @code{mcheck} instead of @code{valgrind}
+
+  Using @code{valgrind} is possible and probably a good idea. However, during
+  the development of the program, using @code{valgrind} turned out to be very
+  slow. A lighter alternative to @code{valgrind} is @code{mcheck}. To use it,
+  you should define @code{ENABLE_MTRACE}:
+@example
+@cartouche
+./configure CFLAGS="-g -DENABLE_MTRACE"
+@end cartouche
+@end example
+  @noindent You need to set the @code{MALLOC_TRACE} environment variable to a file:
+@example
+@cartouche
+export MALLOC_TRACE=mtrace.out
+@end cartouche
+@end example
+  @noindent Running mtrace after your program has finished returns a list of memory leaks:
+@example
+@cartouche
+mtrace clmedview mtrace.out
+@end cartouche
+@end example
+
+@section Improving maintainability of your code
+
+  During the development of this program we extensively used some basic
+  techniques and rules to get a detailed understanding of (a part of) the
+  program.
+
+@subsection Using @code{assert()}
+
+  Odd run-time behavior can lead to hard-to-debug problems. To make debugging
+  easier, we extensively use @code{assert()}. It basically crashes the program
+  whenever an assertion fails, leaving a message containing the position of the
+  failed assertion.@*
+  @*
+  Instead of allowing the program to move on in an unexpected state, we choose
+  to crash it instead, so the problem can be identified and solved more easily.@*
+  @*
+  You can disable the assertions in production builds with the compiler flag 
+  @code{-DNDEBUG}.
+
+@subsection Adding debug output
+
+  Instead of directly using @code{printf()}, the use of @code{lib-common-debug}
+  is encouraged because it provides the following benefits:
+  @itemize
+    @item It provides an easy way to divide your debugging messages into
+          multiple levels;
+    @item The debug messages can be turned on or off at compile time;
+    @item It provides a ``pretty'' debug output including a tag and a time stamp.
+  @end itemize
+  To make use of @code{lib-common-debug}, you should 
+  @code{#include "lib-common-debug.h"}. Here's an example of a typical debuggable
+  function:
+@example
+@cartouche
+#include "lib-common-debug.h"
+
+void
+my_function (double width, double height)
+@{
+  // Prints the name of the function, when it's called.
+  debug_functions ();
+
+  double volume = width * height;
+
+  // Conditional debugging output.
+  if (volume < 0)
+  @{ // < These curly braces are not optional!
+    debug_error ("The volume is smaller than 0!");
+  @}
+@}
+@end cartouche
+@end example
+  The output of an erroneous call to this function produces:
+@cartouche
+@verbatim
+[ FUNCTION ] 14:25:08 :: my_function:82 (location/to/my_function.c)
+[ ERROR    ] 14:25:08 :: The volume is smaller than 0!
+@end verbatim
+@end cartouche
+  Message tagged with @code{[ ERROR @ @ @ ]} will be sent to @code{stderr} instead
+  of @code{stdout}. Catching only error messages to a separate file with Bash
+  can be done this way:
+@cartouche
+@verbatim
+./clmedview 2> errors.txt
+@end verbatim
+@end cartouche
+  
+@page
+
+@section Build system
+
+Typically, a program has two forms: A form that the computer understands
+(binary form) and a form that humans (should) understand (source code).
+When the program's source code is split into various files and depends on
+various external programs, a @emph{build system} can help converting the
+source code into a valid binary form.@*
+@*
+In our case, the program consists of many source files and multiple binary
+forms. To deal with this correctly the project uses a build system that is
+able to produce binary forms for multiple platforms. In our case, the
+desired platforms are: GNU/Linux, Microsoft Windows and Apple Mac OSX.@*
+@*
+An important advantage for using an independent build-system is that every
+programmer is still free to choose an IDE, text editor or Emacs without
+having to know about the complexities of building software.@*
+@*
+The build system goes beyond what most IDEs can offer. It does dependency
+tracking for the @emph{user}. In order to compile and run the software,
+a @emph{user} likely needs external libraries installed as well. The build
+system tells which libraries these are. Automatically installing 
+dependencies is often feasible by packaging the program by a @w{distribution}-
+@w{specific} packaging tools. A proper build system helps these packaging
+tools.
+
+@subsection Packaging
+When someone receives a copy of the program (in any form), the package should
+contain whatever the user expects. Hackers expect source code to be included,
+so they can improve the program for their needs. For regular users, the source
+code will only be confusing, because that will make the search for the binary
+form more difficult.@*
+@*
+Packaging is a key aspect of delivering the right package to a specific person.
+The chosen build system deals with this by allowing several builds:
+@itemize
+  @item The @code{make dist} command creates a ``distribution build'' which is
+        a package containing all source code, graphics files and build system
+        files to create the binary form.
+  @item The @code{make} command creates the binary form that can be readily
+        used.@footnote{External dependencies are not resolved in this step.}
+@end itemize
+@*
+In the real world, the binary form created by the @code{make} command is not
+complete. All external dependencies are not resolved. The dependencies differ
+per operating system. Generally, for GNU/Linux, the dependencies can be
+automatically installed along with the program by providing a
+distribution-specific package.@*
+@*
+For Microsoft Windows, there is no such dynamic dependency-tracking system
+available. To overcome the difficulties with the Microsoft Windows operating
+system, the @url{https://msys2.github.io,,MSYS2} project provides a GNU
+environment with all build tools and runtime libraries needed to build and
+run the program. Distributing the software to a user would be no harder
+than packing the MSYS2 directory and unpacking on the user's installation.@*
+@*
+This same approach applies for Mac OSX with the 
+@url{https://macports.org/,,Macports} project. For Mac OSX builds one needs
+to agree with the Apple terms. This is absolutely bad for the developer's
+freedom as well as the user's freedom. Technically, Mac OSX builds are
+possible.
+
+@subsection Modifying the build system
+
+  The program uses GNU Autoconf to generate a @code{Makefile}. The first thing
+  to know is that you should only need to modify two files: @file{configure.ac}
+  and @file{Makefile.am}. The other files will be generated automatically.@*
+  @*
+  If you add source files to the project, you need to add these to
+  @file{Makefile.am}. When you add a dependency to an external library, you
+  should modify @file{configure.ac}
+
+@subsubsection Adding source files
+
+  In @file{Makefile.am} you should add your header file to the
+  @code{INCLUDE_SOURCES} variable. Your source file should be added to the
+  variable the library belongs to. If you created a new library, add a
+  variable and add it to @code{clmedview_SOURCES}.@*
+  @*
+  Failing to add all source and header files needed to build the software
+  will result in a failure to build the program. Don't forget to add the
+  files to the version control system as well.
+
+
+@subsubsection Adding other files
+
+  When you want to add files that are not source files, but the files are
+  important for proper distribution of the program, you can add them to the
+  @code{dist_data_DATA} variable in @file{Makefile.am}.@*
+  @*
+  Please make sure you add all files (preferably without wildcards) needed
+  to properly distribute the program. To test whether you added all files,
+  run @code{make dist}, unpack the produced archive somewhere, build and
+  run it.
+
+@subsubsection Adding dependencies
+
+  Whenever you introduce a new externel dependency to the code you should let
+  the build system know about it. If your dependency makes use of
+  @code{pkg-config} you can add a @code{PKG_CHECK_MODULES} statement to
+  @file{configure.ac}. An example of the GTK dependency is the following line:
+@example
+PKG_CHECK_MODULES([gtk], [gtk+-3.0])
+@end example
+  @*
+  The @code{[gtk]} argument is a name that is used to expose variables to
+  @file{Makefile.am}. The @code{[gtk+-3.0]} argument is the @code{pkg-config}
+  name used to find the package's compiler and linker arguments.@*
+  @*
+  Now the variables @code{gtk_CFLAGS} and @code{gtk_LIBS} are available for use
+  in @file{Makefile.am}. Adding @code{gtk_CFLAGS} to @code{AM_CFLAGS} and
+  @code{gtk_LIBS} to @code{clmedview_LDADD} adds the dependency to the project.@*
+  @*
+  When the previous steps have been completed the compile command will be
+  adjusted to include your dependency.
+
+@subsubsection Execute an action after building
+
+  If you need to add a post-build step (a step executed after building) you can
+  do so by adding a @code{*-local} target to @file{Makefile.am}. In this case
+  the wildcard should be replaced with the target you want to do a post-execution
+  for.@*
+  @*
+  To clean up documentation in addition to the compiled objects, you could add
+  the following to @file{Makefile.am}:
+@example
+clean-local: plugins-clean
+
+plugins-clean:
+	@@cd plugin/; make clean
+@end example
+
+
+@page
+
+@section Asynchronous user interface communication
+
+  The program can be controlled using the graphical user interface and
+  @code{GREL} simultaneously. @w{Internally}, the main thread runs the GTK
+  main loop. The @code{GREL} shell starts as a separate @w{process}. The graphical
+  user interface uses the @code{GREL} interpreter with the polling interface to
+  @w{retrieve} @w{commands} from the @code{GREL} shell. The diagram below displays this:
+
+  @center @image{images/grel-sequence-diagram, 470pt, , pdf}
+
+  @b{Note:} The calls to @code{grel_interpreter_run_in_background()} and
+  @code{grel_shell_start()} are non-blocking function calls. That means these
+  functions are executed in parallel.@*
+  @*
+  When the graphical user interface is started with @code{gui_mainwindow_new()},
+  it should start the @code{GREL} interpreter in a separate thread to be able
+  to process the events in the background. This is done with the function
+  @code{grel_interpreter_run_in_background()}. Unfortunately the current
+  implementation uses a polling strategy to process a command.@*
+  @*
+  The @code{GREL} shell is run as a separate program, running only the
+  Guile shell. This is done in @file{mainwindow.c} by the function
+  @code{vte_terminal_spawn_sync()}.@*
+  @*
+  By combining the GTK main loop and the @code{GREL} interpreter
+  we have two event-based systems running at the same time. Because
+  @code{lib-grel-shell} is separated from @code{lib-grel-interpreter}, we need
+  to run these in different threads or processes to be able to communicate with
+  each other asynchronously.@*
+  @*
+  A user could open multiple @code{GREL} shells. Executing functions from multiple
+  shells is handled the same was as from a single shell: Every command gets a place
+  in a queue. From there each command is processed one at a time.
+
+@page
+@section Extending @code{GREL}: Adding functionality
+
+  To make the Graphical ROI Editing Language (@code{GREL}) more powerful, adding
+  new functionality should be a common thing. Here you will learn what is needed
+  to add a function to the @code{GREL} shell/interpreter combination.@*
+  @*
+  @code{GREL} adds custom functions to a 
+  GNU Guile (@url{https://gnu.org/software/guile/,https://gnu.org/software/guile/})
+  shell/interpreter combination.
+
+@subsection Add it to @code{lib-grel-shell}
+
+  To add a function to the Guile shell (and thus @code{GREL}), you should
+  add your function definition to @code{grel_shell_prepare()} in 
+  @file{lib-grel-shell.c}:
+@cartouche
+@example
+void
+grel_shell_prepare ()
+@{
+  // ...
+  scm_c_define_gsubr ("grel-file-load", 1, 0, 0, grel_shell_load_file);
+  // ...
+@}
+@end example
+@end cartouche
+
+  The first argument @code{"grel-file-load"} is the function that can be
+  used by a user. The next three arguments are used to determine how
+  many parameters the function has. The last argument should be the C function
+  that should be executed.@*
+  @*
+  The function @code{grel_shell_load_file()} should send a message over a socket
+  to the @code{GREL} interpreter. This has been made pretty convenient for you
+  by the @code{grel_shell_send_command()} function.@*
+  @*
+  Basically, the data that should be sent over to the interpreter is
+  constructed like this: @code{function:argument;argument;argument}. The
+  @code{grel_shell_send_command()} function does this partly for you. The first
+  parameter is the function name you would like to send. The second parameter
+  is the entire string of arguments (you should delimit it yourself).
+
+@subsection Add it to @code{lib-grel-interpreter}
+
+  This step is crucial to make the command responsive. For this step we need to
+  add some code to @file{lib-grel-interpreter.c}.@*
+  @*
+  Add a callback function variable to the @code{GRELInterpreter} structure:
+@cartouche
+@example
+  /**
+   * A callback function to call on a "file load" event.
+   * @@param filename  The file to load.
+   */
+  void (*on_file_load)(void *param);
+@end example
+@end cartouche
+
+  In the @code{grel_interpreter_command_executer()} function in the 
+  @code{COMMAND INTERPRETATION} section, we need to add our newly created
+  function name using this piece:
+@cartouche
+@example
+  // Event: "file-load".
+  if (!strcmp (function, "file-load"))
+  @{
+    command->type = GREL_INTERPRETER_TYPE_LOAD;
+    GREL_INTERPRETER_COMMAND_LOAD (command)->callback = interpreter->on_file_load;
+    GREL_INTERPRETER_COMMAND_LOAD (command)->filename = argument;
+  @}
+@end example
+@end cartouche
+
+  Note that if you add a command below you should use @code{else if} instead of
+  @code{if} to be efficient.@*
+  @*
+  There are several types of commands that can be processed. These differ in the
+  parameters the callback function should implement. These different types can
+  be found in @file{include/lib-grel-interpreter.h}.@*
+  @*
+  We want the outside world to set a callback for our new awesome function. You
+  should add the following piece of code to @code{grel_interpreter_set_callback()}:
+@cartouche
+@example
+  // Event: "file-load".
+  if (!strcmp (name, "file-load"))
+  @{
+    interpreter->on_file_load = callback;
+    debug_extra ("The 'file-load' callback has been set to %p.", callback);
+  @}
+@end example
+@end cartouche
+
+  Now you have successfully extended @code{GREL} with a (hopefully) fantastic
+  function.
+
+@bye @c Goodbye
+
+@c  LocalWords:  clmedview pdf printf debuggable LocalWords doxygen Jos
+@c  LocalWords:  cartouche widescreen viewport Slenter Geerlings NIFTII
+@c  LocalWords:  buildable
