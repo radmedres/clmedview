@@ -464,7 +464,7 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
       if (pc_Image==NULL)
       {
         // Image and header file are the same;
-        i32_Offset=sizeof(nifti_1_header);
+        i32_Offset=NII_HEADER_SIZE;
         b_NIFTII_ReadVolumeToMemory ((char *)pc_Filename, i32_Offset, i32_MemoryVolume, serie->data);
       }
     }
