@@ -341,13 +341,13 @@ b_NIFTII_WriteHeaderToFile(const char* pc_FileName, void *pv_Data)
 
   FILE *pf_OutputFile;
 
-  pf_OutputFile = fopen (pc_FileName, "w");
+  pf_OutputFile = fopen (pc_FileName, "wb");
   if( pf_OutputFile==NULL)
   {
     debug_error ("Could not open the file '%s'.", pc_FileName);
     return 0;
   }
-  fwrite (pv_Data, 1, sizeof (nifti_1_header), pf_OutputFile);
+  fwrite (pv_Data, 1, NII_HEADER_SIZE, pf_OutputFile);
 
   fclose(pf_OutputFile);
   return 1;
@@ -558,10 +558,10 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
   debug_functions ();
 
   short int i16_BytesToWrite;
-  int i32_PixelsInSlice, i32_MemoryPerSlice, i32_MemoryVolume;
+  int i32_PixelsInSlice, i32_MemoryPerSlice, i32_MemoryVolume, i32_MemoryInBlob;
 
   nifti_1_header *ps_Header;
-  ps_Header = calloc (1, sizeof (nifti_1_header));
+  ps_Header = calloc (1, NII_HEADER_SIZE);
   if (ps_Header == NULL) return 1;
 
   memcpy (ps_Header, serie->pv_Header, sizeof (nifti_1_header));
@@ -569,13 +569,12 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
   ps_Header->sizeof_hdr = MIN_HEADER_SIZE;
 
 
-  ps_Header->dim[0] = (serie->num_time_series>1) ? 3 : 4;
+  ps_Header->dim[0] = (serie->num_time_series>1) ? 4 : 3;
   ps_Header->dim[1] = serie->matrix.x;
   ps_Header->dim[2] = serie->matrix.y;
   ps_Header->dim[3] = serie->matrix.z;
   ps_Header->dim[4] = serie->num_time_series;
 
-  ps_Header->pixdim[1] = 3;
   ps_Header->pixdim[1] = serie->pixel_dimension.x;
   ps_Header->pixdim[2] = serie->pixel_dimension.y;
   ps_Header->pixdim[3] = serie->pixel_dimension.z;
@@ -590,16 +589,16 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
   i32_PixelsInSlice = serie->matrix.x * serie->matrix.y;
   i32_MemoryPerSlice = i16_BytesToWrite * i32_PixelsInSlice;
   i32_MemoryVolume = i32_MemoryPerSlice * serie->matrix.z;
-
+  i32_MemoryInBlob = i32_MemoryVolume * serie->num_time_series;
 
   // If the File should be saved as two files
   if (pc_ImageFile == NULL)
   {
-    ps_Header->vox_offset = sizeof(nifti_1_header);
+    ps_Header->vox_offset = NII_HEADER_SIZE;
     memccpy (ps_Header->magic, "n+1", 1, 3);
 
     b_NIFTII_WriteHeaderToFile (pc_File, ps_Header);
-    b_NIFTII_WriteImageToFile (pc_File, 1, i32_MemoryVolume, sizeof(nifti_1_header), serie->data);
+    b_NIFTII_WriteImageToFile (pc_File, 1, i32_MemoryInBlob, NII_HEADER_SIZE, serie->data);
   }
   else
   {
@@ -607,7 +606,7 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
     memccpy (ps_Header->magic, "ni1", 1, 3);
 
     b_NIFTII_WriteHeaderToFile (pc_File, ps_Header);
-    b_NIFTII_WriteImageToFile (pc_ImageFile, 1, i32_MemoryVolume, 0, serie->data);
+    b_NIFTII_WriteImageToFile (pc_ImageFile, 1, i32_MemoryInBlob, 0, serie->data);
   }
 
   free (ps_Header);
