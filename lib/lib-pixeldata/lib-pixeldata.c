@@ -333,7 +333,7 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
   {
     translated_value = (counter - minimum_voxel_value) * f_Slope;
 
-    display_lookup_table[counter] = (translated_value > array_items)
+    display_lookup_table[counter] = (translated_value >= array_items)
       ? color_lookup_table[array_items - 1]
       : color_lookup_table[translated_value];
   }
