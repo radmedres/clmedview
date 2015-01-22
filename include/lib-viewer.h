@@ -186,6 +186,13 @@ typedef struct Viewer
   void (*on_focus_change_callback)(struct Viewer *viewer, void *data);
 
   /**
+   * A callback function to call on a "window/level change" event.
+   * @param viewer A pointer to the viewer object that triggered this callback.
+   * @param data   A pointer to a Range with the latest window/level values.
+   */
+  void (*on_window_level_change_callback)(struct Viewer *viewer, void *data);
+
+  /**
    * A callback function to call on a "handle change" event.
    * @param viewer A pointer to the viewer object that triggered this callback.
    * @param ratio  The ratio of DX / DY.
@@ -610,6 +617,17 @@ void viewer_replay_recording (Viewer *resources);
  */
 void viewer_replay_recording_over_time (Viewer *resources);
 
+
+/**
+ * A function to update the window width and window level of
+ * a Serie in a Viewer.
+ *
+ * @param resources   The viewer to set new window/level settings for.
+ * @param serie       The serie to apply the new window/level settings to.
+ * @param WWWL        The window width and window level values.
+ */
+void viewer_set_window_level_for_serie (Viewer *resources, Serie *serie,
+					Range WWWL);
 
 /**
  * @}
