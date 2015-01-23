@@ -138,6 +138,7 @@ gboolean gui_mainwindow_terminal_toggle (GtkWidget *widget, void *data);
 gboolean gui_mainwindow_on_timeline_change (GtkWidget *widget, void *data);
 gboolean gui_mainwindow_overlay_add (GtkWidget *widget, void *data);
 void gui_mainwindow_set_active_layer (GtkListBox *box, GtkListBoxRow *row, void *user_data);
+void gui_mainwindow_update_viewer_wwwl (Viewer *viewer, void *data);
 
 gboolean gui_mainwindow_reset_viewport ();
 gboolean gui_mainwindow_toggle_follow_mode ();
@@ -904,6 +905,7 @@ gui_mainwindow_load_study (Tree *study_tree)
 
     viewer_set_callback (viewer, "pixel-paint", &gui_mainwindow_refresh_viewers);
     viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
+    viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
     viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
     if (ts_ActiveDrawTool != NULL)
@@ -932,6 +934,7 @@ gui_mainwindow_load_study (Tree *study_tree)
 
     viewer_set_callback (viewer, "pixel-paint", &gui_mainwindow_refresh_viewers);
     viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
+    viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
     viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
     if (ts_ActiveDrawTool != NULL)
@@ -960,6 +963,7 @@ gui_mainwindow_load_study (Tree *study_tree)
 
     viewer_set_callback (viewer, "pixel-paint", &gui_mainwindow_refresh_viewers);
     viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
+    viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
     viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
     if (ts_ActiveDrawTool != NULL)
@@ -1292,6 +1296,31 @@ gui_mainwindow_update_viewer_positions (Viewer *viewer, void *data)
   }
 }
 
+
+void
+gui_mainwindow_update_viewer_wwwl (Viewer *viewer, void *data)
+{
+  debug_functions ();
+
+  ts_ActiveViewer = viewer;
+  if (data == NULL) return;
+
+  Serie *active_serie = CONFIGURATION_ACTIVE_LAYER (config);
+  if (active_serie == NULL) return;
+
+  Range wwwl = *(Range *)data;
+  List *temp = list_nth (pll_Viewers, 1);
+  while (temp != NULL)
+  {
+    Viewer* list_viewer = temp->data;
+
+    // Skip the Viewer that is calling back.
+    if (VIEWER_ORIENTATION (list_viewer) != VIEWER_ORIENTATION (viewer))
+      viewer_set_window_level_for_serie (list_viewer, active_serie, wwwl);
+
+    temp = temp->next;
+  }
+}
 
 
 /* Rotation vector around x-axis (http://en.wikipedia.org/wiki/Rotation_matrix)

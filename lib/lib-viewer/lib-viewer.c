@@ -1045,6 +1045,12 @@ viewer_on_mouse_move (UNUSED ClutterActor *actor, ClutterEvent *event, gpointer 
 
     // Trigger a full redraw.
     viewer_redraw (resources, REDRAW_ALL);
+
+    // Execute the window/level update callback.
+    if (resources->on_window_level_change_callback != NULL)
+    {
+      resources->on_window_level_change_callback (resources, &ts_NewWindowLevel);
+    }
   }
 
   resources->ts_CurrentMousePosition = ts_CurrentMousePosition;
@@ -1573,6 +1579,9 @@ viewer_set_callback (Viewer *resources, const char *name, void (*callback)(Viewe
   else if (!strcmp (name, "pixel-paint"))
     resources->on_pixel_paint_callback = callback;
 
+  else if (!strcmp (name, "window-level-change"))
+    resources->on_window_level_change_callback = callback;
+  
   else
   {
     debug_error ("Event '%s' is not implemented for Viewer.", name);
@@ -1713,6 +1722,25 @@ viewer_set_lookup_table_for_serie (Viewer *resources, Serie *serie, const char *
   pixeldata_set_color_lookup_table (pixeldata, lut_name);
   viewer_redraw (resources, REDRAW_ALL);
 }
+
+void viewer_set_window_level_for_serie (Viewer *resources, Serie *serie,
+					Range WWWL)
+{
+  debug_functions ();
+  assert (resources != NULL);
+  assert (serie != NULL);
+
+  PixelData *pixeldata = viewer_get_pixeldata_for_serie (resources, serie);
+  if (pixeldata == NULL)
+  {
+    debug_error ("Couldn't set the lookup table.");
+    return;
+  }
+
+  pixeldata_set_window_width_window_level (pixeldata, WWWL.minimum, WWWL.maximum);
+  viewer_redraw (resources, REDRAW_ALL);
+}
+
 
 
 PixelDataLookupTable*
