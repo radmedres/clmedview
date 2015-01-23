@@ -137,7 +137,7 @@ v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
 
   short int i16_Gradient[10][10];
 
-  short int i16_AvarageValue = 0;
+  int i32_AvarageValue = 0;
 
 
 
@@ -151,7 +151,7 @@ v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
   /*--------------------------------------------------------------------------.
    | CREATE LOCAL 10x10 IMAGE                                                 |
    '--------------------------------------------------------------------------*/
-  i16_AvarageValue = 0;
+  i32_AvarageValue = 0;
 
   for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
   {
@@ -162,11 +162,11 @@ v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
       ts_BlobCount.x = ts_Point.x + X_Cnt;
 
       CLM_Plugin_GetPixelAtPoint (ps_Original, ts_BlobCount, &(i16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
-      i16_AvarageValue += i16_tempImage[Y_Cnt + 5][X_Cnt + 5];
+      i32_AvarageValue += i16_tempImage[Y_Cnt + 5][X_Cnt + 5];
     }
   }
 
-  i16_AvarageValue = i16_AvarageValue / 100;
+  i32_AvarageValue = i32_AvarageValue / 100;
 
   /*--------------------------------------------------------------------------.
    | SMOOTH WITH GAUSIAN FILTER                                               |
@@ -297,7 +297,7 @@ v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
     {
       ts_BlobCount.x = ts_Point.x + X_Cnt;
 
-      if (i16_tempImage[Y_Cnt+5][X_Cnt+5] > i16_AvarageValue)
+      if (i16_tempImage[Y_Cnt+5][X_Cnt+5] > i32_AvarageValue)
       {
         CLM_Plugin_DrawPixelAtPoint (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
       }
