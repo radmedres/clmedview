@@ -857,6 +857,7 @@ gui_mainwindow_load_study (Tree *study_tree)
   if (pll_Serie->type != TREE_TYPE_SERIE) return;
 
   CONFIGURATION_ACTIVE_ORIGINAL (config) = pll_Serie;
+  CONFIGURATION_ACTIVE_LAYER (config) = pll_Serie->data;
 
   if (!memory_tree_serie_has_mask (pll_Serie))
   {
@@ -1025,6 +1026,14 @@ gui_mainwindow_load_study (Tree *study_tree)
   else
   {
     gtk_widget_hide (timeline);
+  }
+
+  // Change the active layer on each Viewer.
+  List *viewers = list_nth (pll_Viewers, 1);
+  while (viewers != NULL)
+  {
+    viewer_set_active_layer_serie (viewers->data, serie);
+    viewers = list_next (viewers);
   }
 }
 
@@ -2344,6 +2353,11 @@ gui_mainwindow_layer_manager_refresh (Tree *pll_Study)
                                                                 pll_Series);
     gtk_list_box_prepend (GTK_LIST_BOX (layer_manager), row);
 
+    if (serie == CONFIGURATION_ACTIVE_LAYER (config))
+    {
+      gtk_list_box_select_row (GTK_LIST_BOX (layer_manager), GTK_LIST_BOX_ROW (row));
+    }
+
     pll_Series = tree_next (pll_Series);
   }
 
@@ -2383,6 +2397,11 @@ gui_mainwindow_layer_manager_refresh (Tree *pll_Study)
                                                                 pll_Series);
     gtk_list_box_prepend (GTK_LIST_BOX (layer_manager), row);
 
+    if (serie == CONFIGURATION_ACTIVE_LAYER (config))
+    {
+      gtk_list_box_select_row (GTK_LIST_BOX (layer_manager), GTK_LIST_BOX_ROW (row));
+    }
+
     pll_Series = tree_next (pll_Series);
   }
 
@@ -2406,6 +2425,11 @@ gui_mainwindow_layer_manager_refresh (Tree *pll_Study)
     GtkWidget *original;
     original = gui_mainwindow_layer_manager_row_item_new (serie->name, 0,
 							  CONFIGURATION_ACTIVE_ORIGINAL (config));
+
+    if (serie == CONFIGURATION_ACTIVE_LAYER (config))
+    {
+      gtk_list_box_select_row (GTK_LIST_BOX (layer_manager), GTK_LIST_BOX_ROW (original));
+    }
 
     gtk_list_box_prepend (GTK_LIST_BOX (layer_manager), original);
   }
