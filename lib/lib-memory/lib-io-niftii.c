@@ -33,82 +33,17 @@
 
 MemoryDataType e_NIFTII_ConvertNIFTIIToMemoryDataType (short i16_datatype);
 short int i16_NIFTII_ConvertMemoryDataTypeToNIFTII (MemoryDataType te_DataType);
-
 short int i16_NIFTII_GetMemorySizePerElement (short i16_datatype);
 short int i16_NIFTII_GetBitPix (short i16_datatype);
 short int b_NIFTII_ReadHeaderToMemory (const char* pc_FileName, nifti_1_header* ps_Header);
 short int b_NIFTII_ReadVolumeToMemory (const char* pc_FileName, int i32_offset, int i32_MemoryInVolume, void *pv_Data);
 short int b_NIFTII_WriteHeaderToFile (const char* pc_FileName, void *pv_Data);
 short int b_NIFTII_WriteImageToFile (const char* pc_FileName, int i32_BytesToWrite, int i32_PixelsInVolume, int i32_BLOB_Offset, void *pv_Data);
+void v_NIFTII_convert_data_big_to_little_endian(Serie *serie);
+void v_NIFTII_swap_4bytes( size_t n , void *ar );
+void v_NIFTII_swap_2bytes( size_t n , void *ar );
+void v_NIFTII_swap_header( struct nifti_1_header *h , int is_nifti );
 
-te_ImageIOFiletype
-//e_NIFTII_FileType (char *pc_File)
-memory_io_niftii_file_type (const char *pc_File)
-{
-  debug_functions ();
-
-  //Check if file exists
-  if (access (pc_File, F_OK) != 0) return 1;
-
-  nifti_1_header *ps_Header;
-  char ac_SwapHeaderImage[512];
-  te_ImageIOFiletype e_FileType;
-
-  ps_Header = (nifti_1_header *)(calloc(1, sizeof (nifti_1_header)));
-  e_FileType = MUMC_FILETYPE_NOT_KNOWN;
-
-  // find extention in string
-  char *ac_Extention = strrchr (pc_File, '.');
-  if (ac_Extention == NULL)
-  {
-    return MUMC_FILETYPE_NOT_KNOWN;
-  }
-
-  if ((!strcasecmp (ac_Extention, ".nii")) || (!strcasecmp (ac_Extention, ".hdr")))
-  {
-    //check if this file contains a valid header
-    if(b_NIFTII_ReadHeaderToMemory((char *)pc_File, ps_Header))
-    {
-      e_FileType= MUMC_FILETYPE_NOT_KNOWN;
-    }
-
-    if (strncmp(ps_Header->magic, "n+", 2)==0)
-    {
-      e_FileType=MUMC_FILETYPE_NIFTII_SF;
-    }
-    else if (strncmp(ps_Header->magic, "ni", 2)==0)
-    {
-      e_FileType=MUMC_FILETYPE_NIFTII_TF;
-    }
-    else if ((ps_Header->sizeof_hdr == MIN_HEADER_SIZE) && (strcasecmp(ac_Extention, ".hdr")==0))
-    {
-      //proberly an Analyze header
-      e_FileType=MUMC_FILETYPE_ANALYZE75;
-    }
-    else
-    {
-      e_FileType=MUMC_FILETYPE_NOT_KNOWN;
-    }
-  }
-  else if (strcasecmp(ac_Extention, ".img")==0)
-  {
-    strncpy(ac_SwapHeaderImage, pc_File, sizeof(ac_SwapHeaderImage));
-    e_FileType = memory_io_niftii_file_type (ac_SwapHeaderImage);
-  }
-  else if (strcasecmp(ac_Extention, ".dcm")==0)
-  {
-    // BUILD HERE A DICOM CHECK
-
-  }
-  else
-  {
-    e_FileType=MUMC_FILETYPE_NOT_KNOWN;
-  }
-
-  free(ps_Header);
-
-  return e_FileType;
-}
 
 MemoryDataType
 e_NIFTII_ConvertNIFTIIToMemoryDataType (short i16_datatype)
@@ -181,7 +116,6 @@ i16_NIFTII_ConvertMemoryDataTypeToNIFTII (MemoryDataType te_DataType)
   }
   return i16_datatype;
 }
-
 
 short int
 i16_NIFTII_GetMemorySizePerElement (short i16_datatype)
@@ -375,9 +309,163 @@ b_NIFTII_WriteImageToFile (const char* pc_FileName, int i32_BytesToWrite, int i3
   return 1;
 }
 
+void
+v_NIFTII_convert_data_big_to_little_endian (Serie *serie)
+{
+  short int num_bytes = memory_serie_get_memory_space(serie);
 
+  unsigned int i32_memory_size = serie->matrix.x * serie->matrix.y * serie->matrix.z * serie->num_time_series;
+  unsigned int i32_blobCnt;
 
+  void *pv_Data=serie->data;
+  switch (serie->data_type)
+  {
+    case MEMORY_TYPE_INT8    :
+    case MEMORY_TYPE_UINT8   :
+      break;
+    case MEMORY_TYPE_INT16   :
+    case MEMORY_TYPE_UINT16  :
+      {
+        unsigned short int x16_Value;
 
+        for (i32_blobCnt=0; i32_blobCnt<i32_memory_size; i32_blobCnt++)
+        {
+          x16_Value = (unsigned short int)(*(unsigned short int *)(pv_Data));
+          (*(unsigned short int *)(pv_Data)) = __bswap_16(x16_Value);
+
+          pv_Data+=num_bytes;
+        }
+      }
+      break;
+    case MEMORY_TYPE_INT32   :
+    case MEMORY_TYPE_UINT32  :
+    case MEMORY_TYPE_FLOAT32 :
+      {
+        unsigned int x32_Value;
+
+        for (i32_blobCnt=0; i32_blobCnt<i32_memory_size; i32_blobCnt++)
+        {
+          x32_Value = (unsigned int)(*(unsigned int *)(pv_Data));
+          (*(unsigned int *)(pv_Data)) = __bswap_32(x32_Value);
+
+          pv_Data+=num_bytes;
+        }
+      }
+      break;
+    case MEMORY_TYPE_INT64   :
+    case MEMORY_TYPE_UINT64  :
+    case MEMORY_TYPE_FLOAT64 :
+      {
+        unsigned long long x64_Value;
+
+        for (i32_blobCnt=0; i32_blobCnt<i32_memory_size; i32_blobCnt++)
+        {
+          x64_Value = (unsigned long long)(*(unsigned long long *)(pv_Data));
+          (*(unsigned long long *)(pv_Data)) = __bswap_64(x64_Value);
+
+          pv_Data+=num_bytes;
+        }
+      }
+      break;
+    default : break;
+  }
+}
+
+void v_NIFTII_swap_2bytes( size_t n , void *ar )
+{
+  register size_t ii ;
+  unsigned char * cp1 = (unsigned char *)ar, * cp2 ;
+  unsigned char   tval;
+
+  for( ii=0 ; ii < n ; ii++ )
+  {
+    cp2 = cp1 + 1;
+    tval = *cp1;
+    *cp1 = *cp2;
+    *cp2 = tval;
+    cp1 += 2;
+  }
+  return;
+}
+
+void v_NIFTII_swap_4bytes( size_t n , void *ar )
+{
+  register size_t ii ;
+  unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
+  register unsigned char tval ;
+
+  for( ii=0 ; ii < n ; ii++ )
+  {
+    cp1 = cp0;
+    cp2 = cp0+3;
+    tval = *cp1;
+    *cp1 = *cp2;
+    *cp2 = tval;
+    cp1++;
+    cp2--;
+    tval = *cp1;
+    *cp1 = *cp2;
+    *cp2 = tval;
+    cp0 += 4;
+  }
+  return ;
+}
+
+void v_NIFTII_swap_header( struct nifti_1_header *h , int is_nifti )
+{
+
+   /* if ANALYZE, swap as such and return */
+//   if( ! is_nifti ) {
+//      v_NIFTII_swap_as_analyze((nifti_analyze75 *)h);
+//      return;
+//   }
+
+   /* otherwise, swap all NIFTI fields */
+
+   v_NIFTII_swap_4bytes(1, &h->sizeof_hdr);
+   v_NIFTII_swap_4bytes(1, &h->extents);
+   v_NIFTII_swap_2bytes(1, &h->session_error);
+
+   v_NIFTII_swap_2bytes(8, h->dim);
+   v_NIFTII_swap_4bytes(1, &h->intent_p1);
+   v_NIFTII_swap_4bytes(1, &h->intent_p2);
+   v_NIFTII_swap_4bytes(1, &h->intent_p3);
+
+   v_NIFTII_swap_2bytes(1, &h->intent_code);
+   v_NIFTII_swap_2bytes(1, &h->datatype);
+   v_NIFTII_swap_2bytes(1, &h->bitpix);
+   v_NIFTII_swap_2bytes(1, &h->slice_start);
+
+   v_NIFTII_swap_4bytes(8, h->pixdim);
+
+   v_NIFTII_swap_4bytes(1, &h->vox_offset);
+   v_NIFTII_swap_4bytes(1, &h->scl_slope);
+   v_NIFTII_swap_4bytes(1, &h->scl_inter);
+   v_NIFTII_swap_2bytes(1, &h->slice_end);
+
+   v_NIFTII_swap_4bytes(1, &h->cal_max);
+   v_NIFTII_swap_4bytes(1, &h->cal_min);
+   v_NIFTII_swap_4bytes(1, &h->slice_duration);
+   v_NIFTII_swap_4bytes(1, &h->toffset);
+   v_NIFTII_swap_4bytes(1, &h->glmax);
+   v_NIFTII_swap_4bytes(1, &h->glmin);
+
+   v_NIFTII_swap_2bytes(1, &h->qform_code);
+   v_NIFTII_swap_2bytes(1, &h->sform_code);
+
+   v_NIFTII_swap_4bytes(1, &h->quatern_b);
+   v_NIFTII_swap_4bytes(1, &h->quatern_c);
+   v_NIFTII_swap_4bytes(1, &h->quatern_d);
+   v_NIFTII_swap_4bytes(1, &h->qoffset_x);
+   v_NIFTII_swap_4bytes(1, &h->qoffset_y);
+   v_NIFTII_swap_4bytes(1, &h->qoffset_z);
+
+   v_NIFTII_swap_4bytes(4, h->srow_x);
+   v_NIFTII_swap_4bytes(4, h->srow_y);
+   v_NIFTII_swap_4bytes(4, h->srow_z);
+
+   return ;
+}
 
 
 /*                                                                                                    */
@@ -385,6 +473,75 @@ b_NIFTII_WriteImageToFile (const char* pc_FileName, int i32_BytesToWrite, int i3
 /* GLOBAL FUNCTIONS                                                                                   */
 /*                                                                                                    */
 /*                                                                                                    */
+
+
+te_ImageIOFiletype
+memory_io_niftii_file_type (const char *pc_File)
+{
+  debug_functions ();
+
+  //Check if file exists
+  if (access (pc_File, F_OK) != 0) return 1;
+
+  nifti_1_header *ps_Header;
+  char ac_SwapHeaderImage[512];
+  te_ImageIOFiletype e_FileType;
+
+  ps_Header = (nifti_1_header *)(calloc(1, sizeof (nifti_1_header)));
+  e_FileType = MUMC_FILETYPE_NOT_KNOWN;
+
+  // find extention in string
+  char *ac_Extention = strrchr (pc_File, '.');
+  if (ac_Extention == NULL)
+  {
+    return MUMC_FILETYPE_NOT_KNOWN;
+  }
+
+  if ((!strcasecmp (ac_Extention, ".nii")) || (!strcasecmp (ac_Extention, ".hdr")))
+  {
+    //check if this file contains a valid header
+    if(b_NIFTII_ReadHeaderToMemory((char *)pc_File, ps_Header))
+    {
+      e_FileType= MUMC_FILETYPE_NOT_KNOWN;
+    }
+
+    if (strncmp(ps_Header->magic, "n+", 2)==0)
+    {
+      e_FileType=MUMC_FILETYPE_NIFTII_SF;
+    }
+    else if (strncmp(ps_Header->magic, "ni", 2)==0)
+    {
+      e_FileType=MUMC_FILETYPE_NIFTII_TF;
+    }
+    else if ((ps_Header->sizeof_hdr == MIN_HEADER_SIZE) && (strcasecmp(ac_Extention, ".hdr")==0))
+    {
+      //proberly an Analyze header
+      e_FileType=MUMC_FILETYPE_ANALYZE75;
+    }
+    else
+    {
+      e_FileType=MUMC_FILETYPE_NOT_KNOWN;
+    }
+  }
+  else if (strcasecmp(ac_Extention, ".img")==0)
+  {
+    strncpy(ac_SwapHeaderImage, pc_File, sizeof(ac_SwapHeaderImage));
+    e_FileType = memory_io_niftii_file_type (ac_SwapHeaderImage);
+  }
+  else if (strcasecmp(ac_Extention, ".dcm")==0)
+  {
+    // BUILD HERE A DICOM CHECK
+
+  }
+  else
+  {
+    e_FileType=MUMC_FILETYPE_NOT_KNOWN;
+  }
+
+  free(ps_Header);
+
+  return e_FileType;
+}
 
 short int
 memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Image)
@@ -394,7 +551,10 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
   if (serie == NULL) return 0;
 
   short int i16_BytesToRead;
+  short int i16_wasSwapped=0;
   int i32_PixelsInSlice, i32_MemoryPerSlice, i32_MemoryVolume;
+  Vector3D t_Maximum;
+
 
   nifti_1_header *ps_Header;
   ps_Header = (nifti_1_header *)(calloc (1, sizeof (nifti_1_header)));
@@ -402,9 +562,16 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
 
   b_NIFTII_ReadHeaderToMemory ((char *)pc_Filename, ps_Header);
   // check endiane
+
+  if (ps_Header->sizeof_hdr == 1543569408)
+  {
+    v_NIFTII_swap_header(ps_Header,0);
+    i16_wasSwapped=1;
+  }
+
   if (ps_Header->sizeof_hdr == MIN_HEADER_SIZE)
   {
-    serie->pv_Header = ps_Header;
+//    serie->pv_Header = ps_Header;
 
     serie->matrix.x = ps_Header->dim[1];
     serie->matrix.y = ps_Header->dim[2];
@@ -412,116 +579,99 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
 
     serie->num_time_series = ps_Header->dim[4];
 
-    serie->pixel_dimension.x = ps_Header->pixdim[1];
-    serie->pixel_dimension.y = ps_Header->pixdim[2];
-    serie->pixel_dimension.z = ps_Header->pixdim[3];
+
+    if ((ps_Header->pixdim[0] == -1) || (ps_Header->pixdim[0] == 1))
+    {
+      serie->d_Qfac=ps_Header->pixdim[0];
+    }
+    else
+    {
+      serie->d_Qfac=1;
+    }
+
+
+
+    serie->pixel_dimension.x = (ps_Header->pixdim[1]>0)?ps_Header->pixdim[1]:1;
+    serie->pixel_dimension.y = (ps_Header->pixdim[2]>0)?ps_Header->pixdim[2]:1;
+    serie->pixel_dimension.z = (ps_Header->pixdim[3]>0)?ps_Header->pixdim[3]:1;
+
 
     serie->slope = ps_Header->scl_slope;
     serie->offset = ps_Header->scl_inter;
 
+
+    serie->u8_AxisUnits = ps_Header->xyzt_units;
+
     serie->raw_data_type = ps_Header->datatype;
     serie->data_type = e_NIFTII_ConvertNIFTIIToMemoryDataType (ps_Header->datatype);
     serie->input_type=memory_io_niftii_file_type((char *)pc_Filename);
+
+    // check if niftii is true niftii or analyze file
+    if (memcmp(ps_Header->magic, "n+1\0", 4) == 0)
+    {
+      //File is in a niftii1 format read quaternions en standard space matrix
+
+      serie->i16_QuaternionCode = ps_Header->qform_code;
+
+      serie->ps_Quaternion = calloc (1, sizeof (ts_Quaternion));
+      serie->ps_QuaternationOffset = calloc (1, sizeof (Vector3D));
+
+      serie->ps_Quaternion->I = ps_Header->quatern_b;
+      serie->ps_Quaternion->J = ps_Header->quatern_c;
+      serie->ps_Quaternion->K = ps_Header->quatern_d;
+
+      serie->ps_QuaternationOffset->I = ps_Header->qoffset_x;
+      serie->ps_QuaternationOffset->J = ps_Header->qoffset_y;
+      serie->ps_QuaternationOffset->K = ps_Header->qoffset_z;
+
+
+
+      serie->i16_StandardSpaceCode = ps_Header->sform_code;
+
+      t_Maximum.x = sqrt(ps_Header->srow_x[0] *ps_Header->srow_x[0] + ps_Header->srow_y[0]*ps_Header->srow_y[0] + ps_Header->srow_z[0]*ps_Header->srow_z[0]);
+      t_Maximum.y = sqrt(ps_Header->srow_x[1] *ps_Header->srow_x[1] + ps_Header->srow_y[1]*ps_Header->srow_y[1] + ps_Header->srow_z[1]*ps_Header->srow_z[1]);
+      t_Maximum.z = sqrt(ps_Header->srow_x[2] *ps_Header->srow_x[2] + ps_Header->srow_y[2]*ps_Header->srow_y[2] + ps_Header->srow_z[2]*ps_Header->srow_z[2]);
+
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0]=ps_Header->srow_x[0] / t_Maximum.x;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1]=ps_Header->srow_x[1] / t_Maximum.x;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2]=ps_Header->srow_x[2] / t_Maximum.x;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3]=ps_Header->srow_x[3];
+
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0]=ps_Header->srow_y[0] / t_Maximum.y;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1]=ps_Header->srow_y[1] / t_Maximum.y;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2]=ps_Header->srow_y[2] / t_Maximum.y;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3]=ps_Header->srow_y[3];
+
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0]=ps_Header->srow_z[0] / t_Maximum.z;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1]=ps_Header->srow_z[1] / t_Maximum.z;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2]=ps_Header->srow_z[2] / t_Maximum.z;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3]=ps_Header->srow_z[3];
+
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][0]=0;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][1]=0;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][2]=0;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][3]=1;
+
+      if (serie->i16_StandardSpaceCode > 0)
+      {
+        serie->t_StandardSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&serie->t_StandardSpaceIJKtoXYZ);
+        serie->pt_RotationMatrix = &serie->t_StandardSpaceXYZtoIJK;
+        serie->pt_InverseMatrix = &serie->t_StandardSpaceIJKtoXYZ;
+
+      }
+      else
+      {
+        v_memory_io_handleSpace (serie);
+        serie->pt_RotationMatrix = &serie->t_ScannerSpaceXYZtoIJK;
+        serie->pt_InverseMatrix = &serie->t_ScannerSpaceIJKtoXYZ;
+      }
+    }
 
     i16_BytesToRead = i16_NIFTII_GetMemorySizePerElement (ps_Header->datatype);
 
     i32_PixelsInSlice = serie->matrix.x * serie->matrix.y;
     i32_MemoryPerSlice = i16_BytesToRead * i32_PixelsInSlice;
     i32_MemoryVolume = i32_MemoryPerSlice * serie->matrix.z * serie->num_time_series;
-
-
-    serie->i16_QuaternionCode = ps_Header->qform_code;
-    serie->ps_Quaternion = memory_quaternion_new ();
-    serie->ps_QuternationOffset = memory_quaternion_new ();
-
-    serie->ps_Quaternion->I = ps_Header->quatern_b;
-    serie->ps_Quaternion->J = ps_Header->quatern_c;
-    serie->ps_Quaternion->K = ps_Header->quatern_d;
-
-    serie->ps_Quaternion->W = sqrt(1.0 - (serie->ps_Quaternion->I * serie->ps_Quaternion->I +
-                                          serie->ps_Quaternion->J * serie->ps_Quaternion->J +
-                                          serie->ps_Quaternion->K * serie->ps_Quaternion->K));
-
-
-    serie->ps_QuternationOffset->I = ps_Header->qoffset_x;
-    serie->ps_QuternationOffset->J = ps_Header->qoffset_y;
-    serie->ps_QuternationOffset->K = ps_Header->qoffset_z;
-/*
-    printf("Quaternion\n");
-    printf(" W         : %f\n",serie->ps_Quaternion->W);
-    printf(" [I, J, K] : [%.3f,%.3f,%.3f]\n",serie->ps_Quaternion->I,serie->ps_Quaternion->J,serie->ps_Quaternion->K);
-
-    printf("Offset\n");
-    printf(" [x, y, z] : [%.3f,%.3f,%.3f]\n",serie->ps_QuternationOffset->I,serie->ps_QuternationOffset->J,serie->ps_QuternationOffset->K);
-
-*/
-    serie->data = calloc (1, i32_MemoryVolume);
-    serie->pv_OutOfBlobValue = calloc (1, i16_BytesToRead);
-
-    if (serie->data != NULL)
-    {
-      int i32_Offset;
-      if (pc_Image==NULL)
-      {
-        // Image and header file are the same;
-        i32_Offset=NII_HEADER_SIZE;
-        b_NIFTII_ReadVolumeToMemory ((char *)pc_Filename, i32_Offset, i32_MemoryVolume, serie->data);
-      }
-    }
-    memory_serie_set_upper_and_lower_borders_from_data(serie);
-//    free (ps_Header), ps_Header = NULL;
-    return 1;
-  }
-  else if (ps_Header->sizeof_hdr == 1543569408) // big endian file
-  {
-    serie->pv_Header = ps_Header;
-
-    serie->matrix.x = __bswap_constant_16(ps_Header->dim[1]);
-    serie->matrix.y = __bswap_constant_16(ps_Header->dim[2]);
-    serie->matrix.z = __bswap_constant_16(ps_Header->dim[3]);
-
-    serie->num_time_series = __bswap_constant_16(ps_Header->dim[4]);
-
-    serie->pixel_dimension.x = __bswap_32(ps_Header->pixdim[1]);
-    serie->pixel_dimension.y = __bswap_32(ps_Header->pixdim[2]);
-    serie->pixel_dimension.z = __bswap_32(ps_Header->pixdim[3]);
-
-    serie->pixel_dimension.x = (serie->pixel_dimension.x==0) ? 1 : serie->pixel_dimension.x;
-    serie->pixel_dimension.y = (serie->pixel_dimension.y==0) ? 1 : serie->pixel_dimension.y;
-    serie->pixel_dimension.z = (serie->pixel_dimension.z==0) ? 1 : serie->pixel_dimension.z;
-
-
-    serie->slope = __bswap_32(ps_Header->scl_slope);
-    serie->offset = __bswap_32(ps_Header->scl_inter);
-
-    serie->raw_data_type = __bswap_16(ps_Header->datatype);
-    serie->data_type = e_NIFTII_ConvertNIFTIIToMemoryDataType (__bswap_16(ps_Header->datatype));
-    serie->input_type=memory_io_niftii_file_type((char *)pc_Filename);
-
-    i16_BytesToRead = i16_NIFTII_GetMemorySizePerElement (__bswap_16(ps_Header->datatype));
-
-    i32_PixelsInSlice = serie->matrix.x * serie->matrix.y;
-    i32_MemoryPerSlice = i16_BytesToRead * i32_PixelsInSlice;
-    i32_MemoryVolume = i32_MemoryPerSlice * serie->matrix.z * serie->num_time_series;
-
-
-    serie->i16_QuaternionCode = __bswap_16(ps_Header->qform_code);
-    serie->ps_Quaternion = memory_quaternion_new ();
-    serie->ps_QuternationOffset = memory_quaternion_new ();
-
-    serie->ps_Quaternion->I = __bswap_32(ps_Header->quatern_b);
-    serie->ps_Quaternion->J = __bswap_32(ps_Header->quatern_c);
-    serie->ps_Quaternion->K = __bswap_32(ps_Header->quatern_d);
-
-    serie->ps_Quaternion->W = sqrt(1.0 - (serie->ps_Quaternion->I * serie->ps_Quaternion->I +
-                                          serie->ps_Quaternion->J * serie->ps_Quaternion->J +
-                                          serie->ps_Quaternion->K * serie->ps_Quaternion->K));
-
-
-
-    serie->ps_QuternationOffset->I = __bswap_32(ps_Header->qoffset_x);
-    serie->ps_QuternationOffset->J = __bswap_32(ps_Header->qoffset_y);
-    serie->ps_QuternationOffset->K = __bswap_32(ps_Header->qoffset_z);
 
 
     serie->data = calloc (1, i32_MemoryVolume);
@@ -536,19 +686,24 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
         i32_Offset=sizeof(nifti_1_header);
         b_NIFTII_ReadVolumeToMemory ((char *)pc_Filename, i32_Offset, i32_MemoryVolume, serie->data);
 
-        memory_serie_convert_data_big_to_little_endian(serie);
-
+        if (i16_wasSwapped)
+        {
+          v_NIFTII_convert_data_big_to_little_endian(serie);
+        }
       }
     }
     memory_serie_set_upper_and_lower_borders_from_data(serie);
+
     return 1;
   }
+
   else
   {
     #ifdef ENABLE_DEBUGGING
     printf("Big endian files are not supported");
     #endif
   }
+
   return 0;
 }
 
@@ -564,10 +719,7 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
   ps_Header = calloc (1, NII_HEADER_SIZE);
   if (ps_Header == NULL) return 1;
 
-  memcpy (ps_Header, serie->pv_Header, sizeof (nifti_1_header));
-
   ps_Header->sizeof_hdr = MIN_HEADER_SIZE;
-
 
   ps_Header->dim[0] = (serie->num_time_series>1) ? 4 : 3;
   ps_Header->dim[1] = serie->matrix.x;

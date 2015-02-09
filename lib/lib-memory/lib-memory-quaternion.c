@@ -23,172 +23,123 @@
 #include <stdlib.h>
 #include <math.h>
 
-ts_Quaternion *memory_quaternion_new(void)
-{
-  debug_functions ();
+/*                                                                                                    */
+/*                                                                                                    */
+/* LOCAL FUNCTIONS                                                                                    */
+/*                                                                                                    */
+/*                                                                                                    */
 
-  return calloc (1, sizeof (ts_Quaternion));
+
+/*                                                                                                    */
+/*                                                                                                    */
+/* GLOBAL FUNCTIONS                                                                                   */
+/*                                                                                                    */
+/*                                                                                                    */
+td_Matrix4x4 tda_memory_quaternion_to_matrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, Coordinate3D *ps_pixel_dimension, double d_Qfac)
+{
+  td_Matrix4x4 td_Rotation;
+
+  td_Rotation.d_Matrix[3][0] = 0.0;
+  td_Rotation.d_Matrix[3][1] = 0.0;
+  td_Rotation.d_Matrix[3][2] = 0.0;
+  td_Rotation.d_Matrix[3][3] = 1.0;
+
+
+  td_Rotation.d_Matrix[0][0] =     (ps_Source->W * ps_Source->W + ps_Source->I * ps_Source->I + ps_Source->J * ps_Source->J + ps_Source->K * ps_Source->K) * ps_pixel_dimension->x;
+  td_Rotation.d_Matrix[0][1] = 2 * (ps_Source->I * ps_Source->J - ps_Source->W * ps_Source->K) * ps_pixel_dimension->y;
+  td_Rotation.d_Matrix[0][2] = 2 * (ps_Source->I * ps_Source->K - ps_Source->W * ps_Source->J) * d_Qfac * ps_pixel_dimension->z;
+  td_Rotation.d_Matrix[0][3] = ps_SourceOffset->I;
+
+  td_Rotation.d_Matrix[1][0] = 2 * (ps_Source->I * ps_Source->J + ps_Source->W * ps_Source->K) * ps_pixel_dimension->x;
+  td_Rotation.d_Matrix[1][1] =     (ps_Source->W * ps_Source->W - ps_Source->I * ps_Source->I + ps_Source->J * ps_Source->J - ps_Source->K * ps_Source->K) * ps_pixel_dimension->y;
+  td_Rotation.d_Matrix[1][2] = 2 * (ps_Source->J * ps_Source->K - ps_Source->W * ps_Source->I) * ps_pixel_dimension->z * d_Qfac;
+  td_Rotation.d_Matrix[1][3] = ps_SourceOffset->J;
+
+  td_Rotation.d_Matrix[2][0] = 2 * (ps_Source->I * ps_Source->K - ps_Source->W * ps_Source->J) * ps_pixel_dimension->x;
+  td_Rotation.d_Matrix[2][1] = 2 * (ps_Source->J * ps_Source->K + ps_Source->W * ps_Source->I) * ps_pixel_dimension->y;
+  td_Rotation.d_Matrix[2][2] =     (ps_Source->W * ps_Source->W - ps_Source->I * ps_Source->I - ps_Source->J * ps_Source->J + ps_Source->K * ps_Source->K) * ps_pixel_dimension->z * d_Qfac;
+  td_Rotation.d_Matrix[2][3] = ps_SourceOffset->K;
+
+  return td_Rotation;
 }
 
-ts_Quaternion *memory_quaternion_set(double W, double A, double B, double C)
+td_Matrix4x4 tda_memory_quaternion_inverse_matrix(td_Matrix4x4 *ps_Matrix)
 {
-  ts_Quaternion *ts_quaternion = malloc(sizeof(ts_Quaternion));
+  double d_Determinant;
+  double r11,r12,r13,r21,r22,r23,r31,r32,r33,v1,v2,v3;
+  td_Matrix4x4 td_Inverse;
 
-  if (ts_quaternion != NULL) {
-    ts_quaternion->W = W;
-    ts_quaternion->I = A;
-    ts_quaternion->J = B;
-    ts_quaternion->K = C;
-  }
-  return ts_quaternion;
+  /* [ r11 r12 r13 v1 ] */
+  /* [ r21 r22 r23 v2 ] */
+  /* [ r31 r32 r33 v3 ] */
+  /* [  0   0   0   1 ] */
+
+  r11 = ps_Matrix->d_Matrix[0][0];
+  r12 = ps_Matrix->d_Matrix[0][1];
+  r13 = ps_Matrix->d_Matrix[0][2];
+  v1  = ps_Matrix->d_Matrix[0][3];
+
+  r21 = ps_Matrix->d_Matrix[1][0];
+  r22 = ps_Matrix->d_Matrix[1][1];
+  r23 = ps_Matrix->d_Matrix[1][2];
+  v2  = ps_Matrix->d_Matrix[1][3];
+
+  r31 = ps_Matrix->d_Matrix[2][0];
+  r32 = ps_Matrix->d_Matrix[2][1];
+  r33 = ps_Matrix->d_Matrix[2][2];
+  v3  = ps_Matrix->d_Matrix[2][3];
+
+  d_Determinant = r11*r22*r33 - r11*r32*r23 - r21*r12*r33 + r21*r32*r13 + r31*r12*r23 - r31*r22*r13 ;
+  d_Determinant = (d_Determinant == 0 ) ? d_Determinant : 1 / d_Determinant;
+
+  td_Inverse.d_Matrix[0][0] = d_Determinant ;
+
+  td_Inverse.d_Matrix[0][0] = d_Determinant * ( r22*r33-r32*r23);
+  td_Inverse.d_Matrix[0][1] = d_Determinant * (-r12*r33+r32*r13);
+  td_Inverse.d_Matrix[0][2] = d_Determinant * ( r12*r23-r22*r13);
+  td_Inverse.d_Matrix[0][3] = d_Determinant * (-r12*r23*v3 + r12*v2*r33 + r22*r13*v3 - r22*v1*r33 - r32*r13*v2 + r32*v1*r23);
+
+  td_Inverse.d_Matrix[1][0] = d_Determinant * (-r21*r33+r31*r23);
+  td_Inverse.d_Matrix[1][1] = d_Determinant * ( r11*r33-r31*r13);
+  td_Inverse.d_Matrix[1][2] = d_Determinant * (-r11*r23+r21*r13);
+  td_Inverse.d_Matrix[1][3] = d_Determinant * ( r11*r23*v3 - r11*v2*r33 - r21*r13*v3 + r21*v1*r33 + r31*r13*v2 - r31*v1*r23);
+
+  td_Inverse.d_Matrix[2][0] = d_Determinant * ( r21*r32-r31*r22);
+  td_Inverse.d_Matrix[2][1] = d_Determinant * (-r11*r32+r31*r12);
+  td_Inverse.d_Matrix[2][2] = d_Determinant * ( r11*r22-r21*r12);
+  td_Inverse.d_Matrix[2][3] = d_Determinant * (-r11*r22*v3 + r11*r32*v2 + r21*r12*v3 - r21*r32*v1 - r31*r12*v2 + r31*r22*v1);
+
+  td_Inverse.d_Matrix[3][0] = 0;
+  td_Inverse.d_Matrix[3][1] = 0;
+  td_Inverse.d_Matrix[3][2] = 0;
+  td_Inverse.d_Matrix[3][3] = (d_Determinant == 0) ? 0 : 1 ;
+
+  return td_Inverse;
 }
 
-ts_Quaternion *memory_quaternion_copy(ts_Quaternion *ps_source)
+Vector3D ts_memory_matrix_multiply4x4(td_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector)
 {
-  debug_functions ();
+  Vector3D ts_MultiplyVector;
 
-  ts_Quaternion *ps_destination = memory_quaternion_new ();
+  ts_MultiplyVector.x = ps_Vector->x  * ps_Matrix->d_Matrix[0][0] +
+                        ps_Vector->y  * ps_Matrix->d_Matrix[0][1] +
+                        ps_Vector->z  * ps_Matrix->d_Matrix[0][2] +
+                        ps_Matrix->d_Matrix[0][3];
 
-  if ((ps_source == NULL || ps_destination == NULL)) return NULL;
+  ts_MultiplyVector.y = ps_Vector->x  * ps_Matrix->d_Matrix[1][0] +
+                        ps_Vector->y  * ps_Matrix->d_Matrix[1][1] +
+                        ps_Vector->z  * ps_Matrix->d_Matrix[1][2] +
+                        ps_Matrix->d_Matrix[1][3];
 
-  ps_destination->W = ps_source->W;
-  ps_destination->I = ps_source->I;
-  ps_destination->J = ps_source->J;
-  ps_destination->K = ps_source->K;
-  return ps_destination;
-}
+  ts_MultiplyVector.z = ps_Vector->x  * ps_Matrix->d_Matrix[2][0] +
+                        ps_Vector->y  * ps_Matrix->d_Matrix[2][1] +
+                        ps_Vector->z  * ps_Matrix->d_Matrix[2][2] +
+                        ps_Matrix->d_Matrix[2][3];
 
-
-double memory_quaternion_normalize(ts_Quaternion *ts_quaternion)
-{
-  debug_functions ();
-
-  double d_normalisation = 0.0;
-
-  if (ts_quaternion == NULL)
-  {
-    return 0.0;
-  }
-
-  d_normalisation = ts_quaternion->W * ts_quaternion->W +
-                    ts_quaternion->I * ts_quaternion->I +
-                    ts_quaternion->J * ts_quaternion->J +
-                    ts_quaternion->K * ts_quaternion->K;
-
-  return sqrt(d_normalisation);
-}
-
-
-ts_Quaternion *memory_quaternion_negative(ts_Quaternion *ps_source)
-{
-  debug_functions ();
-
-  ts_Quaternion *ps_destination = memory_quaternion_new ();
-  if ((ps_source == NULL) || (ps_destination == NULL)) return NULL;
-
-  ps_destination->W = -ps_source->W;
-  ps_destination->I = -ps_source->I;
-  ps_destination->J = -ps_source->J;
-  ps_destination->K = -ps_source->K;
-
-  return ps_destination;
-}
-
-
-ts_Quaternion *memory_quaternion_conjungate(ts_Quaternion *ps_source)
-{
-  debug_functions ();
-
-  ts_Quaternion *ps_destination = memory_quaternion_new ();
-
-  if ((ps_source == NULL || ps_destination == NULL)) return NULL;
-
-  ps_destination->W = ps_source->W;
-
-  ps_destination->I = -ps_source->I;
-  ps_destination->J = -ps_source->J;
-  ps_destination->K = -ps_source->K;
-
-  return ps_destination;
-}
-
-
-ts_Quaternion *memory_quaternion_add_value(ts_Quaternion *ps_source, double d_Value)
-{
-  debug_functions ();
-
-  ts_Quaternion *ps_destination = memory_quaternion_copy (ps_source);
-
-  if ((ps_source == NULL || ps_destination == NULL)) return NULL;
-
-  ps_destination->W += d_Value;
-  return ps_destination;
-}
-
-
-ts_Quaternion *memory_quaternion_add(ts_Quaternion *ps_first, ts_Quaternion *ps_second)
-{
-  debug_functions ();
-
-  ts_Quaternion *ps_destination = memory_quaternion_new ();
-  if ((ps_first == NULL) || (ps_second == NULL) || (ps_destination == NULL)) return NULL;
-
-  ps_destination->W = ps_first->W + ps_second->W;
-  ps_destination->I = ps_first->I + ps_second->I;
-  ps_destination->J = ps_first->J + ps_second->J;
-  ps_destination->K = ps_first->K + ps_second->K;
-
-  return ps_destination;
-}
-
-short int memory_quaternion_equal(ts_Quaternion *ps_first, ts_Quaternion *ps_second)
-{
-  debug_functions ();
-
-  if ((ps_first->W == ps_second->W ) ||
-      (ps_first->I == ps_second->I ) ||
-      (ps_first->J == ps_second->J ) ||
-      (ps_first->K == ps_second->K ))
-  {
-    return 1;
-  }
-  return 0;
-}
-
-ts_Quaternion *memory_quaternion_multiply_double(ts_Quaternion *ps_source, double d_Value)
-{
-  debug_functions ();
-
-  ts_Quaternion *ps_destination = memory_quaternion_new ();
-  if ((ps_source == NULL || ps_destination == NULL)) return NULL;
-
-  ps_destination->W = ps_source->W * d_Value;
-  ps_destination->I = ps_source->I * d_Value;
-  ps_destination->J = ps_source->J * d_Value;
-  ps_destination->K = ps_source->K * d_Value;
-
-  return ps_destination;
+  return ts_MultiplyVector;
 }
 
 
-ts_Quaternion *memory_quaternion_multiply(ts_Quaternion *ps_first, ts_Quaternion *ps_second)
-{
-  debug_functions ();
 
-  ts_Quaternion *ps_destination = memory_quaternion_new ();
-/*
-  R(0) = A(0)*B(0) - A(1)*B(1) - A(2)*B(2) - A(3)*B(3);
-  R(1) = A(0)*B(1) + A(1)*B(0) + A(2)*B(3) - A(3)*B(2);
-  R(2) = A(0)*B(2) - A(1)*B(3) + A(2)*B(0) + A(3)*B(1);
-  R(3) = A(0)*B(3) + A(1)*B(2) - A(2)*B(1) + A(3)*B(0);
-*/
 
-  if ((ps_first == NULL) || (ps_second == NULL) || (ps_destination == NULL)) return NULL;
 
-  ps_destination->W = ps_first->W * ps_second->W - ps_first->I * ps_second->I - ps_first->J * ps_second->J - ps_first->K * ps_second->K;
-  ps_destination->I = ps_first->W * ps_second->I + ps_first->I * ps_second->W + ps_first->J * ps_second->K - ps_first->K * ps_second->J;
-  ps_destination->J = ps_first->W * ps_second->J - ps_first->I * ps_second->K + ps_first->J * ps_second->W + ps_first->K * ps_second->I;
-  ps_destination->K = ps_first->W * ps_second->K + ps_first->I * ps_second->J - ps_first->J * ps_second->I + ps_first->K * ps_second->W;
-
-  return ps_destination;
-}
