@@ -27,21 +27,20 @@
 #include <assert.h>
 #include <math.h>
 
+#include <time.h>
+
 #define MEMORY_CAST(data_type,source)                                    \
-( ((data_type)==(MEMORY_TYPE_INT8))    ? ((signed char *)source) :       \
-  (((data_type)==(MEMORY_TYPE_INT16))   ? ((signed short int*)source) :  \
+(  ((data_type)==(MEMORY_TYPE_INT16))   ? ((signed short int*)source) :  \
+  (((data_type)==(MEMORY_TYPE_FLOAT32)) ? ((float*)source) :             \
+  (((data_type)==(MEMORY_TYPE_INT8))    ? ((signed char *)source) :      \
   (((data_type)==(MEMORY_TYPE_INT32))   ? ((signed int*)source) :        \
   (((data_type)==(MEMORY_TYPE_INT64))   ? ((signed long int*)source) :   \
   (((data_type)==(MEMORY_TYPE_UINT8))   ? ((unsigned char*)source) :     \
   (((data_type)==(MEMORY_TYPE_UINT16))  ? ((unsigned short int*)source) :\
   (((data_type)==(MEMORY_TYPE_UINT32))  ? ((unsigned int*)source) :      \
   (((data_type)==(MEMORY_TYPE_UINT64))  ? ((unsigned long*)source) :     \
-  (((data_type)==(MEMORY_TYPE_FLOAT32)) ? ((float*)source) :             \
   (((data_type)==(MEMORY_TYPE_FLOAT64)) ? ((double*)source) :            \
   ((void*)source) ))))))))))
-
-
-
 
 /*                                                                                                    */
 /*                                                                                                    */
@@ -208,10 +207,12 @@ memory_slice_get_data (Slice *slice)
 
   Vector3D ts_pointInPlane;
   Vector3D ts_PositionVector;
+  Vector3D ts_TmpPosition;
 
   Vector3D ts_Startpoint;
   Vector3D ts_EndPoint;
   Vector3D ts_Delta;
+
 
   ViewportProperties *p_ViewportProps = &slice->viewportProperties;
 
@@ -231,6 +232,7 @@ memory_slice_get_data (Slice *slice)
   void **ppv_CntData = NULL;
 
 
+  slice->i16_ViewportChange=1;
 
   if (slice->i16_ViewportChange)
   {
@@ -438,36 +440,64 @@ memory_slice_get_data (Slice *slice)
   ppv_CntData = ppv_Data;
 
 
+  short int i16_positionX;
+  short int i16_positionY;
+  short int i16_positionZ;
+
+  short int i16_MatrixX=(short int)(serie->matrix.x);
+  short int i16_MatrixY=(short int)(serie->matrix.y);
+  short int i16_MatrixZ=(short int)(serie->matrix.z);
+
+  /*
+
+  clock_t begin, end;
+  double time_spent;
+  begin = clock();
+  */
 
   i16_heightCnt = p_ViewportProps->i16_StartHeight;
   while (i16_heightCnt != p_ViewportProps->i16_StopHeight)
   {
+    ts_TmpPosition.x = ts_PositionVector.x + i16_heightCnt*p_ViewportProps->ts_perpendicularVector.x + p_ViewportProps->i16_StartWidth * p_ViewportProps->ts_crossproductVector.x;
+    ts_TmpPosition.y = ts_PositionVector.y + i16_heightCnt*p_ViewportProps->ts_perpendicularVector.y + p_ViewportProps->i16_StartWidth * p_ViewportProps->ts_crossproductVector.y;
+    ts_TmpPosition.z = ts_PositionVector.z + i16_heightCnt*p_ViewportProps->ts_perpendicularVector.z + p_ViewportProps->i16_StartWidth * p_ViewportProps->ts_crossproductVector.z;
+
     i16_widthCnt=p_ViewportProps->i16_StartWidth;
     while (i16_widthCnt != p_ViewportProps->i16_StopWidth)
     {
+      if (p_ViewportProps->i32_StrideWidth > 0)
+      {
+        ts_TmpPosition.x +=  p_ViewportProps->ts_crossproductVector.x;
+        ts_TmpPosition.y +=  p_ViewportProps->ts_crossproductVector.y;
+        ts_TmpPosition.z +=  p_ViewportProps->ts_crossproductVector.z;
+      }
+      else
+      {
+        ts_TmpPosition.x -=  p_ViewportProps->ts_crossproductVector.x;
+        ts_TmpPosition.y -=  p_ViewportProps->ts_crossproductVector.y;
+        ts_TmpPosition.z -=  p_ViewportProps->ts_crossproductVector.z;
+      }
 
-      ts_pointInPlane.x = ts_PositionVector.x + i16_heightCnt*p_ViewportProps->ts_perpendicularVector.x + i16_widthCnt*p_ViewportProps->ts_crossproductVector.x;
-      ts_pointInPlane.y = ts_PositionVector.y + i16_heightCnt*p_ViewportProps->ts_perpendicularVector.y + i16_widthCnt*p_ViewportProps->ts_crossproductVector.y;
-      ts_pointInPlane.z = ts_PositionVector.z + i16_heightCnt*p_ViewportProps->ts_perpendicularVector.z + i16_widthCnt*p_ViewportProps->ts_crossproductVector.z;
 
-      ts_pointInPlane.x = roundf(ts_pointInPlane.x);
-      ts_pointInPlane.y = roundf(ts_pointInPlane.y);
-      ts_pointInPlane.z = roundf(ts_pointInPlane.z);
+      i16_positionX=(short int)(floor(ts_TmpPosition.x));
+      i16_positionY=(short int)(floor(ts_TmpPosition.y));
+      i16_positionZ=(short int)(floor(ts_TmpPosition.z));
 
-      if ((ts_pointInPlane.x > serie->matrix.x) ||
-          (ts_pointInPlane.y > serie->matrix.y) ||
-          (ts_pointInPlane.z > serie->matrix.z) ||
-          (ts_pointInPlane.x < 0) ||
-          (ts_pointInPlane.y < 0) ||
-          (ts_pointInPlane.z < 0))
+      if ((i16_positionX > i16_MatrixX) ||
+          (i16_positionY > i16_MatrixY) ||
+          (i16_positionZ > i16_MatrixZ) ||
+          (i16_positionX < 0) ||
+          (i16_positionY < 0) ||
+          (i16_positionZ < 0))
       {
         pv_OrigData = serie->pv_OutOfBlobValue;
       }
       else
       {
-        i32_MemoryOffset = ((int)(ts_pointInPlane.z) * (int)(serie->matrix.y) * (int)(serie->matrix.x) + //depth offset in blob
-                          (int)(ts_pointInPlane.y) * (int)(serie->matrix.x) +  // Y offset in blob
-                          (int)(ts_pointInPlane.x)) * i16_BytesToRead;
+        i32_MemoryOffset  = ((int)(i16_positionZ * i16_MatrixX * i16_MatrixY) +
+                             (int)(i16_positionY * i16_MatrixX) +
+                             (int)(i16_positionX)) * i16_BytesToRead;
+
 
         if ((i32_MemoryOffset < 0 ) || (i32_MemoryOffset >= i32_MemoryInBlob))
         {
@@ -490,6 +520,12 @@ memory_slice_get_data (Slice *slice)
     i16_heightCnt += p_ViewportProps->i32_StrideHeight;
   }
 
+
+  /*
+  end = clock();
+  time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+  printf("timespent %10.5f sec\n",time_spent);
+  */
 
   return ppv_Data;
 }
