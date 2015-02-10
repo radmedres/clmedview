@@ -253,7 +253,7 @@ viewer_on_mouse_scroll (UNUSED ClutterActor *actor, ClutterEvent *event, gpointe
 {
   debug_functions ();
   debug_events ();
-  
+
   Viewer *resources = (Viewer *)data;
   assert (resources != NULL);
 
@@ -291,7 +291,7 @@ viewer_update_slices (List *pll_MaskSeries, double f_Z)
     assert (current != NULL);
 
     Slice *current_slice = PIXELDATA_ACTIVE_SLICE (current);
-          
+
     PIXELDATA_ACTIVE_SLICE (current) =
       memory_slice_get_nth (current_slice, f_Z);
 
@@ -762,7 +762,7 @@ viewer_draw_mask (Viewer *resources, Coordinate ts_MousePosition, PixelAction te
     debug_warning ("There's no active painter.", NULL);
     return;
   }
-  
+
   Plugin *plugin = resources->ts_ActivePainter;
   if (plugin->fp_Callback == NULL)
   {
@@ -848,7 +848,7 @@ viewer_resize (Viewer *resources, int width, int height)
   assert (resources != NULL);
 
   viewer_set_optimal_fit (resources);
-  
+
   int i32_Width = clutter_actor_get_width (resources->c_Actor);
   int i32_Height = clutter_actor_get_height (resources->c_Actor);
 
@@ -1018,16 +1018,16 @@ viewer_on_mouse_move (UNUSED ClutterActor *actor, ClutterEvent *event, gpointer 
 
     int i32_ViewPortWidth = clutter_actor_get_width (resources->c_Stage);
     int i32_ViewPortHeight = clutter_actor_get_height (resources->c_Stage);
-    
+
     //float f_LinearFactor = serie->i32_MaximumValue / serie->matrix.y;
     Coordinate ts_LinearFactor;
     ts_LinearFactor.x = serie->i32_MaximumValue / (i32_ViewPortWidth * 0.80);
     ts_LinearFactor.y = serie->i32_MaximumValue / (i32_ViewPortHeight * 0.80);
     debug_extra ("ts_LinearFactor = [ %.2f, %.2f ]", ts_LinearFactor.x, ts_LinearFactor.y);
-    
+
     ts_NewWindowLevel.minimum = pixeldata->WWWL.minimum + ts_Diff.x * ts_LinearFactor.x;
     ts_NewWindowLevel.maximum = pixeldata->WWWL.maximum + ts_Diff.y * ts_LinearFactor.y;
-    
+
     // Make sure the values are positive, and within borders;
     if (ts_NewWindowLevel.minimum < serie->i32_MinimumValue) ts_NewWindowLevel.minimum = 0;
     if (ts_NewWindowLevel.maximum < serie->i32_MinimumValue) ts_NewWindowLevel.maximum = 0;
@@ -1176,13 +1176,13 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
 
   resources->f_ZoomFactor = 1.0;
   resources->is_recording = 0;
-  
+
   Slice *slice = memory_slice_new (ts_Original);
   assert (slice != NULL);
 
-  slice->ps_NormalVector = &resources->ts_NormalVector;
-  slice->ps_PivotPoint = &resources->ts_PivotPoint;
-  slice->ps_upVector = &resources->ts_UpVector;
+  memory_slice_set_NormalVector(slice,&resources->ts_NormalVector);
+  memory_slice_set_PivotPoint(slice,&resources->ts_PivotPoint);
+  memory_slice_set_UpVector(slice,&resources->ts_UpVector);
 
   // Set the default window and level.
   PixelDataLookupTable *default_lut = pixeldata_lookup_table_get_default ();
@@ -1208,11 +1208,11 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
     viewer_add_overlay_serie (resources, pll_Overlays->data);
     pll_Overlays = list_next (pll_Overlays);
   }
-  
+
   /*--------------------------------------------------------------------------.
    | CLUTTER AND GTK INITALIZATION                                            |
    '--------------------------------------------------------------------------*/
-  
+
   resources->c_Embed = gtk_clutter_embed_new ();
   assert (resources->c_Embed != NULL);
 
@@ -1313,9 +1313,9 @@ viewer_add_mask_serie (Viewer *resources, Serie *serie)
   Slice *mask_slice = memory_slice_new (serie);
   assert (mask_slice != NULL);
 
-  mask_slice->ps_NormalVector = &resources->ts_NormalVector;
-  mask_slice->ps_PivotPoint = &resources->ts_PivotPoint;
-  mask_slice->ps_upVector = &resources->ts_UpVector;
+  memory_slice_set_NormalVector(mask_slice, &resources->ts_NormalVector);
+  memory_slice_set_PivotPoint(mask_slice, &resources->ts_PivotPoint);
+  memory_slice_set_UpVector(mask_slice, &resources->ts_UpVector);
 
   if (mask_slice->data != NULL)
     free (mask_slice->data), mask_slice->data = NULL;
@@ -1328,7 +1328,7 @@ viewer_add_mask_serie (Viewer *resources, Serie *serie)
   assert (mask != NULL);
 
   pixeldata_set_alpha (mask, 120);
-  
+
   resources->pll_MaskSeries = list_append (resources->pll_MaskSeries, mask);
 }
 
@@ -1437,9 +1437,12 @@ viewer_set_active_mask_serie (Viewer *resources, Serie *serie)
   Slice *slice = memory_slice_new (serie);
   assert (slice != NULL);
 
-  slice->ps_NormalVector = &resources->ts_NormalVector;
-  slice->ps_PivotPoint = &resources->ts_PivotPoint;
-  slice->ps_upVector = &resources->ts_UpVector;
+  memory_slice_set_NormalVector(slice, &resources->ts_NormalVector);
+  memory_slice_set_PivotPoint(slice, &resources->ts_PivotPoint);
+  memory_slice_set_UpVector(slice, &resources->ts_UpVector);
+
+  slice->i16_ViewportChange = 1;
+
 
   Slice *original_slice = PIXELDATA_ACTIVE_SLICE (resources->ps_Original);
   if (original_slice != NULL)
@@ -1498,6 +1501,8 @@ viewer_set_active_selection_serie (Viewer *resources, Serie *serie)
   Slice *slice = memory_slice_new (serie);
   slice->ps_NormalVector = &resources->ts_NormalVector;
   slice->ps_PivotPoint = &resources->ts_PivotPoint;
+  slice->i16_ViewportChange = 1;
+
 
   if (resources->ps_ActiveSelection != NULL)
     pixeldata_destroy (resources->ps_ActiveSelection);
@@ -1533,9 +1538,10 @@ viewer_add_overlay_serie (Viewer *resources, Serie *serie)
   PixelData *overlay;
   Slice *overlay_slice = memory_slice_new (serie);
 
-  overlay_slice->ps_NormalVector = &resources->ts_NormalVector;
-  overlay_slice->ps_PivotPoint = &resources->ts_PivotPoint;
-  overlay_slice->ps_upVector = &resources->ts_UpVector;
+
+  memory_slice_set_NormalVector(overlay_slice, &resources->ts_NormalVector);
+  memory_slice_set_PivotPoint(overlay_slice, &resources->ts_PivotPoint);
+  memory_slice_set_UpVector(overlay_slice, &resources->ts_UpVector);
 
   if (serie->i32_MaximumValue == 0)
     serie->i32_MaximumValue = 255;
@@ -1581,7 +1587,7 @@ viewer_set_callback (Viewer *resources, const char *name, void (*callback)(Viewe
 
   else if (!strcmp (name, "window-level-change"))
     resources->on_window_level_change_callback = callback;
-  
+
   else
   {
     debug_error ("Event '%s' is not implemented for Viewer.", name);
@@ -1695,7 +1701,7 @@ viewer_destroy (void *data)
   clutter_actor_destroy (resources->c_SliceInfo);
   clutter_actor_destroy (resources->c_Handles);
   clutter_actor_destroy (resources->c_Actor);
-  
+
   g_object_ref_sink (resources->c_Embed);
   gtk_widget_destroy (resources->c_Embed);
   g_object_unref (resources->c_Embed);
@@ -1905,6 +1911,8 @@ viewer_refresh_data (Viewer *resources)
   if (slice->data != NULL)
     free (slice->data), slice->data = NULL;
 
+  memory_slice_set_NormalVector(slice, &resources->ts_NormalVector);
+
   slice->data = memory_slice_get_data (slice);
 
   List *pll_MaskSeries = resources->pll_MaskSeries;
@@ -1922,6 +1930,7 @@ viewer_refresh_data (Viewer *resources)
       if (slice->data != NULL)
         free (slice->data), slice->data = NULL;
 
+      memory_slice_set_NormalVector(slice, &resources->ts_NormalVector);
       slice->data = memory_slice_get_data (slice);
 
       pll_MaskSeries = list_next (pll_MaskSeries);
@@ -1969,7 +1978,7 @@ viewer_toggle_recording (Viewer *resources)
     resources->is_recording = 1;
   }
   else
-    resources->is_recording = 0;    
+    resources->is_recording = 0;
 }
 
 

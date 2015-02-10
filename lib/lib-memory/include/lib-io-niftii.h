@@ -32,8 +32,35 @@
 #define MIN_HEADER_SIZE 348
 #define NII_HEADER_SIZE 352
 
+/**
+ * Determine the type of the file.
+ *
+ * @param path The path to the selected file.
+ *
+ * @return a known file type.
+ */
 te_ImageIOFiletype memory_io_niftii_file_type (const char *path);
+
+/**
+ * Load a niftii file from disk to the selected memory.
+ *
+ * @param serie  The selected memory to store all needed parameters in
+ * @param header Filename/path of the header file
+ * @param image  Filename/path of the image file
+ *
+ * @return 0 or FALSE if function executes wrong, 1 or TRUE if execution is correct
+ */
 short int memory_io_niftii_load (Serie *serie, const char *header, const char *image);
+
+/**
+ * Save a niftii file from memory to disk
+ *
+ * @param serie  The selected memory to store all needed parameters in
+ * @param header Filename/path of the header file
+ * @param image  Filename/path of the image file
+ *
+ * @return 0 or FALSE if function executes wrong, 1 or TRUE if execution is correct
+ */
 short int memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFile);
 
 #endif//NIFTII_NIFTII_H

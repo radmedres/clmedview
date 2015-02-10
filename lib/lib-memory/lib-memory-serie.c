@@ -24,6 +24,7 @@
 #include "lib-memory-io.h"
 #include "lib-common-debug.h"
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,7 +32,18 @@
 #include <limits.h>
 #include <math.h>
 
+/*                                                                                                    */
+/*                                                                                                    */
+/* LOCAL FUNCTIONS                                                                                    */
+/*                                                                                                    */
+/*                                                                                                    */
 
+
+/*                                                                                                    */
+/*                                                                                                    */
+/* GLOBAL FUNCTIONS                                                                                   */
+/*                                                                                                    */
+/*                                                                                                    */
 unsigned long long
 memory_serie_next_id ()
 {
@@ -41,7 +53,6 @@ memory_serie_next_id ()
   id++;
   return id;
 }
-
 
 Serie*
 memory_serie_new (const char *name)
@@ -59,7 +70,6 @@ memory_serie_new (const char *name)
   return serie;
 }
 
-
 void
 memory_serie_destroy (void *data)
 {
@@ -71,12 +81,9 @@ memory_serie_destroy (void *data)
   free (serie->data), serie->data = NULL;
   free (serie->pv_OutOfBlobValue), serie->pv_OutOfBlobValue = NULL;
   free (serie->ps_Quaternion), serie->ps_Quaternion = NULL;
-  free (serie->ps_QuternationOffset), serie->ps_QuternationOffset = NULL;
-  free (serie->pv_Header), serie->pv_Header = NULL;
-
+  free (serie->ps_QuaternationOffset), serie->ps_QuaternationOffset = NULL;
   free (serie), serie = NULL;
 }
-
 
 MemoryDataType
 memory_serie_get_memory_type (Serie *serie)
@@ -86,7 +93,6 @@ memory_serie_get_memory_type (Serie *serie)
   if (serie == NULL) return MEMORY_TYPE_NONE;
   return serie->data_type;
 }
-
 
 short int
 memory_serie_get_memory_space (Serie *serie)
@@ -123,7 +129,6 @@ memory_serie_get_memory_space (Serie *serie)
 
   return num_bytes;
 }
-
 
 void
 memory_serie_set_upper_and_lower_borders_from_data (Serie *serie)
@@ -238,68 +243,6 @@ memory_serie_set_upper_and_lower_borders_from_data (Serie *serie)
   serie->i32_MinimumValue = i32_minimum;
 }
 
-void
-memory_serie_convert_data_big_to_little_endian (Serie *serie)
-{
-  short int num_bytes = memory_serie_get_memory_space(serie);
-
-  unsigned int i32_memory_size = serie->matrix.x * serie->matrix.y * serie->matrix.z * serie->num_time_series;
-  unsigned int i32_blobCnt;
-
-  void *pv_Data=serie->data;
-  switch (serie->data_type)
-  {
-    case MEMORY_TYPE_INT8    :
-    case MEMORY_TYPE_UINT8   :
-      break;
-    case MEMORY_TYPE_INT16   :
-    case MEMORY_TYPE_UINT16  :
-      {
-        unsigned short int x16_Value;
-
-        for (i32_blobCnt=0; i32_blobCnt<i32_memory_size; i32_blobCnt++)
-        {
-          x16_Value = (unsigned short int)(*(unsigned short int *)(pv_Data));
-          (*(unsigned short int *)(pv_Data)) = __bswap_16(x16_Value);
-
-          pv_Data+=num_bytes;
-        }
-      }
-      break;
-    case MEMORY_TYPE_INT32   :
-    case MEMORY_TYPE_UINT32  :
-    case MEMORY_TYPE_FLOAT32 :
-      {
-        unsigned int x32_Value;
-
-        for (i32_blobCnt=0; i32_blobCnt<i32_memory_size; i32_blobCnt++)
-        {
-          x32_Value = (unsigned int)(*(unsigned int *)(pv_Data));
-          (*(unsigned int *)(pv_Data)) = __bswap_32(x32_Value);
-
-          pv_Data+=num_bytes;
-        }
-      }
-      break;
-    case MEMORY_TYPE_INT64   :
-    case MEMORY_TYPE_UINT64  :
-    case MEMORY_TYPE_FLOAT64 :
-      {
-        unsigned long long x64_Value;
-
-        for (i32_blobCnt=0; i32_blobCnt<i32_memory_size; i32_blobCnt++)
-        {
-          x64_Value = (unsigned long long)(*(unsigned long long *)(pv_Data));
-          (*(unsigned long long *)(pv_Data)) = __bswap_64(x64_Value);
-
-          pv_Data+=num_bytes;
-        }
-      }
-      break;
-    default : break;
-  }
-}
-
 Serie *
 memory_serie_create_mask_from_serie (Serie *serie)
 {
@@ -324,19 +267,83 @@ memory_serie_create_mask_from_serie (Serie *serie)
 
   debug_extra ("About to allocate: ~ %.2f megabytes.", data_size / 1000000.0);
 
-  mask->data = calloc (1, data_size);
+  mask->data = malloc (data_size);
   assert (mask->data != NULL);
-  
+
+  memset (mask->data, 0, data_size);
+
   mask->pv_OutOfBlobValue = calloc (1, memory_serie_get_memory_space (mask));
 
-  mask->pv_Header = calloc (1, MIN_HEADER_SIZE);
-  mask->pv_Header = memcpy (mask->pv_Header, serie->pv_Header, MIN_HEADER_SIZE);
+  mask->ps_Quaternion =calloc (1, sizeof (ts_Quaternion));
+  mask->ps_QuaternationOffset = calloc (1, sizeof (ts_Quaternion));
 
-  mask->ps_Quaternion = memory_quaternion_new ();
-  mask->ps_QuternationOffset = NULL;
+  mask->i16_QuaternionCode = serie->i16_QuaternionCode;
+  mask->d_Qfac = serie->d_Qfac;
+
+  mask->ps_Quaternion->I = serie->ps_Quaternion->I;
+  mask->ps_Quaternion->J = serie->ps_Quaternion->J;
+  mask->ps_Quaternion->K = serie->ps_Quaternion->K;
+  mask->ps_Quaternion->W = serie->ps_Quaternion->W;
+
+  mask->ps_QuaternationOffset->I = serie->ps_QuaternationOffset->I;
+  mask->ps_QuaternationOffset->J = serie->ps_QuaternationOffset->J;
+  mask->ps_QuaternationOffset->K = serie->ps_QuaternationOffset->K;
+  mask->ps_QuaternationOffset->W = serie->ps_QuaternationOffset->W;
+
+  mask->t_ScannerSpaceIJKtoXYZ=tda_memory_quaternion_to_matrix(mask->ps_Quaternion, mask->ps_QuaternationOffset, &mask->pixel_dimension, mask->d_Qfac);
+  mask->t_ScannerSpaceXYZtoIJK=tda_memory_quaternion_inverse_matrix(&mask->t_ScannerSpaceIJKtoXYZ);
+
+  mask->i16_StandardSpaceCode = serie->i16_StandardSpaceCode;
+  mask->t_StandardSpaceIJKtoXYZ = serie->t_StandardSpaceIJKtoXYZ;
+  mask->t_StandardSpaceXYZtoIJK = serie->t_StandardSpaceXYZtoIJK;
+
+
 
   mask->i32_MinimumValue = 0;
   mask->i32_MaximumValue = 255;
+  mask->u8_AxisUnits = serie->u8_AxisUnits;
+
+  if (serie->i16_StandardSpaceCode > 0)
+  {
+    mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK;
+    mask->pt_InverseMatrix = &mask->t_StandardSpaceIJKtoXYZ;
+
+  }
+  else
+  {
+    v_memory_io_handleSpace (mask);
+    mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK;
+    mask->pt_InverseMatrix = &mask->t_ScannerSpaceIJKtoXYZ;
+  }
+
+
+
+  if (mask->i16_StandardSpaceCode > 0)
+  {
+    switch(mask->i16_StandardSpaceCode)
+    {
+      case NIFTI_XFORM_UNKNOWN      : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
+      case NIFTI_XFORM_SCANNER_ANAT : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
+      case NIFTI_XFORM_ALIGNED_ANAT : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
+      case NIFTI_XFORM_TALAIRACH    : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
+      case NIFTI_XFORM_MNI_152      : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
+      default                       : mask->pt_RotationMatrix = NULL; break;
+    }
+  }
+  else
+  {
+    switch(mask->i16_QuaternionCode)
+    {
+      case NIFTI_XFORM_UNKNOWN      : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
+      case NIFTI_XFORM_SCANNER_ANAT : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
+      case NIFTI_XFORM_ALIGNED_ANAT : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
+      case NIFTI_XFORM_TALAIRACH    : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
+      case NIFTI_XFORM_MNI_152      : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
+      default                       : mask->pt_RotationMatrix = NULL; break;
+    }
+  }
+
+
 
   char *extension = strstr (serie->name, ".nii");
   if (extension != NULL)
@@ -352,4 +359,80 @@ memory_serie_create_mask_from_serie (Serie *serie)
   }
 
   return mask;
+}
+
+Vector3D
+memory_serie_GetPivotpoint(Serie *serie)
+{
+  Vector3D ts_PivotPoint;
+
+  ts_PivotPoint.x = 0;
+  ts_PivotPoint.y = 0;
+  ts_PivotPoint.z = 0;
+  if (serie != NULL)
+  {
+    ts_PivotPoint.x = serie->matrix.x/2;
+    ts_PivotPoint.y = serie->matrix.y/2;
+    ts_PivotPoint.z = serie->matrix.z/2;
+  }
+
+  return ts_PivotPoint;
+}
+
+void
+v_memory_io_handleSpace (Serie *serie)
+{
+  double d_Rotation=0;
+
+  if (serie->i16_QuaternionCode == NIFTI_XFORM_UNKNOWN)
+  {
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][0] = serie->pixel_dimension.x;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][1] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][2] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][3] = 0;
+
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][0] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][1] = serie->pixel_dimension.y;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][2] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][3] = 0;
+
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][0] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][1] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][2] = serie->pixel_dimension.z;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][3] = 0;
+
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][0] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][1] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][2] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][3] = 1;
+
+    serie->t_ScannerSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&serie->t_ScannerSpaceIJKtoXYZ);
+  }
+  else if (serie->i16_QuaternionCode == NIFTI_XFORM_SCANNER_ANAT)
+  {
+    d_Rotation = 1.0 - (serie->ps_Quaternion->I * serie->ps_Quaternion->I +
+                        serie->ps_Quaternion->J * serie->ps_Quaternion->J +
+                        serie->ps_Quaternion->K * serie->ps_Quaternion->K);
+
+    if (d_Rotation == 0 )
+    {
+      /* Special case according to niftii standard !?!*/
+      /* There should be a 180 degree rotation        */
+      d_Rotation = 1 / sqrt((serie->ps_Quaternion->I * serie->ps_Quaternion->I +
+                                          serie->ps_Quaternion->J * serie->ps_Quaternion->J +
+                                          serie->ps_Quaternion->K * serie->ps_Quaternion->K));
+      serie->ps_Quaternion->I *= d_Rotation;
+      serie->ps_Quaternion->J *= d_Rotation;
+      serie->ps_Quaternion->K *= d_Rotation;
+      serie->ps_Quaternion->W = 0;
+    }
+    else
+    {
+      serie->ps_Quaternion->W = sqrt(d_Rotation);
+    }
+
+    serie->t_ScannerSpaceIJKtoXYZ = tda_memory_quaternion_to_matrix(serie->ps_Quaternion, serie->ps_QuaternationOffset, &serie->pixel_dimension, serie->d_Qfac);
+    serie->t_ScannerSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&serie->t_ScannerSpaceIJKtoXYZ);
+  }
+
 }
