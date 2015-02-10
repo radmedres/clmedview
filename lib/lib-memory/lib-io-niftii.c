@@ -614,7 +614,7 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
       serie->i16_QuaternionCode = ps_Header->qform_code;
 
       serie->ps_Quaternion = calloc (1, sizeof (ts_Quaternion));
-      serie->ps_QuaternationOffset = calloc (1, sizeof (Vector3D));
+      serie->ps_QuaternationOffset = calloc (1, sizeof (ts_Quaternion));
 
       serie->ps_Quaternion->I = ps_Header->quatern_b;
       serie->ps_Quaternion->J = ps_Header->quatern_c;
