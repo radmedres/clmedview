@@ -30,6 +30,7 @@ extern "C" {
 #include "lib-memory.h"
 #include "lib-memory-quaternion.h"
 
+
 /**
  * @file   include/lib-memory-serie.h
  * @brief  The interface to Serie-specific functionality.
@@ -127,17 +128,85 @@ typedef struct
   void *pv_OutOfBlobValue;
 
   /**
-   * A field for storing the original NIFTII header.
+   * A variable containing all units of the dimensions
    */
-  void *pv_Header;
-  
+  unsigned char u8_AxisUnits;
+
+  /**
+  * The direction of the z ax
+  */
+  double d_Qfac;
+
+  /**
+  * A value which indicates the stride in a positive direction according to
+  * the right handed coordinate system
+  */
+  Vector3D ts_Stride;
+
+  /**
+  * Quaternion code code which defined the type of space
+  */
   short int i16_QuaternionCode;
+
+  /**
+  * Quaternion which describes the scanner space
+  */
   ts_Quaternion *ps_Quaternion;
-  ts_Quaternion *ps_QuternationOffset;
 
+  /**
+  * Offset at [0,0,0]
+  */
+  ts_Quaternion *ps_QuaternationOffset;
+
+  /**
+  * Rotation matrix of scanner space.
+  * It defines the translation from IJK space to XYZ
+  */
+  td_Matrix4x4 t_ScannerSpaceIJKtoXYZ;
+
+  /**
+  * Inverse rotation matrix of scanner space.
+  * It defines the translation from XYZ space to IJK
+  */
+  td_Matrix4x4 t_ScannerSpaceXYZtoIJK;
+
+  /**
+  * Standard space code which defined the type of space
+  */
+  short int i16_StandardSpaceCode;
+
+  /**
+  * Rotation matrix of scanner space.
+  * It defines the translation from IJK space to XYZ
+  */
+  td_Matrix4x4 t_StandardSpaceIJKtoXYZ;
+
+  /**
+  * Inverse rotation matrix of scanner space.
+  * It defines the translation from XYZ space to IJK
+  */
+  td_Matrix4x4 t_StandardSpaceXYZtoIJK;
+
+
+  /**
+  * Pointer to selected rotation matrices
+  */
+  td_Matrix4x4 *pt_RotationMatrix;
+
+  /**
+  * Pointer to selected inverse rotation matrices
+  */
+  td_Matrix4x4 *pt_InverseMatrix;
+
+  /**
+  * Minimum value in serie.
+  */
   int i32_MinimumValue;
-  int i32_MaximumValue;
 
+  /**
+  * Maximum value in serie
+  */
+  int i32_MaximumValue;
 } Serie;
 
 
@@ -189,15 +258,36 @@ short int memory_serie_get_memory_space (Serie *serie);
  * This function set the minimum and maximum value of a Serie.
  *
  * @param serie  The Serie to get the minimum value for.
- *
- * @return The minimum value of the Serie.
  */
 void memory_serie_set_upper_and_lower_borders_from_data(Serie *serie);
 
-
+/**
+ * This function creates a new (mask)serie which is cloned from the original serie.
+ *
+ * @param serie The serie to clone from.
+ *
+ * @return A (mask)serie of the original serie
+ */
 Serie *memory_serie_create_mask_from_serie (Serie *serie);
 
-void memory_serie_convert_data_big_to_little_endian(Serie *serie);
+/**
+ * This function calculates the pivot point of a blob.
+ *
+ * @param serie The serie to calculate the point from.
+ *
+ * @return A [x,y,z] coordinate to the pivot point
+ */
+Coordinate3D memory_serie_GetPivotpoint(Serie *serie);
+
+
+/**
+ * This function calculates the pivot point of a blob.
+ *
+ * @param serie The serie to calculate the point from.
+ *
+ * @return A [x,y,z] coordinate to the pivot point
+ */
+void v_memory_io_handleSpace(Serie *serie);
 
 /**
  *   @}

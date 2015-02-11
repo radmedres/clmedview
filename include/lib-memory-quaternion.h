@@ -25,6 +25,9 @@ extern "C" {
 #endif
 
 
+#include "lib-common.h"
+
+
 /**
  * @file   include/lib-memory-quaternion.h
  * @brief  The interface to Quaternion-specific functionality.
@@ -42,6 +45,10 @@ extern "C" {
  * This module provides Quaternion-specific functionality.
  */
 
+
+/**
+ * Quaternion definition.
+ */
 typedef struct
 {
   double W;
@@ -50,19 +57,39 @@ typedef struct
   double K;
 } ts_Quaternion;
 
-ts_Quaternion *memory_quaternion_new (void);
-ts_Quaternion *memory_quaternion_set (double W, double A, double B, double C);
-ts_Quaternion *memory_quaternion_copy (ts_Quaternion *ps_source);
-ts_Quaternion *memory_quaternion_negative (ts_Quaternion *ps_source);
-ts_Quaternion *memory_quaternion_conjungate (ts_Quaternion *ps_source);
-ts_Quaternion *memory_quaternion_add_value (ts_Quaternion *ps_source, double d_Value);
-ts_Quaternion *memory_quaternion_add (ts_Quaternion *ps_first, ts_Quaternion *ps_second);
-ts_Quaternion *memory_quaternion_multiply_double (ts_Quaternion *ps_source, double d_Value);
-ts_Quaternion *memory_quaternion_multiply (ts_Quaternion *ps_first, ts_Quaternion *ps_second);
+/**
+ * Matrix definition (4x4).
+ */
+typedef struct
+{
+  double d_Matrix[4][4];
+} td_Matrix4x4;
 
-double memory_quaternion_normalize (ts_Quaternion *ts_quaternion);
-short int memory_quaternion_equal (ts_Quaternion *ps_first, ts_Quaternion *ps_second);
+/**
+ * Function that convert a quaternion with its offset to a rotation matrix.
+ * @param[in]  ps_Source            Quaternion that should be converted.
+ * @param[in]  ps_SourceOffset      Offset of quaternion in [i,j,k,w].
+ * @param[in]  ps_pixel_dimension   Physical dimensions of [i,j,k].
+ * @param[in]  d_Qfac               Factor which defines stride Z-axis.
+ * @param[out] matrix               A rotation matrix according to quaternion
+ */
+td_Matrix4x4 tda_memory_quaternion_to_matrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, Coordinate3D *ps_pixel_dimension, double d_Qfac);
 
+/**
+ * Function that calculates a inverse of a 4x4 matrix.
+ * @param[in]  ps_Matrix  Input matrix.
+ * @param[out] matrix     Output matrix.
+ */
+ td_Matrix4x4 tda_memory_quaternion_inverse_matrix(td_Matrix4x4 *ps_Matrix);
+
+
+/**
+ * Function that transforms a vector according to a rotation Matrix.
+ * @param[in]  ps_Matrix  Input matrix.
+ * @param[in]  ps_Vector  Vector to transform.
+ * @param[out] vector     Transformed vector.
+ */
+Vector3D ts_memory_matrix_multiply4x4(td_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector);
 
 /**
  *   @}

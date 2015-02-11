@@ -28,13 +28,11 @@ extern "C" {
 #include "lib-memory-serie.h"
 #include "lib-common.h"
 
-
 /**
  * @file   include/lib-memory-slice.h
  * @brief  The functionality provided by Memory specifically for slices.
  * @author Roel Janssen
  */
-
 
 /**
  * @ingroup memory
@@ -46,6 +44,25 @@ extern "C" {
  * This module provides Slice-specific functionality.
  */
 
+/**
+ * This structure groups some viewport properties which only change if the
+ * normal vector or pivot point changes.
+ *
+ */
+typedef struct
+{
+  Vector3D ts_perpendicularVector;
+  Vector3D ts_crossproductVector;
+
+  int i32_StrideHeight;
+  int i32_StrideWidth;
+
+  short int i16_StartHeight;
+  short int i16_StartWidth;
+
+  short int i16_StopHeight;
+  short int i16_StopWidth;
+} ViewportProperties;
 
 /**
  * This structure is the base element to store slice information.
@@ -102,8 +119,17 @@ typedef struct
    */
   void *data;
 
-} Slice;
+  /**
+   * Viewport Change (widht, height, strides etc)
+   */
+  short int i16_ViewportChange;
 
+  /**
+   * Viewport properties (widht, height, strides etc)
+   */
+  ViewportProperties viewportProperties;
+
+} Slice;
 
 /**
  * This function gets the data for a slice. The actual data for the slice is
@@ -124,13 +150,11 @@ void* memory_slice_get_data (Slice* slice);
  */
 Slice* memory_slice_new (Serie* serie);
 
-
 /**
  * This function cleans up the memory for a given slice.
  * @param data  The Slice to clean up.
  */
 void memory_slice_destroy (void *data);
-
 
 /**
  * This function returns the next slice.
@@ -140,7 +164,6 @@ void memory_slice_destroy (void *data);
  */
 Slice* memory_slice_get_next (Slice *slice);
 
-
 /**
  * This function returns the previous slice.
  * @param slice  The current slice.
@@ -148,7 +171,6 @@ Slice* memory_slice_get_next (Slice *slice);
  * @return The previous slice or the current slice in lack of a previous.
  */
 Slice* memory_slice_get_previous (Slice *slice);
-
 
 /**
  * This function returns the nth slice.
@@ -159,14 +181,12 @@ Slice* memory_slice_get_previous (Slice *slice);
  */
 Slice* memory_slice_get_nth (Slice *slice, int nth);
 
-
 /**
  * This function sets the nth timepoint.
  * @param slice      The current slice.
  * @param timepoint  The number of the slice to set.
  */
 void memory_slice_set_timepoint (Slice *slice, unsigned short int timepoint);
-
 
 /**
  * This function returns the depth of the slice with the orientation of the
@@ -176,7 +196,28 @@ void memory_slice_set_timepoint (Slice *slice, unsigned short int timepoint);
  *
  * @return The number of slices in the Z-axis.
  */
-float memory_slice_get_depth (Slice *slice);
+//float memory_slice_get_depth (Slice *slice);
+
+/**
+ * This function sets the normal vector.
+ * @param slice            The current slice.
+ * @param ps_NormalVector  Pointer to external normal vector.
+ */
+void memory_slice_set_NormalVector (Slice *slice, Vector3D *ps_NormalVector);
+
+/**
+ * This function sets the pivot point.
+ * @param slice            The current slice.
+ * @param ps_NormalVector  Pointer to external pivot point.
+ */
+void memory_slice_set_PivotPoint (Slice *slice, Vector3D *ps_PivotPoint);
+
+/**
+ * This function sets the up vector.
+ * @param slice            The current slice.
+ * @param ps_NormalVector  Pointer to external up vector.
+ */
+void memory_slice_set_UpVector (Slice *slice, Vector3D *ps_upVector);
 
 /**
  *    @}

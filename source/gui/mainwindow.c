@@ -496,7 +496,7 @@ gui_mainwindow_new (char *file)
    | SIDEBAR PANE                                                             |
    '--------------------------------------------------------------------------*/
   sidebar_pane = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
-  
+
   GtkWidget *sidebar = gui_mainwindow_sidebar_new (sidebar_TreeStore);
   gtk_widget_set_size_request (sidebar, 140, 200);
 
@@ -595,7 +595,7 @@ gui_mainwindow_new (char *file)
 
   // Prepare for displayment.
   gtk_widget_set_no_show_all (sidebar_pane, TRUE);
-  
+
   /*--------------------------------------------------------------------------.
    | GTK MAIN LOOP                                                            |
    '--------------------------------------------------------------------------*/
@@ -652,7 +652,7 @@ gui_mainwindow_new (char *file)
   //gdk_rgba_parse (&terminal_bg, "#1c2224");
   gdk_rgba_parse (&terminal_bg, "#111111");
   vte_terminal_set_color_background (VTE_TERMINAL (terminal), &terminal_bg);
-  
+
   // Start polling.
   gui_mainwindow_poll_action ();
 
@@ -815,7 +815,7 @@ gui_mainwindow_file_load (void* data)
 
     CONFIGURATION_MEMORY_TREE (config) = root_tree;
     assert (CONFIGURATION_MEMORY_TREE (config) != NULL);
- 
+
     Tree *pll_Study = tree_child (CONFIGURATION_MEMORY_TREE (config));
     Tree *pll_LastStudy = tree_last (pll_Study);
 
@@ -879,16 +879,14 @@ gui_mainwindow_load_study (Tree *study_tree)
   Vector3D ts_Normal;
   Vector3D ts_Up;
 
-  ts_Pivot.x = serie->matrix.x / 2;
-  ts_Pivot.y = serie->matrix.y / 2;
-  ts_Pivot.z = serie->matrix.z / 2;
+  ts_Pivot = memory_serie_GetPivotpoint(serie);
 
   ts_Normal.x = 0;
   ts_Normal.y = 0;
   ts_Normal.z = 1;
 
-  ts_Up.x = 1;
-  ts_Up.y = 0;
+  ts_Up.x = 0;
+  ts_Up.y = 1;
   ts_Up.z = 0;
 
   viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
@@ -917,8 +915,8 @@ gui_mainwindow_load_study (Tree *study_tree)
   ts_Normal.z = 0;
 
   ts_Up.x = 0;
-  ts_Up.y = 1;
-  ts_Up.z = 0;
+  ts_Up.y = 0;
+  ts_Up.z = 1;
 
   viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
   if (viewer != NULL)
@@ -945,8 +943,8 @@ gui_mainwindow_load_study (Tree *study_tree)
   ts_Normal.y = 1;
   ts_Normal.z = 0;
 
-  ts_Up.x = 1;
-  ts_Up.y = 0;
+  ts_Up.x = 0;
+  ts_Up.y = 1;
   ts_Up.z = 0;
 
   viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
@@ -1005,7 +1003,7 @@ gui_mainwindow_load_study (Tree *study_tree)
   default: break;
   }
 
-  
+
   gui_mainwindow_save_undo_step (hbox_viewers, NULL);
 
   // Display a slider for time series if applicable.
@@ -1109,7 +1107,7 @@ gui_mainwindow_file_export ()
     memory_io_save_file (serie, serie_name);
     pll_Series = tree_next (pll_Series);
   }
-  
+
   gtk_label_set_text (GTK_LABEL (lbl_info), "The files have been saved.");
 
   return FALSE;
@@ -1457,7 +1455,7 @@ gui_mainwindow_on_key_press (UNUSED GtkWidget *widget, GdkEventKey *event,
   /*--------------------------------------------------------------------------.
    | KEY RESPONSES                                                            |
    '--------------------------------------------------------------------------*/
-  
+
   if (event->keyval == CONFIGURATION_KEY (config, KEY_TOGGLE_FOLLOW))
   {
     gboolean state = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (chk_follow));
@@ -1499,7 +1497,7 @@ gui_mainwindow_on_key_press (UNUSED GtkWidget *widget, GdkEventKey *event,
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_REPLAY_RECORDING)
            && ts_ActiveViewer != NULL)
     viewer_replay_recording (ts_ActiveViewer);
-  
+
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_REPLAY_OVER_TIME)
            && ts_ActiveViewer != NULL)
     viewer_replay_recording_over_time (ts_ActiveViewer);
@@ -1549,7 +1547,7 @@ gui_mainwindow_on_key_release (UNUSED GtkWidget *widget, GdkEventKey *event,
 {
   debug_functions ();
   debug_events ();
-  
+
   if (ts_ActiveViewer != NULL)
     viewer_on_key_release (ts_ActiveViewer, event);
 
@@ -1745,7 +1743,7 @@ gui_mainwindow_toolbar_new ()
   pixeldata_plugin_load_from_directory (PLUGIN_PATH_LINE, &pll_PluginList);
   pixeldata_plugin_load_from_directory (PLUGIN_PATH_SELECTION, &pll_PluginList);
   pixeldata_plugin_load_from_directory (PLUGIN_PATH_BRUSHES, &pll_PluginList);
-  
+
   /*--------------------------------------------------------------------------.
    | SET STANDARD BRUSH STUFF                                                 |
    '--------------------------------------------------------------------------*/
@@ -1917,7 +1915,7 @@ gui_mainwindow_mask_remove (UNUSED GtkWidget *widget, void *data)
 
   pll_Serie = tree_remove (pll_Serie);
   assert (pll_Serie != NULL);
-  
+
   gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
 }
 
@@ -1944,7 +1942,7 @@ gui_mainwindow_overlay_remove (UNUSED GtkWidget *widget, void *data)
 
   pll_Serie = tree_remove (pll_Serie);
   assert (pll_Serie != NULL);
-  
+
   gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
 }
 
@@ -1990,7 +1988,7 @@ gui_mainwindow_layer_manager_row_activated (GtkWidget *widget, void *data)
   }
 
   gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
-  
+
   return FALSE;
 }
 
@@ -2163,7 +2161,7 @@ gui_mainwindow_layer_manager_row_label_new (const char *name,
     GtkWidget *btn_Load;
     btn_Load = gtk_button_new_from_icon_name (ICON_DOCUMENT_OPEN, GTK_ICON_SIZE_MENU);
 
-    gtk_button_set_always_show_image (GTK_BUTTON (btn_Load), TRUE); 
+    gtk_button_set_always_show_image (GTK_BUTTON (btn_Load), TRUE);
     gtk_button_set_relief (GTK_BUTTON (btn_Load), GTK_RELIEF_NONE);
 
     g_signal_connect (btn_Load, "clicked",
@@ -2179,7 +2177,7 @@ gui_mainwindow_layer_manager_row_label_new (const char *name,
     GtkWidget *btn_Add;
     btn_Add = gtk_button_new_from_icon_name (ICON_ADD, GTK_ICON_SIZE_MENU);
 
-    gtk_button_set_always_show_image (GTK_BUTTON (btn_Add), TRUE); 
+    gtk_button_set_always_show_image (GTK_BUTTON (btn_Add), TRUE);
     gtk_button_set_relief (GTK_BUTTON (btn_Add), GTK_RELIEF_NONE);
 
     g_signal_connect (btn_Add, "clicked",
@@ -2207,7 +2205,7 @@ gui_mainwindow_layer_manager_row_header_new ()
 
   // GtkListBoxRow
   GtkWidget *listbox = gtk_list_box_row_new ();
-  
+
   // Row container
   GtkWidget *hbox_row = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 10);
 
@@ -2518,7 +2516,7 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
       gtk_tree_store_set (sidebar_TreeStore, &StudyIterator,
                           SIDEBAR_NAME, study->name,
                           SIDEBAR_ID, study->id, -1);
-      
+
       pll_Studies = tree_next (pll_Studies);
     }
 
@@ -2534,7 +2532,7 @@ gui_mainwindow_sidebar_clicked (GtkWidget *widget)
 
   unsigned long long study_id = 0;
   Tree *study_tree = NULL;
-  
+
   gtk_tree_view_get_cursor (GTK_TREE_VIEW (widget), &path, NULL);
   if (path != NULL)
   {
@@ -2546,7 +2544,7 @@ gui_mainwindow_sidebar_clicked (GtkWidget *widget)
     }
     gtk_tree_path_free (path);
   }
-  
+
   if (study_tree != NULL && study_tree->type == TREE_TYPE_STUDY
       && study_tree != CONFIGURATION_ACTIVE_STUDY (config))
     gui_mainwindow_load_study (study_tree);
@@ -2609,7 +2607,7 @@ gui_mainwindow_sidebar_new ()
   gtk_tree_view_append_column (GTK_TREE_VIEW (treeview), column);
   gtk_cell_renderer_set_alignment (renderer, 1.0, 0.0);
   gtk_container_add (GTK_CONTAINER (scrolled), treeview);
-  
+
   return vbox_sidebar;
 }
 
@@ -2634,7 +2632,7 @@ gui_mainwindow_set_lookup_table (const char *lut_name)
 
   Serie *active_serie = CONFIGURATION_ACTIVE_LAYER (config);
   if (active_serie == NULL) return;
-  
+
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
   {
@@ -2695,7 +2693,7 @@ gui_mainwindow_properties_manager_new ()
 
   GtkWidget *opacity_lbl = gtk_label_new ("Opacity");
   gtk_widget_set_halign (opacity_lbl, GTK_ALIGN_START);
-  
+
   properties_opacity_scale = gtk_scale_new_with_range (GTK_ORIENTATION_HORIZONTAL, 0, 255, 1);
   gtk_scale_set_value_pos (GTK_SCALE (properties_opacity_scale), GTK_POS_RIGHT);
   gtk_range_set_value (GTK_RANGE (properties_opacity_scale), 255);
@@ -2769,7 +2767,7 @@ gui_mainwindow_properties_manager_refresh (Tree *serie_tree)
   // TODO: This leads to undesired GUI malfunctioning from a user's point of
   // view, but prevents a total program crash.
   if (lookup_table == NULL) return;
-  
+
   // Don't execute the "changed" handler here.
   // To do this we "block" the signal, apply our action, and "unblock" the
   // signal handler.
@@ -2782,7 +2780,7 @@ gui_mainwindow_properties_manager_refresh (Tree *serie_tree)
   g_signal_handlers_unblock_by_func (properties_lookup_table_combo,
                                      gui_mainwindow_lookup_table_changed, NULL);
 
-  // Disable the opacity option for original Series  
+  // Disable the opacity option for original Series
   if (serie_tree->type == TREE_TYPE_SERIE)
   {
     gtk_widget_set_sensitive (properties_opacity_scale, FALSE);

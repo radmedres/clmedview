@@ -47,8 +47,6 @@
 /* GLOBAL FUNCTIONS                                                                                   */
 /*                                                                                                    */
 /*                                                                                                    */
-
-
 short int
 memory_io_load_file (Tree **patient_tree, const char *path)
 {
@@ -142,7 +140,6 @@ memory_io_load_file (Tree **patient_tree, const char *path)
   return 1;
 }
 
-
 short int memory_io_save_file (Serie *serie, const char *path)
 {
   debug_functions ();
@@ -151,7 +148,7 @@ short int memory_io_save_file (Serie *serie, const char *path)
   strcpy (pc_Path, path);
 
   char* pc_Extension = strrchr (pc_Path, '.');
-  
+
   switch (serie->input_type)
   {
     case MUMC_FILETYPE_ANALYZE75:
@@ -187,7 +184,7 @@ short int memory_io_save_file (Serie *serie, const char *path)
       break;
     case MUMC_FILETYPE_NOT_KNOWN :
     default:
-      { 
+      {
         free (pc_Path);
         pc_Path = NULL;
         return 1;
@@ -197,9 +194,6 @@ short int memory_io_save_file (Serie *serie, const char *path)
   free (pc_Path);
   pc_Path = NULL;
   return 0;
-
-//  b_NIFTII_SaveNIFTII (pll_Serie, pc_File);
-
 }
 
 
