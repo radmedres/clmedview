@@ -564,7 +564,6 @@ gui_mainwindow_new (char *file)
   #ifdef ENABLE_GREL
   gtk_paned_pack2 (GTK_PANED (hbox_mainwindow), terminal_pane, TRUE, TRUE);
   #else
-  puts ("Packing without GREL.");
   gtk_paned_pack2 (GTK_PANED (hbox_mainwindow), vbox_mainarea, TRUE, TRUE);
   #endif
 
