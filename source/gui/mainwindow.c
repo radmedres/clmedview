@@ -33,8 +33,13 @@
 #include "lib-memory-serie.h"
 #include "lib-memory-slice.h"
 #include "lib-memory-tree.h"
-#include "lib-grel-interpreter.h"
 #include "lib-configuration.h"
+
+#ifdef ENABLE_GREL
+#include "lib-grel-interpreter.h"
+#include <pthread.h>
+#include <vte/vte.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,8 +47,6 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <math.h>
-#include <pthread.h>
-#include <vte/vte.h>
 
 
 /******************************************************************************
@@ -165,11 +168,14 @@ GtkWidget* gui_mainwindow_toolbar_new ();
 char* gui_mainwindow_file_dialog (GtkWidget* parent, GtkFileChooserAction action);
 void gui_mainwindow_clear_viewers ();
 
+#ifdef ENABLE_GREL
 // GREL specific functions
 void gui_mainwindow_file_save_grel (char *layer, char *filename);
 void gui_mainwindow_overlay_load (char *param);
 void gui_mainwindow_override_key (char *name, char key);
 void gui_mainwindow_set_viewport (int viewport);
+gboolean gui_mainwindow_poll_action ();
+#endif
 
 // Matrix rotation
 Vector3D ts_Rotation_around_X_Axis (Vector3D *ps_Vector, double f_angle);
@@ -202,7 +208,6 @@ GtkWidget *btn_ActiveDrawTool;
 GtkWidget *btn_file_save;
 GtkWidget *btn_reset_viewport;
 GtkWidget *btn_sidebar_toggle;
-GtkWidget *btn_terminal_toggle;
 GtkWidget *properties_opacity_scale;
 GtkWidget *properties_lookup_table_combo;
 GtkWidget *timeline;
@@ -216,8 +221,12 @@ List *pll_History;
 Serie *ts_ActiveMask;
 Plugin *ts_ActiveDrawTool;
 Viewer *ts_ActiveViewer;
-GRELInterpreter *grel;
 GuiViewportType te_DisplayType = VIEWPORT_TYPE_UNDEFINED;
+
+#ifdef ENABLE_GREL
+GRELInterpreter *grel;
+GtkWidget *btn_terminal_toggle;
+#endif
 
 Configuration *config;
 
@@ -298,36 +307,6 @@ gui_mainwindow_no_gl_warning ()
 
   gtk_widget_show_all (window);
   gtk_main ();
-}
-
-
-gboolean
-gui_mainwindow_poll_action ()
-{
-  debug_functions ();
-
-  GRELInterpreter *interpreter = grel;
-  assert (interpreter != NULL);
-
-  GRELInterpreterCommand *command;
-  command = grel_interpreter_get_next_command (interpreter);
-
-  if (command != NULL)
-  {
-    debug_extra ("Executing command from Guile!");
-    grel_interpreter_call_back (command);
-
-    // Try to process the next command immediately
-    // for a speedy GREL experience.
-    gui_mainwindow_poll_action ();
-  }
-  else
-  {
-    // Better luck next time, in about 200ms.
-    g_timeout_add (200, gui_mainwindow_poll_action, NULL);
-  }
-
-  return FALSE;
 }
 
 
@@ -415,8 +394,11 @@ gui_mainwindow_new (char *file)
 
   // Create the 'Show sidebar' button.
   btn_sidebar_toggle = gtk_button_new_from_icon_name (ICON_SIDEBAR_SHOW, GTK_ICON_SIZE_BUTTON);
-  btn_terminal_toggle = gtk_button_new_from_icon_name (ICON_TERMINAL_SHOW, GTK_ICON_SIZE_BUTTON);
   btn_reset_viewport = gtk_button_new_from_icon_name (ICON_RESET, GTK_ICON_SIZE_BUTTON);
+
+  #ifdef ENABLE_GREL
+  btn_terminal_toggle = gtk_button_new_from_icon_name (ICON_TERMINAL_SHOW, GTK_ICON_SIZE_BUTTON);
+  #endif
 
   // Make them responsive.
   g_signal_connect (btn_file_open, "clicked",
@@ -431,21 +413,26 @@ gui_mainwindow_new (char *file)
 		    G_CALLBACK (gui_mainwindow_sidebar_toggle),
 		    NULL);
 
-  g_signal_connect (btn_terminal_toggle, "clicked",
-		    G_CALLBACK (gui_mainwindow_terminal_toggle),
-		    NULL);
-
   g_signal_connect (btn_reset_viewport, "clicked",
 		    G_CALLBACK (gui_mainwindow_reset_viewport),
 		    NULL);
+
+  #ifdef ENABLE_GREL
+  g_signal_connect (btn_terminal_toggle, "clicked",
+		    G_CALLBACK (gui_mainwindow_terminal_toggle),
+		    NULL);
+  #endif
 
   // Pack the buttons to the header bar.
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header), btn_file_open);
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header), btn_file_save);
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header), btn_sidebar_toggle);
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header), btn_reset_viewport);
-  gtk_header_bar_pack_start (GTK_HEADER_BAR (header), btn_terminal_toggle);
 
+  #ifdef ENABLE_GREL
+  gtk_header_bar_pack_start (GTK_HEADER_BAR (header), btn_terminal_toggle);
+  #endif
+  
   // Disable the 'Save' button by default.
   gtk_widget_set_sensitive (btn_file_save, FALSE);
   gtk_widget_set_sensitive (btn_reset_viewport, FALSE);
@@ -533,10 +520,12 @@ gui_mainwindow_new (char *file)
 		    NULL);
 
   /*--------------------------------------------------------------------------.
-   | TERMINAL EMULATOR                                                        |
+   | TERMINAL EMULATOR FOR GREL                                               |
    '--------------------------------------------------------------------------*/
+  #ifdef ENABLE_GREL
   terminal = vte_terminal_new ();
   gtk_widget_set_size_request (terminal, 0, 250);
+  #endif
 
   /*--------------------------------------------------------------------------.
    | CONTAINERS                                                               |
@@ -554,23 +543,31 @@ gui_mainwindow_new (char *file)
   gtk_box_pack_start (GTK_BOX (vbox_mainarea), hbox_viewers, 1, 1, 0);
   gtk_box_pack_start (GTK_BOX (vbox_mainarea), timeline, 0, 0, 0);
 
+  gtk_widget_set_no_show_all (timeline, TRUE);
+  gtk_widget_hide (timeline);
+
+  #ifdef ENABLE_GREL
   GtkWidget *terminal_pane = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
   gtk_paned_pack1 (GTK_PANED (terminal_pane), vbox_mainarea, TRUE, TRUE);
   gtk_paned_pack2 (GTK_PANED (terminal_pane), terminal, FALSE, FALSE);
 
   gtk_widget_show_all (terminal_pane);
 
-  gtk_widget_set_no_show_all (timeline, TRUE);
-  gtk_widget_hide (timeline);
-
   gtk_widget_set_no_show_all (terminal, TRUE);
   gtk_widget_hide (terminal);
+  #endif
 
   // Window packing
   GtkWidget* hbox_mainwindow = gtk_paned_new (GTK_ORIENTATION_HORIZONTAL);
   gtk_paned_pack1 (GTK_PANED (hbox_mainwindow), sidebar_pane, TRUE, TRUE);
+
+  #ifdef ENABLE_GREL
   gtk_paned_pack2 (GTK_PANED (hbox_mainwindow), terminal_pane, TRUE, TRUE);
-  
+  #else
+  puts ("Packing without GREL.");
+  gtk_paned_pack2 (GTK_PANED (hbox_mainwindow), vbox_mainarea, TRUE, TRUE);
+  #endif
+
   gtk_container_add (GTK_CONTAINER (window), hbox_mainwindow);
 
   /*--------------------------------------------------------------------------.
@@ -615,6 +612,7 @@ gui_mainwindow_new (char *file)
   /*--------------------------------------------------------------------------.
    | GREL INTERPRETER STUFF                                                   |
    '--------------------------------------------------------------------------*/
+  #ifdef ENABLE_GREL
 
   // Set up the interpreter.
   grel = grel_interpreter_new ("clmedview.socket");
@@ -657,6 +655,8 @@ gui_mainwindow_new (char *file)
   
   // Start polling.
   gui_mainwindow_poll_action ();
+
+  #endif
 
   /*--------------------------------------------------------------------------.
    | GTK MAIN LOOP                                                            |
@@ -724,13 +724,6 @@ gui_mainwindow_menu_file_activate (UNUSED GtkWidget *widget, void *data)
   }
 
   return FALSE;
-}
-
-
-void
-gui_mainwindow_set_viewport (int viewport)
-{
-  gtk_combo_box_set_active (GTK_COMBO_BOX (views_combo), viewport);
 }
 
 
@@ -1086,64 +1079,6 @@ gui_mainwindow_file_dialog (GtkWidget* parent, GtkFileChooserAction action)
 
   gtk_widget_destroy (dialog);
   return pc_Filename;
-}
-
-
-void
-gui_mainwindow_file_save_grel (char *layer, char *filename)
-{
-  debug_functions ();
-  if (layer == NULL || filename == NULL) return;
-
-  Tree *pll_Series = tree_child (CONFIGURATION_ACTIVE_STUDY (config));
-  while (pll_Series != NULL)
-  {
-    Serie *serie = pll_Series->data;
-
-    if (!strcmp (serie->name, layer))
-    {
-      memory_io_save_file (serie, filename);
-      gtk_label_set_text (GTK_LABEL (lbl_info), "The file has been saved.");
-      break;
-    }
-
-    pll_Series = tree_next (pll_Series);
-  }
-}
-
-
-void
-gui_mainwindow_override_key (char *name, char key)
-{
-  if (!strcmp (name, "toggle-follow-mode"))
-    CONFIGURATION_KEY (config, KEY_TOGGLE_FOLLOW) = key;
-
-  else if (!strcmp (name, "toggle-autoclose-mode"))
-    CONFIGURATION_KEY (config, KEY_TOGGLE_AUTOCLOSE) = key;
-
-  else if (!strcmp (name, "undo"))
-    CONFIGURATION_KEY (config, KEY_UNDO) = key;
-
-  else if (!strcmp (name, "redo"))
-    CONFIGURATION_KEY (config, KEY_REDO) = key;
-
-  else if (!strcmp (name, "viewport-axial"))
-    CONFIGURATION_KEY (config, KEY_VIEW_AXIAL) = key;
-
-  else if (!strcmp (name, "viewport-sagital"))
-    CONFIGURATION_KEY (config, KEY_VIEW_SAGITAL) = key;
-
-  else if (!strcmp (name, "viewport-coronal"))
-    CONFIGURATION_KEY (config, KEY_VIEW_CORONAL) = key;
-
-  else if (!strcmp (name, "viewport-split"))
-    CONFIGURATION_KEY (config, KEY_VIEW_SPLIT) = key;
-
-  else if (!strcmp (name, "toggle-grel"))
-    CONFIGURATION_KEY (config, KEY_TOGGLE_TERMINAL) = key;
-
-  else if (!strcmp (name, "toggle-sidebar"))
-    CONFIGURATION_KEY (config, KEY_TOGGLE_SIDEBAR) = key;
 }
 
 
@@ -1512,11 +1447,13 @@ gui_mainwindow_on_key_press (UNUSED GtkWidget *widget, GdkEventKey *event,
   debug_functions ();
   debug_events ();
 
+  #ifdef ENABLE_GREL
   if (event->keyval != CONFIGURATION_KEY (config, KEY_TOGGLE_TERMINAL)
       && gtk_widget_is_visible (terminal)
       && !(event->state & GDK_CONTROL_MASK))
     return FALSE;
-
+  #endif
+  
   /*--------------------------------------------------------------------------.
    | KEY RESPONSES                                                            |
    '--------------------------------------------------------------------------*/
@@ -1533,10 +1470,12 @@ gui_mainwindow_on_key_press (UNUSED GtkWidget *widget, GdkEventKey *event,
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (chk_auto_close), !state);
   }
 
+  #ifdef ENABLE_GREL
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_TOGGLE_TERMINAL)
 	   && (event->state & GDK_CONTROL_MASK))
     gui_mainwindow_terminal_toggle (btn_terminal_toggle, NULL);
-  
+  #endif
+
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_TOGGLE_SIDEBAR)
 	   && (event->state & GDK_CONTROL_MASK))
     gui_mainwindow_sidebar_toggle (btn_sidebar_toggle, NULL);
@@ -1737,7 +1676,10 @@ gui_mainwindow_destroy ()
   gtk_widget_destroy (window);
   g_object_unref (window);
 
+  #ifdef ENABLE_GREL
   grel_interpreter_destroy (grel);
+  #endif
+
   gtk_main_quit ();
 }
 
@@ -1917,13 +1859,6 @@ gui_mainwindow_mask_add (UNUSED GtkWidget *widget, UNUSED void *data)
   gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
 
   return FALSE;
-}
-
-
-void
-gui_mainwindow_overlay_load (char *param)
-{
-  gui_mainwindow_overlay_add (NULL, param);
 }
 
 
@@ -2853,3 +2788,112 @@ gui_mainwindow_properties_manager_refresh (Tree *serie_tree)
     gtk_widget_set_sensitive (properties_opacity_scale, FALSE);
   }
 }
+
+
+/******************************************************************************
+ * GREL-SPECIFIC FUNCTIONS
+ ******************************************************************************/
+
+#ifdef ENABLE_GREL
+void
+gui_mainwindow_file_save_grel (char *layer, char *filename)
+{
+  debug_functions ();
+  if (layer == NULL || filename == NULL) return;
+
+  Tree *pll_Series = tree_child (CONFIGURATION_ACTIVE_STUDY (config));
+  while (pll_Series != NULL)
+  {
+    Serie *serie = pll_Series->data;
+
+    if (!strcmp (serie->name, layer))
+    {
+      memory_io_save_file (serie, filename);
+      gtk_label_set_text (GTK_LABEL (lbl_info), "The file has been saved.");
+      break;
+    }
+
+    pll_Series = tree_next (pll_Series);
+  }
+}
+
+
+void
+gui_mainwindow_override_key (char *name, char key)
+{
+  if (!strcmp (name, "toggle-follow-mode"))
+    CONFIGURATION_KEY (config, KEY_TOGGLE_FOLLOW) = key;
+
+  else if (!strcmp (name, "toggle-autoclose-mode"))
+    CONFIGURATION_KEY (config, KEY_TOGGLE_AUTOCLOSE) = key;
+
+  else if (!strcmp (name, "undo"))
+    CONFIGURATION_KEY (config, KEY_UNDO) = key;
+
+  else if (!strcmp (name, "redo"))
+    CONFIGURATION_KEY (config, KEY_REDO) = key;
+
+  else if (!strcmp (name, "viewport-axial"))
+    CONFIGURATION_KEY (config, KEY_VIEW_AXIAL) = key;
+
+  else if (!strcmp (name, "viewport-sagital"))
+    CONFIGURATION_KEY (config, KEY_VIEW_SAGITAL) = key;
+
+  else if (!strcmp (name, "viewport-coronal"))
+    CONFIGURATION_KEY (config, KEY_VIEW_CORONAL) = key;
+
+  else if (!strcmp (name, "viewport-split"))
+    CONFIGURATION_KEY (config, KEY_VIEW_SPLIT) = key;
+
+  else if (!strcmp (name, "toggle-grel"))
+    CONFIGURATION_KEY (config, KEY_TOGGLE_TERMINAL) = key;
+
+  else if (!strcmp (name, "toggle-sidebar"))
+    CONFIGURATION_KEY (config, KEY_TOGGLE_SIDEBAR) = key;
+}
+
+
+void
+gui_mainwindow_overlay_load (char *param)
+{
+  gui_mainwindow_overlay_add (NULL, param);
+}
+
+
+void
+gui_mainwindow_set_viewport (int viewport)
+{
+  gtk_combo_box_set_active (GTK_COMBO_BOX (views_combo), viewport);
+}
+
+
+gboolean
+gui_mainwindow_poll_action ()
+{
+  debug_functions ();
+
+  GRELInterpreter *interpreter = grel;
+  assert (interpreter != NULL);
+
+  GRELInterpreterCommand *command;
+  command = grel_interpreter_get_next_command (interpreter);
+
+  if (command != NULL)
+  {
+    debug_extra ("Executing command from Guile!");
+    grel_interpreter_call_back (command);
+
+    // Try to process the next command immediately
+    // for a speedy GREL experience.
+    gui_mainwindow_poll_action ();
+  }
+  else
+  {
+    // Better luck next time, in about 200ms.
+    g_timeout_add (200, gui_mainwindow_poll_action, NULL);
+  }
+
+  return FALSE;
+}
+
+#endif
