@@ -95,8 +95,10 @@ LIB_PIXELDATA_SOURCES	= lib/lib-pixeldata/lib-pixeldata.c \
 
 LIB_VIEWER_SOURCES	= lib/lib-viewer/lib-viewer.c
 
+if ENABLE_GREL
 LIB_GREL_SOURCES        = lib/lib-grel/lib-grel-shell.c \
                           lib/lib-grel/lib-grel-interpreter.c
+endif
 
 LIB_CONFIGURATION_SOURCES = lib/lib-configuration/lib-configuration.c
 
@@ -134,6 +136,10 @@ endif
 
 if ENABLE_MTRACE_OPTION
 AM_CFLAGS              += -DENABLE_MTRACE
+endif
+
+if ENABLE_GREL
+AM_CFLAGS              += -DENABLE_GREL
 endif
 
 clean-local: docs-clean plugins-clean

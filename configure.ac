@@ -90,7 +90,19 @@ PKG_CHECK_MODULES([gtk], [gtk+-3.0])
 PKG_CHECK_MODULES([clutter], [clutter-1.0])
 PKG_CHECK_MODULES([cluttergtk], [clutter-gtk-1.0])
 PKG_CHECK_MODULES([zlib], [zlib])
-PKG_CHECK_MODULES([guile], [guile-2.0])
-PKG_CHECK_MODULES([vte], [vte-2.91])
+
+AC_SUBST(ENABLE_GREL)
+AC_ARG_WITH([grel],
+AS_HELP_STRING([--with-grel],
+[Build with GREL functionality.]))
+
+if test "x$with_grel" = "xyes"; then
+  PKG_CHECK_MODULES([guile], [guile-2.0])
+  PKG_CHECK_MODULES([vte], [vte-2.91])
+  AM_CONDITIONAL([ENABLE_GREL], [true])
+else
+  AM_CONDITIONAL([ENABLE_GREL], [false])
+fi
+
 
 AC_OUTPUT
