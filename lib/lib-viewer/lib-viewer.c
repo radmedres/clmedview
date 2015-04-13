@@ -309,15 +309,37 @@ viewer_on_mouse_scroll_prevnext (UNUSED ClutterActor *actor, ClutterEvent *event
   if (data == NULL) return FALSE;
 
   ClutterScrollDirection direction = clutter_event_get_scroll_direction (event);
-  if (direction == CLUTTER_SCROLL_SMOOTH) return FALSE;
 
   Viewer *resources = (Viewer *)data;
   assert (resources != NULL);
 
   double f_Z = 0;
+  double deltaX, deltaY;
 
   switch (direction)
   {
+    /*------------------------------------------------------------------------.
+     | SCROLL SMOOTH                                                          |
+     '------------------------------------------------------------------------*/
+    case CLUTTER_SCROLL_SMOOTH:
+
+      clutter_event_get_scroll_delta(event, &deltaX, &deltaY);
+
+      if (deltaY < 0)
+      {
+        PIXELDATA_ACTIVE_SLICE (resources->ps_Original) =
+         memory_slice_get_previous (PIXELDATA_ACTIVE_SLICE (resources->ps_Original));
+      }
+      else if (deltaY > 0)
+      {
+        PIXELDATA_ACTIVE_SLICE (resources->ps_Original) =
+          memory_slice_get_next (PIXELDATA_ACTIVE_SLICE (resources->ps_Original));
+      }
+      else
+      {
+        return FALSE;
+      }
+      break;
     /*------------------------------------------------------------------------.
      | SCROLL UP                                                              |
      '------------------------------------------------------------------------*/
