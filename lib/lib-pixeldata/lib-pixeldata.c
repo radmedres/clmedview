@@ -101,23 +101,23 @@ pixeldata_new ()
 
 PixelData*
 pixeldata_new_with_lookup_table (PixelDataLookupTable *lut,
-                                 int minimum,
-                                 int maximum,
+                                 int i32_windowWidth,
+                                 int i32_windowLevel,
                                  Slice *slice,
-				 Serie *serie)
+                                 Serie *serie)
 {
   debug_functions ();
 
   assert (lut != NULL);
   assert (slice != NULL);
-  assert (minimum <= maximum);
 
   PixelData *pixeldata = pixeldata_new ();
   assert (pixeldata != NULL);
   pixeldata->serie = serie;
   pixeldata->alpha = 255;
-  pixeldata->WWWL.maximum = maximum;
-  pixeldata->WWWL.minimum = minimum;
+
+  pixeldata->ts_WWWL.i32_windowWidth = i32_windowWidth;
+  pixeldata->ts_WWWL.i32_windowLevel = i32_windowLevel;
 
   if (pixeldata_set_slice (pixeldata, slice) == 0)
   {
@@ -137,8 +137,7 @@ pixeldata_new_with_lookup_table (PixelDataLookupTable *lut,
               pixeldata->color_lookup_table,
               lut->table_len);
     }
-
-    else if (!pixeldata_set_window_width_window_level (pixeldata, minimum, maximum))
+    else if (!pixeldata_calculate_window_width_level(pixeldata, 0, 0))
     {
       pixeldata_destroy (pixeldata);
       pixeldata = NULL;
@@ -149,14 +148,14 @@ pixeldata_new_with_lookup_table (PixelDataLookupTable *lut,
     pixeldata_destroy (pixeldata);
     pixeldata = NULL;
   }
-  
+
   return pixeldata;
 }
 
 
 void
 pixeldata_destroy (void *data)
-{ 
+{
   debug_functions ();
 
   PixelData *pixeldata = data;
@@ -284,27 +283,35 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
   PixelDataLookupTable *lut = pixeldata->color_lookup_table_ptr;
   assert (lut != NULL);
 
-  // Determine the minimal and maximum pixel values.
-  int minimum_voxel_value = pixeldata->WWWL.minimum;
-  int maximum_voxel_value = pixeldata->WWWL.maximum;
+  int minimumWWWL;
+  int maximumWWWL;
+
+  minimumWWWL = pixeldata->ts_WWWL.i32_windowLevel - pixeldata->ts_WWWL.i32_windowWidth/2;
+  maximumWWWL = pixeldata->ts_WWWL.i32_windowLevel + pixeldata->ts_WWWL.i32_windowWidth/2;
+
+  minimumWWWL = (minimumWWWL < serie->i32_MinimumValue) ? 0 : minimumWWWL;
+  maximumWWWL = (maximumWWWL > serie->i32_MaximumValue) ? serie->i32_MaximumValue : maximumWWWL;
+
 
   // Move the range to a range of positive values.
-  if (minimum_voxel_value < 0)
+  if (minimumWWWL < 0)
   {
-    maximum_voxel_value += abs (minimum_voxel_value);
-    minimum_voxel_value = 0;
+    maximumWWWL += abs(minimumWWWL);
+    minimumWWWL = 0;
   }
 
   // Determine the range of the values in the Serie.
   int range = serie->i32_MaximumValue - serie->i32_MinimumValue;
 
   // Make sure the display lookup table is allocated.
+
   free (pixeldata->display_lookup_table);
+
   pixeldata->display_lookup_table = calloc (sizeof (unsigned int), range + 1);
 
   assert (pixeldata->display_lookup_table != NULL);
 
-  float f_Slope = 255.0 / (float)range;
+  float f_Slope = 255.0 / (float)(maximumWWWL - minimumWWWL);
 
   unsigned int *display_lookup_table = pixeldata->display_lookup_table;
   unsigned int *color_lookup_table = lut->table;
@@ -320,7 +327,7 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
   int counter;
 
   // Zero to minimum value.
-  for (counter = 0; counter < minimum_voxel_value; counter++)
+  for (counter = 0; counter < minimumWWWL; counter++)
   {
     display_lookup_table[counter] = 0;
   }
@@ -329,9 +336,9 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
   unsigned int translated_value;
   unsigned int array_items = lut->table_len / sizeof (unsigned int);
 
-  for (counter = minimum_voxel_value; counter < maximum_voxel_value; counter++)
+  for (counter = minimumWWWL; counter < maximumWWWL; counter++)
   {
-    translated_value = (counter - minimum_voxel_value) * f_Slope;
+    translated_value = (counter - minimumWWWL) * f_Slope;
 
     display_lookup_table[counter] = (translated_value >= array_items)
       ? color_lookup_table[array_items - 1]
@@ -339,23 +346,41 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
   }
 
   // Above maximum value.
-  for (counter = maximum_voxel_value; counter < range; counter++)
+  for (counter = maximumWWWL; counter < range; counter++)
   {
     display_lookup_table[counter] = color_lookup_table[array_items - 1];
   }
 }
 
-
 short int
-pixeldata_set_window_width_window_level (PixelData *pixeldata, int minimum, int maximum)
+pixeldata_calculate_window_width_level (PixelData *pixeldata, int i32_deltaWidth, int i32_deltaLevel)
 {
   debug_functions ();
 
-  pixeldata->WWWL.minimum = minimum;
-  pixeldata->WWWL.maximum = maximum;
+  pixeldata->ts_WWWL.i32_windowWidth += i32_deltaWidth;
+  if (pixeldata->ts_WWWL.i32_windowWidth > pixeldata->serie->i32_MaximumValue)
+  {
+    pixeldata->ts_WWWL.i32_windowWidth = pixeldata->serie->i32_MaximumValue;
+  }
+
+  if (pixeldata->ts_WWWL.i32_windowWidth < pixeldata->serie->i32_MinimumValue)
+  {
+    pixeldata->ts_WWWL.i32_windowWidth = pixeldata->serie->i32_MinimumValue;
+  }
+
+  pixeldata->ts_WWWL.i32_windowLevel += i32_deltaLevel;
+  if (pixeldata->ts_WWWL.i32_windowLevel > pixeldata->serie->i32_MaximumValue)
+  {
+    pixeldata->ts_WWWL.i32_windowLevel = pixeldata->serie->i32_MaximumValue;
+  }
+
+  if (pixeldata->ts_WWWL.i32_windowLevel < pixeldata->serie->i32_MinimumValue)
+  {
+    pixeldata->ts_WWWL.i32_windowLevel = pixeldata->serie->i32_MinimumValue;
+  }
 
   pixeldata_apply_lookup_table (pixeldata);
-  
+
   return 1;
 }
 
@@ -590,7 +615,7 @@ pixeldata_lookup_table_load_from_file (const char *filename)
   // Allocate the size of the lookup table.
   lookup_table = calloc (sizeof (unsigned int), lookup_table_len + 1);
   assert (lookup_table != NULL);
-  
+
   values = strchr (data, '\n');
   assert (values != NULL);
 
@@ -646,7 +671,7 @@ pixeldata_lookup_table_load_from_directory (const char *path)
   debug_functions ();
 
   if (path == NULL) return 0;
-  
+
   DIR* directory;
   if ((directory = opendir (path)) == NULL) return 0;
 
@@ -729,10 +754,10 @@ pixeldata_apply_brush (PixelData *ps_Original, PixelData *ps_Mask,
   debug_functions ();
 
   if (ts_End.x == 0 && ts_End.y == 0) return;
-  
+
   if (ps_Mask == NULL) return;
   if (fp_BrushCallback == NULL) return;
-  
+
   (ts_Start.x == 0 && ts_Start.y == 0)
     ? fp_BrushCallback (ps_Original, ps_Mask, ps_Selection, ts_End, ui32_BrushScale, ui32_BrushValue, te_Action)
     : pixeldata_bresenham_line (ps_Original, ps_Mask, ps_Selection, ts_Start, ts_End,
@@ -775,10 +800,10 @@ pixeldata_set_voxel (PixelData *mask, PixelData *selection,
             && (selection == NULL || (*((short int *)*ppv_SelectionDataCounter))))
         {
           *(short int *)*ppv_ImageDataCounter = 0;
-        }        
+        }
       }
       else
-      {        
+      {
         if (*(short int *)*ppv_ImageDataCounter == 0
             && (selection == NULL || (*((short int *)*ppv_SelectionDataCounter))))
         {

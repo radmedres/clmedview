@@ -55,16 +55,6 @@ typedef struct
 typedef Coordinate3D Vector3D;
 
 /**
- * In the program there's a common need for storing a range defined
- * by a minimum and a maximum value.
- */
-typedef struct
-{
-  int minimum;
-  int maximum;
-} Range;
-
-/**
  * In the program there's a common need for storing width/height data.
  * This struct provides just that.
  */

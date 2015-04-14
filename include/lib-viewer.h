@@ -166,7 +166,7 @@ typedef struct Viewer
 
   List *pll_Replay; /*< A list of replayable actions. */
   short int is_recording; /*< A state variable for recording. */
-  
+
   /*--------------------------------------------------------------------------.
    | SIGNALS                                                                  |
    '--------------------------------------------------------------------------*/
@@ -272,7 +272,7 @@ typedef struct Viewer
  * @param ts_PivotPoint      The position vector.
  * @param ts_UpVector        The vector to determine the rotate base position.
  *
- * @return A pointer to a Viewer. Use the VIEWER_WIDGET macro to get a 
+ * @return A pointer to a Viewer. Use the VIEWER_WIDGET macro to get a
  *         GtkWidget that can be displayed.
  */
 Viewer* viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
@@ -624,10 +624,10 @@ void viewer_replay_recording_over_time (Viewer *resources);
  *
  * @param resources   The viewer to set new window/level settings for.
  * @param serie       The serie to apply the new window/level settings to.
- * @param WWWL        The window width and window level values.
+ * @param i32_windowWidth  The window width value.
+ * @param i32_windowLevel  The window level value.
  */
-void viewer_set_window_level_for_serie (Viewer *resources, Serie *serie,
-					Range WWWL);
+void viewer_set_window_level_for_serie (Viewer *resources, Serie *serie, int i32_windowWidth, int i32_windowLevel);
 
 /**
  * @}
