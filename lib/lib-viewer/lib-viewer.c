@@ -383,7 +383,7 @@ viewer_on_mouse_scroll_scale (UNUSED ClutterActor *actor, ClutterEvent *event,
   Viewer *resources = (Viewer *)data;
   ClutterScrollDirection direction;
   direction = clutter_event_get_scroll_direction (event);
-  if (direction != CLUTTER_SCROLL_UP && direction != CLUTTER_SCROLL_DOWN)
+  if (direction != CLUTTER_SCROLL_SMOOTH)
     return FALSE;
 
   Coordinate ts_AbsoluteMousePosition;
@@ -401,11 +401,26 @@ viewer_on_mouse_scroll_scale (UNUSED ClutterActor *actor, ClutterEvent *event,
     ? ts_ViewportSize.height / resources->ts_OriginalPlane.height
     : ts_ViewportSize.width / resources->ts_OriginalPlane.width) * 0.5;
 
-  if (direction == CLUTTER_SCROLL_UP && resources->f_ZoomFactor > f_MinimalZoomFactor)
-    resources->f_ZoomFactor *= 0.90;
 
-  if (direction == CLUTTER_SCROLL_DOWN)
+  double deltaX, deltaY;
+  clutter_event_get_scroll_delta(event, &deltaX, &deltaY);
+
+
+
+  if (((deltaX < 0 ) || (deltaY < 0 )) && (resources->f_ZoomFactor > f_MinimalZoomFactor))
+  {
+    resources->f_ZoomFactor *= 0.90;
+  }
+
+  if ((deltaX > 0 ) || (deltaY > 0 ))
+  {
     resources->f_ZoomFactor *= 1.1;
+  }
+  else
+  {
+    resources->f_ZoomFactor *= 1.0;
+  }
+
 
   Plane ts_NewActorSize;
   ts_NewActorSize.width = resources->ts_OriginalPlane.width * resources->f_ZoomFactor;
