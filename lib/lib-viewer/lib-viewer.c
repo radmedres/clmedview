@@ -488,7 +488,7 @@ viewer_update_text (Viewer *resources)
                  "Value:\t\t %s\n"
                  "Macro:\t\t %s\n",
                  slice->matrix.z,
-                 pixeldata->WWWL.minimum, pixeldata->WWWL.maximum,
+                 pixeldata->ts_WWWL.i32_windowWidth, pixeldata->ts_WWWL.i32_windowLevel,
                  ts_PixelPosition.x, ts_PixelPosition.y,
                  resources->f_ZoomFactor * 100,
                  pc_PixelValue,
@@ -956,6 +956,9 @@ viewer_on_mouse_press (UNUSED ClutterActor *actor, ClutterEvent *event, gpointer
     clutter_event_get_coords (event, &resources->ts_WindowLevelBasePoint.x,
                               &resources->ts_WindowLevelBasePoint.y);
 
+    resources->ts_PreviousMousePosition.x = resources->ts_WindowLevelBasePoint.x;
+    resources->ts_PreviousMousePosition.y = resources->ts_WindowLevelBasePoint.y;
+
     list_free_all (resources->pll_PolygonPoints, free);
     resources->pll_PolygonPoints = NULL;
   }
@@ -1028,51 +1031,50 @@ viewer_on_mouse_move (UNUSED ClutterActor *actor, ClutterEvent *event, gpointer 
    '--------------------------------------------------------------------------*/
   else if (c_modifiers & CLUTTER_BUTTON3_MASK && resources->ps_ActiveLayer != NULL)
   {
-    Range ts_NewWindowLevel;
+    Coordinate ts_AccellerationFactor;
     Coordinate ts_Diff;
+    WWWL ts_WWWL;
+
+
+    // to create a non linear relation between mouse movement and reaction on
+    // mouse action, the delta between the start point and current mouse position
+    // determines a certain acceleration factor.
+
+    ts_AccellerationFactor.x = abs(ts_CurrentMousePosition.x - resources->ts_WindowLevelBasePoint.x);
+    ts_AccellerationFactor.y = abs(ts_CurrentMousePosition.y - resources->ts_WindowLevelBasePoint.y);
+
+    ts_AccellerationFactor.x /= 5;
+    ts_AccellerationFactor.y /= 5;
+
+    ts_AccellerationFactor.x = (ts_AccellerationFactor.x < 5) ? 1 : ts_AccellerationFactor.x;
+    ts_AccellerationFactor.y = (ts_AccellerationFactor.y < 5) ? 1 : ts_AccellerationFactor.y;
 
     // Get the difference in X and Y.
-    ts_Diff.x = resources->ts_WindowLevelBasePoint.x - ts_CurrentMousePosition.x;
-    ts_Diff.y = resources->ts_WindowLevelBasePoint.y - ts_CurrentMousePosition.y;
+
+    ts_Diff.x = (ts_CurrentMousePosition.x - resources->ts_PreviousMousePosition.x)*ts_AccellerationFactor.x;
+    ts_Diff.y = (ts_CurrentMousePosition.y - resources->ts_PreviousMousePosition.y)*ts_AccellerationFactor.y;
+
+    resources->ts_PreviousMousePosition.x = ts_CurrentMousePosition.x;
+    resources->ts_PreviousMousePosition.y = ts_CurrentMousePosition.y;
 
     Serie *serie = resources->ps_ActiveLayer;
     PixelData *pixeldata = viewer_get_pixeldata_for_serie (resources, resources->ps_ActiveLayer);
 
-    int i32_ViewPortWidth = clutter_actor_get_width (resources->c_Stage);
-    int i32_ViewPortHeight = clutter_actor_get_height (resources->c_Stage);
+    ts_WWWL.i32_windowWidth = (int)(ts_Diff.x);
+    ts_WWWL.i32_windowLevel = (int)(ts_Diff.y);
 
-    //float f_LinearFactor = serie->i32_MaximumValue / serie->matrix.y;
-    Coordinate ts_LinearFactor;
-    ts_LinearFactor.x = serie->i32_MaximumValue / (i32_ViewPortWidth * 0.80);
-    ts_LinearFactor.y = serie->i32_MaximumValue / (i32_ViewPortHeight * 0.80);
-    debug_extra ("ts_LinearFactor = [ %.2f, %.2f ]", ts_LinearFactor.x, ts_LinearFactor.y);
-
-    ts_NewWindowLevel.minimum = pixeldata->WWWL.minimum + ts_Diff.x * ts_LinearFactor.x;
-    ts_NewWindowLevel.maximum = pixeldata->WWWL.maximum + ts_Diff.y * ts_LinearFactor.y;
-
-    // Make sure the values are positive, and within borders;
-    if (ts_NewWindowLevel.minimum < serie->i32_MinimumValue) ts_NewWindowLevel.minimum = 0;
-    if (ts_NewWindowLevel.maximum < serie->i32_MinimumValue) ts_NewWindowLevel.maximum = 0;
-    if (ts_NewWindowLevel.minimum > serie->i32_MaximumValue) ts_NewWindowLevel.minimum = serie->i32_MaximumValue;
-    if (ts_NewWindowLevel.maximum > serie->i32_MaximumValue) ts_NewWindowLevel.maximum = serie->i32_MaximumValue;
-
-    // Set the current coordinates as next window-level base point.
-    resources->ts_WindowLevelBasePoint.x = ts_CurrentMousePosition.x;
-    resources->ts_WindowLevelBasePoint.y = ts_CurrentMousePosition.y;
-
-    // Apply the new display LUT and generate a new RGB buffer.
-    pixeldata_set_window_width_window_level (pixeldata,
-                                             ts_NewWindowLevel.minimum,
-                                             ts_NewWindowLevel.maximum);
+    pixeldata_calculate_window_width_level (pixeldata, ts_WWWL.i32_windowWidth, ts_WWWL.i32_windowLevel);
 
     // Trigger a full redraw.
     viewer_redraw (resources, REDRAW_ALL);
 
     // Execute the window/level update callback.
+
     if (resources->on_window_level_change_callback != NULL)
     {
-      resources->on_window_level_change_callback (resources, &ts_NewWindowLevel);
+      resources->on_window_level_change_callback (resources, &ts_WWWL);
     }
+
   }
 
   resources->ts_CurrentMousePosition = ts_CurrentMousePosition;
@@ -1133,7 +1135,7 @@ viewer_on_leave_stage (UNUSED GtkWidget *widget, UNUSED GdkEvent *event, gpointe
                  "Position:\nZoom:\nValue:\n"
                  "Macro:\t\t %s\n",
                  slice->matrix.z,
-                 pixeldata->WWWL.minimum, pixeldata->WWWL.maximum,
+                 pixeldata->ts_WWWL.i32_windowWidth, pixeldata->ts_WWWL.i32_windowLevel,
                  (resources->is_recording) ? "Recording" : "");
 
   clutter_text_set_text (CLUTTER_TEXT (resources->c_SliceInfo), text);
@@ -1199,8 +1201,15 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
   resources->f_ZoomFactor = 1.0;
   resources->is_recording = 0;
 
+  int i32_windowWidth = ts_Original->i32_MaximumValue - ts_Original->i32_MinimumValue;
+  int i32_windowLevel = i32_windowWidth / 2;
+
+
   Slice *slice = memory_slice_new (ts_Original);
   assert (slice != NULL);
+
+
+
 
   memory_slice_set_NormalVector(slice,&resources->ts_NormalVector);
   memory_slice_set_PivotPoint(slice,&resources->ts_PivotPoint);
@@ -1208,8 +1217,8 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
 
   // Set the default window and level.
   PixelDataLookupTable *default_lut = pixeldata_lookup_table_get_default ();
-  resources->ps_Original = pixeldata_new_with_lookup_table (default_lut, ts_Original->i32_MinimumValue ,
-                                                            ts_Original->i32_MaximumValue, slice, ts_Original);
+  resources->ps_Original = pixeldata_new_with_lookup_table (default_lut, i32_windowWidth ,
+                                                            i32_windowLevel, slice, ts_Original);
 
   assert (resources->ps_Original != NULL);
 
@@ -1751,8 +1760,7 @@ viewer_set_lookup_table_for_serie (Viewer *resources, Serie *serie, const char *
   viewer_redraw (resources, REDRAW_ALL);
 }
 
-void viewer_set_window_level_for_serie (Viewer *resources, Serie *serie,
-					Range WWWL)
+void viewer_set_window_level_for_serie (Viewer *resources, Serie *serie, int i32_WindowWidth, int i32_WindowLevel)
 {
   debug_functions ();
   assert (resources != NULL);
@@ -1765,7 +1773,8 @@ void viewer_set_window_level_for_serie (Viewer *resources, Serie *serie,
     return;
   }
 
-  pixeldata_set_window_width_window_level (pixeldata, WWWL.minimum, WWWL.maximum);
+  pixeldata_calculate_window_width_level(pixeldata, i32_WindowWidth, i32_WindowLevel);
+
   viewer_redraw (resources, REDRAW_ALL);
 }
 

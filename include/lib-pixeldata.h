@@ -70,6 +70,17 @@ typedef struct
   unsigned int table_len; /*< The allocated number of bytes for 'table'. */
 } PixelDataLookupTable;
 
+/**
+ * In the program there's a common need for storing a range defined
+ * by a minimum and a maximum value.
+ */
+
+typedef struct
+{
+  int i32_windowWidth;
+  int i32_windowLevel;
+} WWWL;
+
 
 /**
  * This structure contains the values needed to generate RGB buffers
@@ -77,7 +88,7 @@ typedef struct
  */
 typedef struct
 {
-  Range WWWL; /*< Window width and window level values packed as a range. */
+  WWWL ts_WWWL;
 
   Slice *slice; /*< The current slice. */
   Serie *serie; /*< The Serie it belongs to. */
@@ -93,7 +104,7 @@ typedef struct
 
   PixelDataLookupTable *color_lookup_table_ptr; /*< A pointer to the active
 						    color lookup table. */
-  
+
 } PixelData;
 
 
@@ -212,7 +223,7 @@ PixelDataLookupTable* pixeldata_lookup_table_get_default_overlay ();
  * your newly selected lookup table is not used (yet). This function is used
  * by pixeldata_set_color_lookup_table(), so you probably don't have to call it
  * yourself.
- * 
+ *
  * @param pixeldata  A pointer to the PixelData to apply the LUT of.
  */
 void pixeldata_apply_lookup_table (PixelData *pixeldata);
@@ -223,10 +234,7 @@ void pixeldata_apply_lookup_table (PixelData *pixeldata);
  *
  * @return 1 on success, 0 on failure.
  */
-short pixeldata_set_window_width_window_level (PixelData *pixeldata,
-                                               int minimum,
-                                               int maximum);
-
+short pixeldata_calculate_window_width_level (PixelData *pixeldata, int i32_deltaWidth, int i32_deltaLevel);
 
 /**
  * This function creates an RGB buffer for a given PixelData. This function
@@ -241,7 +249,7 @@ unsigned int* pixeldata_create_rgb_pixbuf (PixelData *data);
 
 
 /**
- * This function destroys an RGB buffer created by 
+ * This function destroys an RGB buffer created by
  * pixeldata_create_rgb_pixbuf().
  *
  * @param pixbuf  The pixbuf returned by pixeldata_create_rgb_pixbuf().
@@ -276,18 +284,19 @@ short int pixeldata_set_slice (PixelData *pixeldata, Slice *slice);
  * one call. It calls other functions in the library to set everything up.
  *
  * @param lut              The look-up table to use.
- * @param i32_MinPixValue  The window-level minimum value.
- * @param i32_MaxPixValue  The window-level maximum value.
- * @param slice            A pointer to a Slice.
+ * @param i32_windowWidth  The window-width parameter.
+ * @param i32_windowLevel  The window-level parameter.
+ * @param slice            A pointer to a slice.
  * @param serie            The serie to create pixeldata for.
  *
  * @return A pointer to allocated PixelData on succes or NULL on failure.
  */
-PixelData * pixeldata_new_with_lookup_table (PixelDataLookupTable *lut,
-                                             int i32_MinPixValue,
-                                             int i32_MaxPixValue,
-                                             Slice *slice,
-                                             Serie *serie);
+PixelData*
+pixeldata_new_with_lookup_table (PixelDataLookupTable *lut,
+                                 int i32_windowWidth,
+                                 int i32_windowLevel,
+                                 Slice *slice,
+                                 Serie *serie);
 
 
 /**
@@ -372,8 +381,8 @@ short int pixeldata_set_voxel (PixelData *mask, PixelData *selection,
  *
  * @param mask    The mask to use for drawing.
  * @param point   The coordinate to get the pixel value for.
- * @param value   A pointer to the value of the pixel. The type of the value 
- *                depends on the image type. 
+ * @param value   A pointer to the value of the pixel. The type of the value
+ *                depends on the image type.
  *
  * @return 1 when the request is valid, 0 when the request is invalid.
  */

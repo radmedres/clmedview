@@ -432,7 +432,7 @@ gui_mainwindow_new (char *file)
   #ifdef ENABLE_GREL
   gtk_header_bar_pack_start (GTK_HEADER_BAR (header), btn_terminal_toggle);
   #endif
-  
+
   // Disable the 'Save' button by default.
   gtk_widget_set_sensitive (btn_file_save, FALSE);
   gtk_widget_set_sensitive (btn_reset_viewport, FALSE);
@@ -1249,7 +1249,7 @@ gui_mainwindow_update_viewer_wwwl (Viewer *viewer, void *data)
   Serie *active_serie = CONFIGURATION_ACTIVE_LAYER (config);
   if (active_serie == NULL) return;
 
-  Range wwwl = *(Range *)data;
+  WWWL wwwl = *(WWWL *)data;
   List *temp = list_nth (pll_Viewers, 1);
   while (temp != NULL)
   {
@@ -1257,10 +1257,11 @@ gui_mainwindow_update_viewer_wwwl (Viewer *viewer, void *data)
 
     // Skip the Viewer that is calling back.
     if (VIEWER_ORIENTATION (list_viewer) != VIEWER_ORIENTATION (viewer))
-      viewer_set_window_level_for_serie (list_viewer, active_serie, wwwl);
+      viewer_set_window_level_for_serie (list_viewer, active_serie, wwwl.i32_windowWidth, wwwl.i32_windowLevel);
 
     temp = temp->next;
   }
+
 }
 
 
@@ -1450,7 +1451,7 @@ gui_mainwindow_on_key_press (UNUSED GtkWidget *widget, GdkEventKey *event,
       && !(event->state & GDK_CONTROL_MASK))
     return FALSE;
   #endif
-  
+
   /*--------------------------------------------------------------------------.
    | KEY RESPONSES                                                            |
    '--------------------------------------------------------------------------*/
