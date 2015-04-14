@@ -363,6 +363,8 @@ viewer_on_mouse_scroll_prevnext (UNUSED ClutterActor *actor, ClutterEvent *event
     default: break;
   }
 
+  f_Z = PIXELDATA_ACTIVE_SLICE (resources->ps_Original)->matrix.z;
+
   viewer_update_slices (resources->pll_MaskSeries, f_Z);
   viewer_update_slices (resources->pll_OverlaySeries, f_Z);
 
