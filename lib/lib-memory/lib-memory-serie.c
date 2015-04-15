@@ -31,6 +31,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <math.h>
+#include <libgen.h>
 
 /*                                                                                                    */
 /*                                                                                                    */
@@ -55,7 +56,7 @@ memory_serie_next_id ()
 }
 
 Serie*
-memory_serie_new (const char *name)
+memory_serie_new (const char *name, const char *pc_filename)
 {
   debug_functions ();
 
@@ -66,9 +67,17 @@ memory_serie_new (const char *name)
   if (name != NULL && strlen (name) > 0)
     memcpy (serie->name, name, strlen (name));
 
+  if ((pc_filename != NULL)&&(strlen(pc_filename)>0))
+  {
+    serie->pc_filename = calloc(1,strlen(pc_filename));
+    memcpy (serie->pc_filename, pc_filename, strlen (pc_filename));
+  }
+
   serie->id = memory_serie_next_id ();
   return serie;
 }
+
+
 
 void
 memory_serie_destroy (void *data)
@@ -78,6 +87,7 @@ memory_serie_destroy (void *data)
   if (data == NULL) return;
   Serie *serie = (Serie *)data;
 
+  free (serie->pc_filename), serie->pc_filename=NULL;
   free (serie->data), serie->data = NULL;
   free (serie->pv_OutOfBlobValue), serie->pv_OutOfBlobValue = NULL;
   free (serie->ps_Quaternion), serie->ps_Quaternion = NULL;
@@ -248,7 +258,7 @@ memory_serie_create_mask_from_serie (Serie *serie)
 {
   debug_functions ();
 
-  Serie* mask = memory_serie_new (NULL);
+  Serie* mask = memory_serie_new (NULL,NULL);
   assert (mask != NULL);
 
   mask->group_id = serie->group_id;
@@ -348,10 +358,21 @@ memory_serie_create_mask_from_serie (Serie *serie)
   char *extension = strstr (serie->name, ".nii");
   if (extension != NULL)
   {
+    char *pc_pathToOriginalSerie = dirname (serie->pc_filename);
+    char *pc_maskFileName = NULL;
+
     char serie_name[strlen (serie->name) - 3];
     memset (serie_name, 0, sizeof (serie_name));
     strncpy (serie_name, serie->name, strlen (serie->name) - 4);
-    snprintf (mask->name, 100, "%s_clone_%d.nii", serie_name, (int)mask->id);
+    snprintf (mask->name, 100, "%s_mask_%02d.nii", serie_name, (int)(mask->id));
+
+    pc_maskFileName = calloc(1, strlen(pc_pathToOriginalSerie)+2+strlen(mask->name));
+
+    strcpy(pc_maskFileName,pc_pathToOriginalSerie);
+    strcpy(&pc_maskFileName[strlen(pc_maskFileName)],"/");
+    strcpy(&pc_maskFileName[strlen(pc_maskFileName)],mask->name);
+
+    mask->pc_filename=pc_maskFileName;
   }
   else
   {

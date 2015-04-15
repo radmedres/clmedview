@@ -35,6 +35,7 @@
 #define PATH_SEPARATOR '/'
 #endif
 
+
 /*                                                                                                    */
 /*                                                                                                    */
 /* LOCAL FUNCTIONS                                                                                    */
@@ -79,8 +80,8 @@ memory_io_load_file (Tree **patient_tree, const char *path)
         Tree *study_tree = tree_append_child (*patient_tree, study, TREE_TYPE_STUDY);
 
         serie = (filename[0] == PATH_SEPARATOR)
-          ? memory_serie_new (filename + 1)
-          : memory_serie_new (filename);
+          ? memory_serie_new (filename + 1, path )
+          : memory_serie_new (filename, path );
 
         tree_append_child (study_tree, serie, TREE_TYPE_SERIE);
 
@@ -123,7 +124,7 @@ memory_io_load_file (Tree **patient_tree, const char *path)
         Study *study = memory_study_new (filename);
         Tree *study_tree = tree_append_child (*patient_tree, study, TREE_TYPE_STUDY);
 
-        Serie *serie = memory_serie_new (filename);
+        Serie *serie = memory_serie_new (filename,filename);
         tree_append_child (study_tree, serie, TREE_TYPE_SERIE);
 
         if (!memory_io_niftii_load (serie, &c_HeaderFile[0], &c_ImageFile[0])) return 0;
