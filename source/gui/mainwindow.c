@@ -1179,30 +1179,34 @@ gui_mainwindow_update_viewer_positions (Viewer *viewer, void *data)
 
   if (viewer->b_FollowMode_Enabled)
   {
+    Vector3D ts_Pivot;
+
     Coordinate *ts_Position = (Coordinate *)data;
+    Slice *slice = VIEWER_ACTIVE_SLICE (viewer);
+
+    ts_Pivot = memory_serie_GetPivotpoint(slice->serie);
+
     short int i16_SliceNumber_Axial = 0;
     short int i16_SliceNumber_Sagital = 0;
     short int i16_SliceNumber_Coronal = 0;
-
-    Slice *slice = VIEWER_ACTIVE_SLICE (viewer);
 
     MemoryImageOrientation orientation = viewer_get_orientation (viewer);
     switch (orientation)
     {
       case ORIENTATION_AXIAL:
         i16_SliceNumber_Axial = slice->matrix.z;
-        i16_SliceNumber_Sagital = ts_Position->x;
-        i16_SliceNumber_Coronal = ts_Position->y;
+        i16_SliceNumber_Sagital = ts_Pivot.x - ts_Position->x;
+        i16_SliceNumber_Coronal = ts_Pivot.y - ts_Position->y;
         break;
       case ORIENTATION_SAGITAL:
         i16_SliceNumber_Sagital = slice->matrix.z;
-        i16_SliceNumber_Axial = ts_Position->x;
-        i16_SliceNumber_Coronal = ts_Position->y;
+        i16_SliceNumber_Axial =  ts_Pivot.z - ts_Position->y;
+        i16_SliceNumber_Coronal =  ts_Pivot.x - ts_Position->x;
         break;
       case ORIENTATION_CORONAL:
         i16_SliceNumber_Coronal = slice->matrix.z;
-        i16_SliceNumber_Sagital = ts_Position->x;
-        i16_SliceNumber_Axial = ts_Position->y;
+        i16_SliceNumber_Sagital = ts_Pivot.x - ts_Position->x;
+        i16_SliceNumber_Axial = ts_Pivot.z - ts_Position->y;
         break;
       default:
         break;
