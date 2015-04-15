@@ -64,6 +64,12 @@ typedef struct
   char name[100];
 
   /**
+   * The filename of Serie.
+   */
+  char *pc_filename;
+
+
+  /**
    * The group identifier to which this Serie belongs.
    */
   unsigned long long group_id;
@@ -221,10 +227,12 @@ unsigned long long memory_serie_next_id ();
  * This function returns a newly created Serie object.
  *
  * @param name  A name for the serie.
+ * @param fileName  The filename of the original file.
  *
  * @return A pointer to a newly created Serie object.
  */
-Serie* memory_serie_new (const char *name);
+Serie*
+memory_serie_new (const char *name, const char *pc_filename);
 
 
 /**

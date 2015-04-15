@@ -712,6 +712,8 @@ gui_mainwindow_menu_file_activate (UNUSED GtkWidget *widget, void *data)
   {
     case GUI_FILE_OPEN:
       gui_mainwindow_file_load (NULL);
+
+
       break;
     case GUI_FILE_SAVE_MASK:
       gui_mainwindow_file_export ();
@@ -810,6 +812,7 @@ gui_mainwindow_file_load (void* data)
 
     Tree *root_tree = tree_nth (CONFIGURATION_MEMORY_TREE (config), 1);
     if (!memory_io_load_file (&root_tree, filename)) return;
+
 
 
     CONFIGURATION_MEMORY_TREE (config) = root_tree;
@@ -1099,11 +1102,7 @@ gui_mainwindow_file_export ()
       continue;
     }
 
-    char serie_name[100];
-    memset (serie_name, 0, 100);
-    strcpy (serie_name, serie->name);
-
-    memory_io_save_file (serie, serie_name);
+    memory_io_save_file (serie, serie->pc_filename);
     pll_Series = tree_next (pll_Series);
   }
 
@@ -1877,7 +1876,7 @@ gui_mainwindow_overlay_add (UNUSED GtkWidget *widget, void *data)
 
   if (filename != NULL)
   {
-    Serie *serie = memory_serie_new (filename);
+    Serie *serie = memory_serie_new (filename, filename);
     if (!memory_io_niftii_load (serie, filename, NULL)) return FALSE;
 
     tree_append_child (CONFIGURATION_ACTIVE_STUDY (config), serie, TREE_TYPE_SERIE_OVERLAY);
