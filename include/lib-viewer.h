@@ -281,6 +281,26 @@ Viewer* viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
 
 
 /**
+ * This function creates a clutter stage, which is a stand-alone object
+ * that can display a slice and its regions of interests.
+ *
+ * @param ts_Original        The original image Serie.
+ * @param ts_Mask            The active mask image Serie.
+ * @param pll_Overlays       An optional list of overlays.
+ * @param ts_NormalVector    The normal vector.
+ * @param ts_PivotPoint      The position vector.
+ * @param ts_UpVector        The vector to determine the rotate base position.
+ *
+ * @return A pointer to a Viewer. Use the VIEWER_WIDGET macro to get a
+ *         GtkWidget that can be displayed.
+ */
+void
+viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
+                   Vector3D ts_NormalVector, Vector3D ts_PivotPoint,
+                   Vector3D ts_UpVector);
+
+
+/**
  * This function can be called to resize the actor related to the given
  * Viewer.
  *

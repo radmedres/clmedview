@@ -526,7 +526,8 @@ viewer_on_key_press (Viewer *resources, GdkEventKey *event)
   assert (resources != NULL);
 
   (event->keyval == GDK_KEY_Alt_L || event->keyval == GDK_KEY_Alt_R)
-    ? viewer_set_view_mode (resources, 1)
+    //? viewer_set_view_mode (resources, 1)
+    ? viewer_set_view_mode (resources, 0)
     : viewer_set_view_mode (resources, 0);
 }
 
@@ -1185,6 +1186,96 @@ viewer_set_optimal_fit (Viewer *resources)
   }
 }
 
+void
+viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
+                   Vector3D ts_NormalVector, Vector3D ts_PivotPoint,
+                   Vector3D ts_UpVector)
+{
+  debug_functions ();
+
+  assert (ts_Original != NULL);
+  assert (ts_Mask != NULL);
+
+  /*--------------------------------------------------------------------------.
+   | INITIALIZE VIEWER RESOURCES                                              |
+   '--------------------------------------------------------------------------*/
+  assert (resources != NULL);
+
+  resources->ts_NormalVector.x = ts_NormalVector.x;
+  resources->ts_NormalVector.y = ts_NormalVector.y;
+  resources->ts_NormalVector.z = ts_NormalVector.z;
+
+  resources->ts_PivotPoint.x = ts_PivotPoint.x;
+  resources->ts_PivotPoint.y = ts_PivotPoint.y;
+  resources->ts_PivotPoint.z = ts_PivotPoint.z;
+
+  resources->ts_UpVector.x = ts_UpVector.x;
+  resources->ts_UpVector.y = ts_UpVector.y;
+  resources->ts_UpVector.z = ts_UpVector.z;
+
+  resources->f_ZoomFactor = 1.0;
+  resources->is_recording = 0;
+
+  int i32_windowWidth = ts_Original->i32_MaximumValue - ts_Original->i32_MinimumValue;
+  int i32_windowLevel = i32_windowWidth / 2;
+
+
+  Slice *slice = memory_slice_new (ts_Original);
+  assert (slice != NULL);
+
+  memory_slice_set_NormalVector(slice,&resources->ts_NormalVector);
+  memory_slice_set_PivotPoint(slice,&resources->ts_PivotPoint);
+  memory_slice_set_UpVector(slice,&resources->ts_UpVector);
+
+  // Set the default window and level.
+  PixelDataLookupTable *default_lut = pixeldata_lookup_table_get_default ();
+  resources->ps_Original = pixeldata_new_with_lookup_table (default_lut, i32_windowWidth ,
+                                                            i32_windowLevel, slice, ts_Original);
+
+  assert (resources->ps_Original != NULL);
+
+  // Set the default width and height.
+  resources->ts_OriginalPlane.width = slice->matrix.x;
+  resources->ts_OriginalPlane.height = slice->matrix.y;
+
+  resources->ts_ScaledPlane.width = slice->matrix.x * slice->f_ScaleFactorX;
+  resources->ts_ScaledPlane.height = slice->matrix.y * slice->f_ScaleFactorY;
+
+  // Set up the display slice resources for the mask.
+  viewer_add_mask_serie (resources, ts_Mask);
+  resources->ps_ActiveMask = list_last (resources->pll_MaskSeries)->data;
+
+  // Add overlays.
+  while (pll_Overlays != NULL)
+  {
+    viewer_add_overlay_serie (resources, pll_Overlays->data);
+    pll_Overlays = list_next (pll_Overlays);
+  }
+
+
+  /*--------------------------------------------------------------------------.
+   | CLUTTER AND GTK INITALIZATION                                            |
+   '--------------------------------------------------------------------------*/
+
+  assert (resources->c_Embed != NULL);
+  assert (resources->c_Stage != NULL);
+  assert (resources->c_Actor != NULL);
+  assert (resources->c_SliceInfo != NULL);
+
+  assert (resources->c_Handles != NULL);
+
+  clutter_actor_set_width (resources->c_Actor, slice->matrix.x);
+  clutter_actor_set_height (resources->c_Actor, slice->matrix.y);
+  clutter_actor_set_content_scaling_filters (resources->c_Actor, SCALING_FILTER, SCALING_FILTER);
+
+  /*--------------------------------------------------------------------------.
+   | CLUTTER-GTK PARTS                                                        |
+   '--------------------------------------------------------------------------*/
+
+  viewer_set_slice (resources, 0);
+  viewer_set_optimal_fit (resources);
+
+}
 
 Viewer*
 viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
