@@ -842,7 +842,7 @@ gui_mainwindow_load_study (Tree *study_tree)
   assert (study_tree->type == TREE_TYPE_STUDY);
 
   // Clean up the viewing widgets.
-  gui_mainwindow_clear_viewers ();
+  //gui_mainwindow_clear_viewers ();
 
   CONFIGURATION_ACTIVE_STUDY (config) = study_tree;
 
@@ -872,161 +872,220 @@ gui_mainwindow_load_study (Tree *study_tree)
 
   gtk_range_set_range (GTK_RANGE (timeline), 1, serie->num_time_series);
 
-  Viewer *viewer = NULL;
-
-  /*--------------------------------------------------------------------------.
-   | AXIAL VIEWER WIDGET                                                      |
-   '--------------------------------------------------------------------------*/
-  Vector3D ts_Pivot;
-  Vector3D ts_Normal;
-  Vector3D ts_Up;
-
-  ts_Pivot = memory_serie_GetPivotpoint(serie);
-
-  ts_Normal.x = 0;
-  ts_Normal.y = 0;
-  ts_Normal.z = 1;
-
-  ts_Up.x = 0;
-  ts_Up.y = 1;
-  ts_Up.z = 0;
-
-  viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
-  if (viewer != NULL)
+  if (pll_Viewers == NULL)
   {
-    viewer_set_orientation (viewer, ORIENTATION_AXIAL);
-    pll_Viewers = list_prepend (pll_Viewers, viewer);
+    Viewer *viewer = NULL;
 
-    viewer_set_callback (viewer, "pixel-paint", &gui_mainwindow_refresh_viewers);
-    viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
-    viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
-    viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
+    /*--------------------------------------------------------------------------.
+     | AXIAL VIEWER WIDGET                                                      |
+     '--------------------------------------------------------------------------*/
+    Vector3D ts_Pivot;
+    Vector3D ts_Normal;
+    Vector3D ts_Up;
 
-    if (ts_ActiveDrawTool != NULL)
-      viewer_set_active_painter (viewer, ts_ActiveDrawTool);
+    ts_Pivot = memory_serie_GetPivotpoint(serie);
 
-    axial_embed = VIEWER_WIDGET (viewer);
-  }
+    ts_Normal.x = 0;
+    ts_Normal.y = 0;
+    ts_Normal.z = 1;
 
-  /*--------------------------------------------------------------------------.
-   | SAGITAL VIEWER WIDGET                                                    |
-   '--------------------------------------------------------------------------*/
+    ts_Up.x = 0;
+    ts_Up.y = 1;
+    ts_Up.z = 0;
 
-  ts_Normal.x = 1;
-  ts_Normal.y = 0;
-  ts_Normal.z = 0;
+    viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
+    if (viewer != NULL)
+    {
+      viewer_set_orientation (viewer, ORIENTATION_AXIAL);
+      pll_Viewers = list_prepend (pll_Viewers, viewer);
 
-  ts_Up.x = 0;
-  ts_Up.y = 0;
-  ts_Up.z = 1;
+      viewer_set_callback (viewer, "pixel-paint", &gui_mainwindow_refresh_viewers);
+      viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
+      viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
+      viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
-  viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
-  if (viewer != NULL)
-  {
-    viewer_set_orientation (viewer, ORIENTATION_SAGITAL);
-    pll_Viewers = list_prepend (pll_Viewers, viewer);
+      if (ts_ActiveDrawTool != NULL)
+        viewer_set_active_painter (viewer, ts_ActiveDrawTool);
 
-    viewer_set_callback (viewer, "pixel-paint", &gui_mainwindow_refresh_viewers);
-    viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
-    viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
-    viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
+      axial_embed = VIEWER_WIDGET (viewer);
+    }
 
-    if (ts_ActiveDrawTool != NULL)
-      viewer_set_active_painter (viewer, ts_ActiveDrawTool);
+    /*--------------------------------------------------------------------------.
+     | SAGITAL VIEWER WIDGET                                                    |
+     '--------------------------------------------------------------------------*/
 
-    sagital_embed = VIEWER_WIDGET (viewer);
-  }
+    ts_Normal.x = 1;
+    ts_Normal.y = 0;
+    ts_Normal.z = 0;
 
-  /*--------------------------------------------------------------------------.
-   | CORONAL VIEWER WIDGET                                                    |
-   '--------------------------------------------------------------------------*/
+    ts_Up.x = 0;
+    ts_Up.y = 0;
+    ts_Up.z = 1;
 
-  ts_Normal.x = 0;
-  ts_Normal.y = 1;
-  ts_Normal.z = 0;
+    viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
+    if (viewer != NULL)
+    {
+      viewer_set_orientation (viewer, ORIENTATION_SAGITAL);
+      pll_Viewers = list_prepend (pll_Viewers, viewer);
 
-  ts_Up.x = 0;
-  ts_Up.y = 1;
-  ts_Up.z = 0;
+      viewer_set_callback (viewer, "pixel-paint", &gui_mainwindow_refresh_viewers);
+      viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
+      viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
+      viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
-  viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
-  if (viewer != NULL)
-  {
-    viewer_set_orientation (viewer, ORIENTATION_CORONAL);
-    pll_Viewers = list_prepend (pll_Viewers, viewer);
+      if (ts_ActiveDrawTool != NULL)
+        viewer_set_active_painter (viewer, ts_ActiveDrawTool);
 
-    viewer_set_callback (viewer, "pixel-paint", &gui_mainwindow_refresh_viewers);
-    viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
-    viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
-    viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
+      sagital_embed = VIEWER_WIDGET (viewer);
+    }
 
-    if (ts_ActiveDrawTool != NULL)
-      viewer_set_active_painter (viewer, ts_ActiveDrawTool);
+    /*--------------------------------------------------------------------------.
+     | CORONAL VIEWER WIDGET                                                    |
+     '--------------------------------------------------------------------------*/
 
-    coronal_embed = VIEWER_WIDGET (viewer);
-  }
+    ts_Normal.x = 0;
+    ts_Normal.y = 1;
+    ts_Normal.z = 0;
 
-  /*--------------------------------------------------------------------------.
-   | PACKING FOR DISPLAYMENT                                                  |
-   '--------------------------------------------------------------------------*/
-  if (te_DisplayType == VIEWPORT_TYPE_UNDEFINED)
-    te_DisplayType = VIEWPORT_TYPE_THREEWAY;
+    ts_Up.x = 0;
+    ts_Up.y = 1;
+    ts_Up.z = 0;
 
-  gtk_box_pack_start (GTK_BOX (hbox_viewers), axial_embed, 1, 1, 0);
-  gtk_box_pack_start (GTK_BOX (hbox_viewers), sagital_embed, 1, 1, 0);
-  gtk_box_pack_start (GTK_BOX (hbox_viewers), coronal_embed, 1, 1, 0);
+    viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
+    if (viewer != NULL)
+    {
+      viewer_set_orientation (viewer, ORIENTATION_CORONAL);
+      pll_Viewers = list_prepend (pll_Viewers, viewer);
 
-  gtk_widget_show_all (GTK_WIDGET (hbox_viewers));
+      viewer_set_callback (viewer, "pixel-paint", &gui_mainwindow_refresh_viewers);
+      viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
+      viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
+      viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
+      if (ts_ActiveDrawTool != NULL)
+        viewer_set_active_painter (viewer, ts_ActiveDrawTool);
 
-  /*--------------------------------------------------------------------------.
-   | KEEP PREVIOUS VIEWPORT SETTINGS                                          |
-   '--------------------------------------------------------------------------*/
-  gtk_widget_set_visible (GTK_WIDGET (axial_embed), FALSE);
-  gtk_widget_set_visible (GTK_WIDGET (sagital_embed), FALSE);
-  gtk_widget_set_visible (GTK_WIDGET (coronal_embed), FALSE);
+      coronal_embed = VIEWER_WIDGET (viewer);
+    }
 
-  switch (te_DisplayType)
-  {
-  case VIEWPORT_TYPE_AXIAL:
-    gtk_widget_set_visible (GTK_WIDGET (axial_embed), TRUE);
-    break;
-  case VIEWPORT_TYPE_SAGITAL:
-    gtk_widget_set_visible (GTK_WIDGET (sagital_embed), TRUE);
-    break;
-  case VIEWPORT_TYPE_CORONAL:
-    gtk_widget_set_visible (GTK_WIDGET (coronal_embed), TRUE);
-    break;
-  case VIEWPORT_TYPE_THREEWAY:
-    gtk_widget_set_visible (GTK_WIDGET (axial_embed), TRUE);
-    gtk_widget_set_visible (GTK_WIDGET (sagital_embed), TRUE);
-    gtk_widget_set_visible (GTK_WIDGET (coronal_embed), TRUE);
-    break;
-  default: break;
-  }
+    /*--------------------------------------------------------------------------.
+     | PACKING FOR DISPLAYMENT                                                  |
+     '--------------------------------------------------------------------------*/
+    if (te_DisplayType == VIEWPORT_TYPE_UNDEFINED)
+      te_DisplayType = VIEWPORT_TYPE_THREEWAY;
+
+    gtk_box_pack_start (GTK_BOX (hbox_viewers), axial_embed, 1, 1, 0);
+    gtk_box_pack_start (GTK_BOX (hbox_viewers), sagital_embed, 1, 1, 0);
+    gtk_box_pack_start (GTK_BOX (hbox_viewers), coronal_embed, 1, 1, 0);
+
+    gtk_widget_show_all (GTK_WIDGET (hbox_viewers));
 
 
-  gui_mainwindow_save_undo_step (hbox_viewers, NULL);
+    /*--------------------------------------------------------------------------.
+     | KEEP PREVIOUS VIEWPORT SETTINGS                                          |
+     '--------------------------------------------------------------------------*/
+    gtk_widget_set_visible (GTK_WIDGET (axial_embed), FALSE);
+    gtk_widget_set_visible (GTK_WIDGET (sagital_embed), FALSE);
+    gtk_widget_set_visible (GTK_WIDGET (coronal_embed), FALSE);
 
-  // Display a slider for time series if applicable.
-  if (serie->num_time_series > 1)
-  {
-    gtk_scale_clear_marks (GTK_SCALE (timeline));
-    gtk_range_set_range (GTK_RANGE (timeline), 1, serie->num_time_series);
-    gtk_range_set_value (GTK_RANGE (timeline), 1);
-    gtk_widget_show (timeline);
+    switch (te_DisplayType)
+    {
+    case VIEWPORT_TYPE_AXIAL:
+      gtk_widget_set_visible (GTK_WIDGET (axial_embed), TRUE);
+      break;
+    case VIEWPORT_TYPE_SAGITAL:
+      gtk_widget_set_visible (GTK_WIDGET (sagital_embed), TRUE);
+      break;
+    case VIEWPORT_TYPE_CORONAL:
+      gtk_widget_set_visible (GTK_WIDGET (coronal_embed), TRUE);
+      break;
+    case VIEWPORT_TYPE_THREEWAY:
+      gtk_widget_set_visible (GTK_WIDGET (axial_embed), TRUE);
+      gtk_widget_set_visible (GTK_WIDGET (sagital_embed), TRUE);
+      gtk_widget_set_visible (GTK_WIDGET (coronal_embed), TRUE);
+      break;
+    default: break;
+    }
+
+
+    gui_mainwindow_save_undo_step (hbox_viewers, NULL);
+
+    // Display a slider for time series if applicable.
+    if (serie->num_time_series > 1)
+    {
+      gtk_scale_clear_marks (GTK_SCALE (timeline));
+      gtk_range_set_range (GTK_RANGE (timeline), 1, serie->num_time_series);
+      gtk_range_set_value (GTK_RANGE (timeline), 1);
+      gtk_widget_show (timeline);
+    }
+    else
+    {
+      gtk_widget_hide (timeline);
+    }
+
+    // Change the active layer on each Viewer.
+    List *viewers = list_nth (pll_Viewers, 1);
+    while (viewers != NULL)
+    {
+      viewer_set_active_layer_serie (viewers->data, serie);
+      viewers = list_next (viewers);
+    }
   }
   else
   {
-    gtk_widget_hide (timeline);
-  }
+    Vector3D ts_Pivot;
+    Vector3D ts_Normal;
+    Vector3D ts_Up;
 
-  // Change the active layer on each Viewer.
-  List *viewers = list_nth (pll_Viewers, 1);
-  while (viewers != NULL)
-  {
-    viewer_set_active_layer_serie (viewers->data, serie);
-    viewers = list_next (viewers);
+    ts_Pivot = memory_serie_GetPivotpoint(serie);
+
+    List *temp = list_nth (pll_Viewers, 1);
+    while (temp != NULL)
+    {
+      Viewer* list_viewer = temp->data;
+
+
+      switch (VIEWER_ORIENTATION (list_viewer))
+      {
+        case ORIENTATION_AXIAL:
+          ts_Up.x = 0;
+          ts_Up.y = 1;
+          ts_Up.z = 0;
+
+          ts_Normal.x = 0;
+          ts_Normal.y = 0;
+          ts_Normal.z = 1;
+          break;
+        case ORIENTATION_SAGITAL:
+          ts_Up.x = 0;
+          ts_Up.y = 0;
+          ts_Up.z = 1;
+
+          ts_Normal.x = 1;
+          ts_Normal.y = 0;
+          ts_Normal.z = 0;
+          break;
+        case ORIENTATION_CORONAL:
+          ts_Up.x = 0;
+          ts_Up.y = 1;
+          ts_Up.z = 0;
+
+          ts_Normal.x = 0;
+          ts_Normal.y = 1;
+          ts_Normal.z = 0;
+          break;
+        default:
+          break;
+      }
+
+      viewer_initialize (list_viewer, serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
+
+      viewer_refresh_data (list_viewer);
+      viewer_redraw (list_viewer, REDRAW_ALL);
+
+      temp = temp->next;
+    }
+
   }
 }
 
