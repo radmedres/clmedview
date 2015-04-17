@@ -17,7 +17,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "include/lib-io-niftii.h"
+#include "include/nifti1.h"
+#include "lib-io-nifti.h"
 #include "lib-common-debug.h"
 
 #include <string.h>

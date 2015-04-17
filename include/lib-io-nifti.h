@@ -23,11 +23,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "lib/lib-io-nifti/include/nifti1.h"
 #include "lib-memory.h"
 #include "lib-memory-serie.h"
 #include "lib-memory-quaternion.h"
 
-#include "nifti1.h"
 
 #define MIN_HEADER_SIZE 348
 #define NII_HEADER_SIZE 352

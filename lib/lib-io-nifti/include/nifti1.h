@@ -276,7 +276,7 @@ typedef struct nifti_1_header nifti_1_header ;
    program can simply ignore all extended header sections simply by jumping
    straight to the image data using vox_offset.
 -----------------------------------------------------------------------------*/
-
+   
 /*! \struct nifti1_extender
     \brief This structure represents a 4-byte string that should follow the
            binary nifti_1_header data in a NIFTI-1 header file.  If the char
@@ -476,13 +476,13 @@ typedef struct nifti1_extension nifti1_extension ;
 
 #undef DT_UNKNOWN  /* defined in dirent.h on some Unix systems */
 
-/*! addtogroup NIFTI1_DATATYPES
+/*! \defgroup NIFTI1_DATATYPES
     \brief nifti1 datatype codes
     @{
  */
                             /*--- the original ANALYZE 7.5 type codes ---*/
 #define DT_NONE                    0
-//#define DT_UNKNOWN                 0     /* what it says, dude           */
+#define DT_UNKNOWN                 0     /* what it says, dude           */
 #define DT_BINARY                  1     /* binary (1 bit/voxel)         */
 #define DT_UNSIGNED_CHAR           2     /* unsigned char (8 bits/voxel) */
 #define DT_SIGNED_SHORT            4     /* signed short (16 bits/voxel) */
@@ -501,7 +501,8 @@ typedef struct nifti1_extension nifti1_extension ;
 #define DT_COMPLEX64              32
 #define DT_FLOAT64                64
 #define DT_RGB24                 128
-                     /*------------------- new codes for NIFTI ---*/
+
+                            /*------------------- new codes for NIFTI ---*/
 #define DT_INT8                  256     /* signed char (8 bits)         */
 #define DT_UINT16                512     /* unsigned short (16 bits)     */
 #define DT_UINT32                768     /* unsigned int (32 bits)       */
@@ -516,7 +517,7 @@ typedef struct nifti1_extension nifti1_extension ;
 
                             /*------- aliases for all the above codes ---*/
 
-/*! addtogroup NIFTI1_DATATYPE_ALIASES
+/*! \defgroup NIFTI1_DATATYPE_ALIASES
     \brief aliases for the nifti1 datatype codes
     @{
  */
@@ -680,7 +681,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
        p1 = degrees of freedom
        R/sqrt(1-R*R) is t-distributed with p1 DOF. */
 
-/*! addtogroup NIFTI1_INTENT_CODES
+/*! \defgroup NIFTI1_INTENT_CODES
     \brief nifti1 intent codes, to describe intended meaning of dataset contents
     @{
  */
@@ -909,7 +910,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_INTENT_QUATERNION 1010
 
- /*! Dimensionless value - no params - although, as in _ESTIMATE
+ /*! Dimensionless value - no params - although, as in _ESTIMATE 
      the name of the parameter may be stored in intent_name.     */
 
 #define NIFTI_INTENT_DIMLESS    1011
@@ -1205,7 +1206,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
    /*-----------------------*/      /*---------------------------------------*/
 
-/*! addtogroup NIFTI1_XFORM_CODES
+/*! \defgroup NIFTI1_XFORM_CODES
     \brief nifti1 xform codes to describe the "standard" coordinate system
     @{
  */
@@ -1269,7 +1270,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    for m=0..dim[4]-1.
 -----------------------------------------------------------------------------*/
 
-/*! addtogroup NIFTI1_UNITS
+/*! \defgroup NIFTI1_UNITS
     \brief nifti1 units codes to describe the unit of measurement for
            each dimension of the dataset
     @{
@@ -1410,7 +1411,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                                       ( ( ((char)(pd)) & 0x03) << 2 ) |  \
                                       ( ( ((char)(sd)) & 0x03) << 4 )  )
 
-/*! addtogroup NIFTI1_SLICE_ORDER
+/*! \defgroup NIFTI1_SLICE_ORDER
     \brief nifti1 slice order codes, describing the acquisition order
            of the slices
     @{

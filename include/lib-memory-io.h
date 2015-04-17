@@ -22,7 +22,7 @@
 
 #include "lib-common-tree.h"
 #include "lib-memory.h"
-#include "../lib/lib-memory/include/lib-io-niftii.h"
+#include "lib-io-nifti.h"
 
 /**
  * @file   include/lib-memory-io.h

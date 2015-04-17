@@ -32,6 +32,7 @@ INCLUDE_SOURCES 	= include/lib-pixeldata.h \
 			  include/lib-common.h \
 			  include/lib-memory.h \
 			  include/lib-common-history.h \
+			  include/lib-lib-io-niftii.h \
 			  include/lib-memory-io.h \
 			  include/lib-memory-patient.h \
 			  include/lib-memory-study.h \
@@ -73,16 +74,19 @@ DOXYGEN_FILES           = doc/Doxyfile doc/custom.css doc/footer.html \
                           doc/images/grel-sequence-diagram.dia \
                           doc/clmedview.texi
 
-LIB_MEMORY_SOURCES	= lib/lib-memory/include/lib-io-niftii.h \
-			  lib/lib-memory/include/nifti1.h \
-			  lib/lib-memory/include/lib-io-niftii.h \
-			  lib/lib-memory/lib-memory-tree.c \
+LIB_IO_DICOM_SOURCES = lib/lib-io-dicom/znzlib.c \
+        lib/lib-io-dicom/zzwrite.c \
+        lib/lib-io-dicom/zzio.c \
+        lib/lib-io-dicom/zz.c
+
+LIB_IO_NIFTI_SOURCES = lib/lib-io-nifti/lib-io-nifti.c
+
+LIB_MEMORY_SOURCES	= lib/lib-memory/lib-memory-tree.c \
 			  lib/lib-memory/lib-memory-patient.c \
 			  lib/lib-memory/lib-memory-study.c \
 			  lib/lib-memory/lib-memory-serie.c \
 			  lib/lib-memory/lib-memory-slice.c \
 			  lib/lib-memory/lib-memory-quaternion.c \
-			  lib/lib-memory/lib-io-niftii.c \
 			  lib/lib-memory/lib-memory-io.c
 
 LIB_COMMON_SOURCES	= lib/lib-common/lib-common-list.c \
@@ -106,6 +110,7 @@ clmedview_SOURCES	= source/main.c \
 			  source/gui/mainwindow.c \
 			  source/gui/mainwindow.h \
 			  $(INCLUDE_SOURCES) $(LIB_MEMORY_SOURCES) \
+        $(LIB_IO_DICOM_SOURCES) $(LIB_IO_NIFTI_SOURCES) \
 			  $(LIB_COMMON_SOURCES) $(LIB_PIXELDATA_SOURCES) \
 			  $(LIB_VIEWER_SOURCES) $(LIB_GREL_SOURCES) \
 			  $(LIB_CONFIGURATION_SOURCES)
