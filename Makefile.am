@@ -21,9 +21,10 @@ SUBDIRS                 = . plugin
 ACLOCAL_AMFLAGS         = -I m4
 AUTOMAKE_OPTIONS 	= subdir-objects
 AM_CFLAGS 		= $(gtk_CFLAGS) $(glib_CFLAGS) $(zlib_CFLAGS) \
-                          $(guile_CFLAGS) $(clutter_CFLAGS) $(vte_CFLAGS) \
-                          $(cluttergtk_CFLAGS) -Iinclude/ \
-                          -Ilib/lib-common/include/ -Iplugin/
+                $(clutter_CFLAGS) $(vte_CFLAGS) \
+                $(cluttergtk_CFLAGS) -Iinclude/ \
+                -Ilib/lib-common/include/ -Iplugin/
+
 bin_PROGRAMS 		= clmedview
 
 INCLUDE_SOURCES 	= include/lib-pixeldata.h \
@@ -44,8 +45,6 @@ INCLUDE_SOURCES 	= include/lib-pixeldata.h \
 			  include/lib-common-tree.h \
 			  include/lib-common-debug.h \
 			  include/lib-common-unused.h \
-			  include/lib-grel-shell.h \
-			  include/lib-grel-interpreter.h \
 			  include/lib-configuration.h
 
 PLUGIN_FILES		= plugin/Makefile.am \
@@ -63,15 +62,11 @@ PLUGIN_FILES		= plugin/Makefile.am \
 			  plugin/src/selection-tools/plugin-select-interface.h \
 			  plugin/src/selection-tools/librectangle.c
 
-GREL_FILES              = grel-scripts/init.scm
-
 LUT_FILES               = luts/*.lut
 
 DOXYGEN_FILES           = doc/Doxyfile doc/custom.css doc/footer.html \
                           doc/doxygen/html/background.png \
                           doc/images/component-diagram.dia \
-                          doc/images/grel-mechanism.dia \
-                          doc/images/grel-sequence-diagram.dia \
                           doc/clmedview.texi
 
 LIB_IO_DICOM_SOURCES = lib/lib-io-dicom/znzlib.c \
@@ -99,10 +94,6 @@ LIB_PIXELDATA_SOURCES	= lib/lib-pixeldata/lib-pixeldata.c \
 
 LIB_VIEWER_SOURCES	= lib/lib-viewer/lib-viewer.c
 
-if ENABLE_GREL
-LIB_GREL_SOURCES        = lib/lib-grel/lib-grel-shell.c \
-                          lib/lib-grel/lib-grel-interpreter.c
-endif
 
 LIB_CONFIGURATION_SOURCES = lib/lib-configuration/lib-configuration.c
 
@@ -110,16 +101,15 @@ clmedview_SOURCES	= source/main.c \
 			  source/gui/mainwindow.c \
 			  source/gui/mainwindow.h \
 			  $(INCLUDE_SOURCES) $(LIB_MEMORY_SOURCES) \
-        $(LIB_IO_DICOM_SOURCES) $(LIB_IO_NIFTI_SOURCES) \
+                          $(LIB_IO_DICOM_SOURCES) $(LIB_IO_NIFTI_SOURCES) \
 			  $(LIB_COMMON_SOURCES) $(LIB_PIXELDATA_SOURCES) \
-			  $(LIB_VIEWER_SOURCES) $(LIB_GREL_SOURCES) \
-			  $(LIB_CONFIGURATION_SOURCES)
+			  $(LIB_VIEWER_SOURCES) $(LIB_CONFIGURATION_SOURCES)
 
 clmedview_LDFLAGS       = -fdata-sections -ffunction-sections -Wl,--gc-sections
-clmedview_LDADD         = $(gtk_LIBS) $(glib_LIBS) $(zlib_LIBS) $(guile_LIBS) \
+clmedview_LDADD         = $(gtk_LIBS) $(glib_LIBS) $(zlib_LIBS) \
                           $(clutter_LIBS) $(cluttergtk_LIBS) $(vte_LIBS) -lm -ldl
 
-dist_data_DATA          = $(PLUGIN_FILES) $(GREL_FILES) $(DOXYGEN_FILES) $(LUT_FILES)
+dist_data_DATA          = $(PLUGIN_FILES) $(DOXYGEN_FILES) $(LUT_FILES)
 
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status libtool
@@ -143,10 +133,6 @@ if ENABLE_MTRACE_OPTION
 AM_CFLAGS              += -DENABLE_MTRACE
 endif
 
-if ENABLE_GREL
-AM_CFLAGS              += -DENABLE_GREL
-endif
-
 clean-local: docs-clean plugins-clean
 
 plugins:
@@ -161,10 +147,6 @@ gcov-clean:
 docs-preprocess-images:
 	@cd doc/images/; dia component-diagram.dia -e component-diagram.eps; \
 	ps2pdf -dEPSCrop component-diagram.eps component-diagram.pdf
-	@cd doc/images/; dia grel-sequence-diagram.dia -e grel-sequence-diagram.eps; \
-	ps2pdf -dEPSCrop grel-sequence-diagram.eps grel-sequence-diagram.pdf
-	@cd doc/images/; dia grel-mechanism.dia -e grel-mechanism.eps; \
-	ps2pdf -dEPSCrop grel-mechanism.eps grel-mechanism.pdf
 
 docs: docs-preprocess-images
 	@texi2pdf -q doc/clmedview.texi -o doc/clmedview.pdf

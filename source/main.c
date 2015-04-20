@@ -30,11 +30,6 @@
 #include "lib-memory.h"
 #include "gui/mainwindow.h"
 
-#ifdef ENABLE_GREL
-#include "lib-grel-shell.h"
-#endif
-
-
 // VERSION should be provided by the build system, otherwise define it here.
 #ifndef VERSION
 #define VERSION 0.1
