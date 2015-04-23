@@ -30,6 +30,12 @@ extern "C" {
 #include "lib-memory.h"
 #include "lib-memory-quaternion.h"
 
+#define COORDINATES_UNKNOWN      0  /*! Arbitrary coordinates (Method 1). */
+#define COORDINATES_SCANNER_ANAT 1  /*! Scanner-based anatomical coordinates */
+#define COORDINATES_ALIGNED_ANAT 2  /*! Coordinates aligned to another file's,or to anatomical "truth". */
+#define COORDINATES_TALAIRACH    3  /*! Coordinates aligned to Talairach-Tournoux Atlas; (0,0,0)=AC, etc. */
+#define COORDINATES_MNI_152      4  /*! MNI 152 normalized coordinates. */
+
 
 /**
  * @file   include/lib-memory-serie.h
@@ -57,6 +63,11 @@ typedef struct
    * A unique identifier for a Serie.
    */
   unsigned long long id;
+
+  /**
+   * A unique identifier for a serie used in dicom files.
+   */
+  char c_serieInstanceUID[64];
 
   /**
    * The name for a Serie.

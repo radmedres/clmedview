@@ -276,7 +276,7 @@ typedef struct nifti_1_header nifti_1_header ;
    program can simply ignore all extended header sections simply by jumping
    straight to the image data using vox_offset.
 -----------------------------------------------------------------------------*/
-   
+
 /*! \struct nifti1_extender
     \brief This structure represents a 4-byte string that should follow the
            binary nifti_1_header data in a NIFTI-1 header file.  If the char
@@ -482,7 +482,6 @@ typedef struct nifti1_extension nifti1_extension ;
  */
                             /*--- the original ANALYZE 7.5 type codes ---*/
 #define DT_NONE                    0
-#define DT_UNKNOWN                 0     /* what it says, dude           */
 #define DT_BINARY                  1     /* binary (1 bit/voxel)         */
 #define DT_UNSIGNED_CHAR           2     /* unsigned char (8 bits/voxel) */
 #define DT_SIGNED_SHORT            4     /* signed short (16 bits/voxel) */
@@ -910,7 +909,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_INTENT_QUATERNION 1010
 
- /*! Dimensionless value - no params - although, as in _ESTIMATE 
+ /*! Dimensionless value - no params - although, as in _ESTIMATE
      the name of the parameter may be stored in intent_name.     */
 
 #define NIFTI_INTENT_DIMLESS    1011
@@ -1348,13 +1347,13 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                    NIFTI_SLICE_ALT_INC2 == alternating increasing #2
                    NIFTI_SLICE_ALT_DEC2 == alternating decreasing #2
   { slice_start } = Indicates the start and end of the slice acquisition
+                    For these values to be meaningful, slice_start must
   { slice_end   } = pattern, when slice_code is nonzero.  These values
                     are present to allow for the possible addition of
                     "padded" slices at either end of the volume, which
                     don't fit into the slice timing pattern.  If there
                     are no padding slices, then slice_start=0 and
                     slice_end=dim[slice_dim]-1 are the correct values.
-                    For these values to be meaningful, slice_start must
                     be non-negative and slice_end must be greater than
                     slice_start.  Otherwise, they should be ignored.
 

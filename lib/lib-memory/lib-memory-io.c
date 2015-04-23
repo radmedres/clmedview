@@ -25,6 +25,12 @@
 #include "lib-memory-serie.h"
 #include "lib-common-debug.h"
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <libgen.h>
+
 #include <string.h>
 
 // On Microsoft Windows we should search for backslashes instead of forward
@@ -41,6 +47,264 @@
 /* LOCAL FUNCTIONS                                                                                    */
 /*                                                                                                    */
 /*                                                                                                    */
+short int i16_memory_io_isDirectory(const char *path);
+short int i16_memory_io_isFile(const char *path);
+short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path);
+
+typedef struct s_dicom_FileProperties
+{
+  char         *pc_Filename;
+  Coordinate3D  ts_Position;
+  short int     i16_relativeOrderNumber;
+
+} ts_dicom_FileProperties;
+
+
+
+short int
+i16_memory_io_isDirectory(const char *path)
+{
+  struct stat statbuf;
+
+  if (stat(path, &statbuf) != 0)
+  {
+    return 0;
+  }
+
+  return S_ISDIR(statbuf.st_mode);
+}
+
+
+short int
+i16_memory_io_isFile(const char *path)
+{
+  struct stat statbuf;
+
+  if (stat(path, &statbuf) != 0)
+  {
+    return 0;
+  }
+
+  return S_ISREG(statbuf.st_mode);
+}
+
+short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
+{
+  Patient *ps_patient = NULL;
+  Patient *patient=NULL;
+
+  Study *ps_study = NULL;
+  Study *study=NULL;
+
+  Serie *ps_serie = NULL;
+  Serie *serie=NULL;
+
+  Tree *patientTreeIterator=NULL;
+  Tree *studyTreeIterator=NULL;
+  Tree *serieTreeIterator=NULL;
+
+  DIR *p_dicomDirectory;
+  struct dirent *p_dirEntry;
+
+  char *pc_dirName = NULL;
+  char *pc_fullPath = NULL;
+
+  ts_dicom_FileProperties *ps_ReferenceFileProps = NULL;
+  ts_dicom_FileProperties *ps_dicomFile;
+
+  List *pll_dicomFiles = NULL;
+  List *pll_dicomFilesIter = NULL;
+
+  short int i16_NumberOfSlices=0;
+  short int i16_MinimumReferenceOrderValue=0;
+  short int i16_MaximumReferenceOrderValue=0;
+  short int b_StudyExists=0;
+  short int b_SerieExists=0;
+  short int b_PatientExists=0;
+  short int i16_Cnt;
+
+
+  // Build list of all files
+
+    // Check weather path is a path or a directory
+  pc_dirName = (i16_memory_io_isFile(path)) ? dirname(path) : path;
+
+  p_dicomDirectory = opendir (pc_dirName);
+
+  if (p_dicomDirectory == NULL)
+  {
+    return 0;
+  }
+
+  ps_patient = memory_patient_new ("TEST");
+  ps_study = memory_study_new("TEST");
+  ps_serie = memory_serie_new("TEST",NULL);
+
+  p_dirEntry = readdir (p_dicomDirectory);
+  pll_dicomFilesIter = pll_dicomFiles;
+
+  while (p_dirEntry!=NULL)
+  {
+    // create Full path name
+    pc_fullPath = calloc(1, strlen(path)+2+strlen(p_dirEntry->d_name));
+    strcpy(pc_fullPath,pc_dirName);
+    strcpy(&pc_fullPath[strlen(pc_fullPath)],"/");
+    strcpy(&pc_fullPath[strlen(pc_fullPath)],p_dirEntry->d_name);
+
+    Coordinate3D ts_slicePosition;
+    if (i16_memory_io_dicom_loadMetaData(ps_patient,ps_study,ps_serie, &ts_slicePosition, pc_fullPath))
+    {
+      ts_dicom_FileProperties *ps_dicomFile=calloc(1,sizeof(ts_dicom_FileProperties));
+
+      if ( ps_ReferenceFileProps == NULL)
+      {
+        //first time passing this loop, refer to first read file
+        ps_ReferenceFileProps = ps_dicomFile;
+      }
+
+      ps_dicomFile->pc_Filename = pc_fullPath;
+      ps_dicomFile->ts_Position=ts_slicePosition;
+      ps_dicomFile->i16_relativeOrderNumber = i16_memory_io_dicom_relativePosition(&ps_ReferenceFileProps->ts_Position,
+                                                                                   &ps_dicomFile->ts_Position,
+                                                                                   ps_serie->pt_InverseMatrix,
+                                                                                   &ps_serie->pixel_dimension);
+
+      if (ps_dicomFile->i16_relativeOrderNumber < i16_MinimumReferenceOrderValue)
+      {
+        i16_MinimumReferenceOrderValue = ps_dicomFile->i16_relativeOrderNumber;
+      }
+
+      if (ps_dicomFile->i16_relativeOrderNumber > i16_MaximumReferenceOrderValue)
+      {
+        i16_MaximumReferenceOrderValue = ps_dicomFile->i16_relativeOrderNumber;
+      }
+
+      i16_NumberOfSlices++;
+
+      pll_dicomFilesIter = list_append(pll_dicomFilesIter, ps_dicomFile);
+    }
+    p_dirEntry = readdir (p_dicomDirectory);
+  }
+
+  closedir (p_dicomDirectory);
+  ps_serie->matrix.z=i16_NumberOfSlices;
+
+
+  //Check if patient exists
+  patientTreeIterator=tree_nth(*patient_tree,1);
+  while (patientTreeIterator != NULL)
+  {
+    patient=(Patient * )(patientTreeIterator->data);
+
+    if (strcmp(patient->name,ps_patient->name) == 0)
+    {
+      b_PatientExists=1;
+      *patient_tree = patientTreeIterator;
+      // Patient exists
+      break;
+    }
+    patientTreeIterator=tree_next(patientTreeIterator);
+  }
+
+  if (!b_PatientExists)
+  {
+    *patient_tree = tree_append (*patient_tree, ps_patient, TREE_TYPE_PATIENT);
+  }
+
+  studyTreeIterator=tree_nth((*patient_tree)->child,1);
+  while (studyTreeIterator != NULL)
+  {
+    study=(Study * )(studyTreeIterator->data);
+
+    if (strcmp(study->name,ps_study->name) == 0)
+    {
+      b_StudyExists=1;
+      studyTreeIterator = (*patient_tree)->child;
+      break;
+    }
+    studyTreeIterator=tree_next(studyTreeIterator);
+  }
+
+  if (!b_StudyExists)
+  {
+    studyTreeIterator = tree_append_child (*patient_tree, ps_study, TREE_TYPE_STUDY);
+  }
+
+  serieTreeIterator=tree_nth(studyTreeIterator->child,1);
+  while (serieTreeIterator != NULL)
+  {
+    serie=(Serie *)(studyTreeIterator->data);
+
+    if (strcmp(serie->name,ps_serie->name) == 0)
+    {
+      b_SerieExists=1;
+      break;
+    }
+    serieTreeIterator=tree_next(serieTreeIterator);
+  }
+
+  if (!b_SerieExists)
+  {
+     tree_append_child (studyTreeIterator, ps_serie, TREE_TYPE_SERIE);
+  }
+  else
+  {
+    // clean up all mess
+    ts_dicom_FileProperties *ps_dicomFile;
+    pll_dicomFilesIter = list_nth(pll_dicomFiles,1);
+    while (pll_dicomFilesIter->next != NULL)
+    {
+      ps_dicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesIter->data);
+
+      free(ps_dicomFile->pc_Filename), ps_dicomFile->pc_Filename = NULL;
+      free(ps_dicomFile), ps_dicomFile = NULL;
+      pll_dicomFilesIter = list_next(pll_dicomFilesIter);
+    }
+    list_free(pll_dicomFiles);
+
+    return 1;
+  }
+
+
+  pll_dicomFiles = list_nth(pll_dicomFilesIter,1);
+  i16_NumberOfSlices=0;
+  for (i16_Cnt=i16_MinimumReferenceOrderValue; i16_Cnt<=i16_MaximumReferenceOrderValue; i16_Cnt++ )
+  {
+    pll_dicomFilesIter = pll_dicomFiles;
+    while (pll_dicomFilesIter != NULL)
+    {
+      ps_dicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesIter->data);
+
+      if (ps_dicomFile->i16_relativeOrderNumber == i16_Cnt)
+      {
+        i16_memory_io_dicom_loadSingleSlice(ps_serie, ps_dicomFile->pc_Filename, i16_NumberOfSlices);
+
+        if (pll_dicomFilesIter != pll_dicomFiles)
+        {
+          pll_dicomFilesIter=list_remove(pll_dicomFilesIter);
+          break;
+        }
+      }
+      pll_dicomFilesIter = list_next(pll_dicomFilesIter);
+    }
+    i16_NumberOfSlices++;
+  }
+
+  memory_serie_set_upper_and_lower_borders_from_data(ps_serie);
+
+  // clear everything
+  pll_dicomFilesIter = list_nth(pll_dicomFiles,1);
+  while (pll_dicomFilesIter->next != NULL)
+  {
+    ps_dicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesIter->data);
+
+    free(ps_dicomFile->pc_Filename), ps_dicomFile->pc_Filename = NULL;
+    free(ps_dicomFile), ps_dicomFile = NULL;
+    pll_dicomFilesIter = list_next(pll_dicomFilesIter);
+  }
+  list_free(pll_dicomFiles);
+  return 1;
+}
 
 
 /*                                                                                                    */
@@ -48,8 +312,12 @@
 /* GLOBAL FUNCTIONS                                                                                   */
 /*                                                                                                    */
 /*                                                                                                    */
+
+
+
+
 short int
-memory_io_load_file (Tree **patient_tree, const char *path)
+memory_io_load_file (Tree **patient_tree, char *path)
 {
   debug_functions ();
 
@@ -63,81 +331,88 @@ memory_io_load_file (Tree **patient_tree, const char *path)
   Study *study = NULL;
   Serie *serie = NULL;
 
-  switch (memory_io_niftii_file_type ((char *)path))
+
+  // check wheater it is a niftii
+  if (memory_io_niftii_file_type ((char *)path) != MUMC_FILETYPE_NOT_KNOWN)
   {
-    case MUMC_FILETYPE_NIFTII_SF:
-      {
-        patient = (filename[0] == PATH_SEPARATOR)
-          ? memory_patient_new (filename + 1)
-          : memory_patient_new (filename);
-
-        *patient_tree = tree_append (*patient_tree, patient, TREE_TYPE_PATIENT);
-
-        study = (filename[0] == PATH_SEPARATOR)
-          ? memory_study_new (filename + 1)
-          : memory_study_new (filename);
-
-        Tree *study_tree = tree_append_child (*patient_tree, study, TREE_TYPE_STUDY);
-
-        serie = (filename[0] == PATH_SEPARATOR)
-          ? memory_serie_new (filename + 1, path )
-          : memory_serie_new (filename, path );
-
-        tree_append_child (study_tree, serie, TREE_TYPE_SERIE);
-
-        if (!memory_io_niftii_load (serie, path, NULL)) return 0;
-      }
-      break;
-    case MUMC_FILETYPE_NIFTII_TF:
-      {
-        //Check weather the hdr or img file is passed
-        char* pc_Extension = strrchr (path, '.');
-
-        char c_ImageFile[1024];
-        char c_HeaderFile[1024];
-
-        strcpy(&c_ImageFile[0],path);
-        strcpy(&c_HeaderFile[0],path);
-
-        if (pc_Extension == NULL)
+    switch (memory_io_niftii_file_type ((char *)path))
+    {
+      case MUMC_FILETYPE_NIFTII_SF:
         {
-          pc_Extension = strrchr (&c_ImageFile[0], '.');
-          strcat(pc_Extension, ".img");
+          patient = (filename[0] == PATH_SEPARATOR)
+            ? memory_patient_new (filename + 1)
+            : memory_patient_new (filename);
 
-          pc_Extension = strrchr (&c_HeaderFile[0], '.');
-          strcat(pc_Extension, ".hdr");
+          *patient_tree = tree_append (*patient_tree, patient, TREE_TYPE_PATIENT);
+
+          study = (filename[0] == PATH_SEPARATOR)
+            ? memory_study_new (filename + 1)
+            : memory_study_new (filename);
+
+          Tree *study_tree = tree_append_child (*patient_tree, study, TREE_TYPE_STUDY);
+
+          serie = (filename[0] == PATH_SEPARATOR)
+            ? memory_serie_new (filename + 1, path )
+            : memory_serie_new (filename, path );
+
+          tree_append_child (study_tree, serie, TREE_TYPE_SERIE);
+
+          if (!memory_io_niftii_load (serie, path, NULL)) return 0;
         }
-        else
+        break;
+      case MUMC_FILETYPE_NIFTII_TF:
         {
-          pc_Extension = strrchr (&c_ImageFile[0], '.');
-          strcpy(pc_Extension, ".img");
-          pc_Extension = strrchr (&c_HeaderFile[0], '.');
-          strcpy(pc_Extension, ".hdr");
+          //Check weather the hdr or img file is passed
+          char* pc_Extension = strrchr (path, '.');
+
+          char c_ImageFile[1024];
+          char c_HeaderFile[1024];
+
+          strcpy(&c_ImageFile[0],path);
+          strcpy(&c_HeaderFile[0],path);
+
+          if (pc_Extension == NULL)
+          {
+            pc_Extension = strrchr (&c_ImageFile[0], '.');
+            strcat(pc_Extension, ".img");
+
+            pc_Extension = strrchr (&c_HeaderFile[0], '.');
+            strcat(pc_Extension, ".hdr");
+          }
+          else
+          {
+            pc_Extension = strrchr (&c_ImageFile[0], '.');
+            strcpy(pc_Extension, ".img");
+            pc_Extension = strrchr (&c_HeaderFile[0], '.');
+            strcpy(pc_Extension, ".hdr");
+          }
+
+          printf("Header: %s\n",c_HeaderFile);
+          printf("Image: %s\n",c_ImageFile);
+
+          Patient *patient = memory_patient_new (filename);
+          *patient_tree = tree_append (*patient_tree, patient, TREE_TYPE_PATIENT);
+
+          Study *study = memory_study_new (filename);
+          Tree *study_tree = tree_append_child (*patient_tree, study, TREE_TYPE_STUDY);
+
+          Serie *serie = memory_serie_new (filename,filename);
+          tree_append_child (study_tree, serie, TREE_TYPE_SERIE);
+
+          if (!memory_io_niftii_load (serie, &c_HeaderFile[0], &c_ImageFile[0])) return 0;
         }
-
-        printf("Header: %s\n",c_HeaderFile);
-        printf("Image: %s\n",c_ImageFile);
-
-        Patient *patient = memory_patient_new (filename);
-        *patient_tree = tree_append (*patient_tree, patient, TREE_TYPE_PATIENT);
-
-        Study *study = memory_study_new (filename);
-        Tree *study_tree = tree_append_child (*patient_tree, study, TREE_TYPE_STUDY);
-
-        Serie *serie = memory_serie_new (filename,filename);
-        tree_append_child (study_tree, serie, TREE_TYPE_SERIE);
-
-        if (!memory_io_niftii_load (serie, &c_HeaderFile[0], &c_ImageFile[0])) return 0;
-      }
-      break;
-    //case MUMC_FILETYPE_ANALYZE75:
-    //case MUMC_FILETYPE_DICOM:
-    //case MUMC_FILETYPE_NIFTII_TF:
-    //case MUMC_FILETYPE_NOT_KNOWN:
-    default:
-      return 0;
+        break;
+      case MUMC_FILETYPE_ANALYZE75:
+      case MUMC_FILETYPE_DICOM:
+      case MUMC_FILETYPE_NOT_KNOWN:
+      default:
+        return 0;
+    }
   }
-
+  else
+  {
+    return i16_memory_io_load_file_dicom(&(*patient_tree), path);
+  }
   return 1;
 }
 
