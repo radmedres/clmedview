@@ -47,15 +47,25 @@
 /* LOCAL FUNCTIONS                                                                                    */
 /*                                                                                                    */
 /*                                                                                                    */
+
+/**
+ * This enumeration contains all known image orientations.
+ */
 short int i16_memory_io_isDirectory(const char *path);
 short int i16_memory_io_isFile(const char *path);
 short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path);
 
+
+
 typedef struct s_dicom_FileProperties
 {
-  char         *pc_Filename;
-  Coordinate3D  ts_Position;
-  short int     i16_relativeOrderNumber;
+  char                          *pc_Filename;
+  Coordinate3D                  ts_Position;
+  short int                     i16_relativeOrderNumber;
+  short int                     i16_TemporalPositionIdentifier;
+  short int                     i16_StackPositionIdentifier;
+
+  te_DCM_ComplexImageComponent  e_DCM_CIC;
 
 } ts_dicom_FileProperties;
 
@@ -118,17 +128,21 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   short int i16_NumberOfSlices=0;
   short int i16_MinimumReferenceOrderValue=0;
   short int i16_MaximumReferenceOrderValue=0;
+  short int i16_TemporalPositionIdentifier=0;
+  short int i16_StackPositionIdentifier=0;
+  short int i16_NumberOfReconstructions=0;
   short int b_StudyExists=0;
   short int b_SerieExists=0;
   short int b_PatientExists=0;
-  short int i16_Cnt;
+  short int i16_Cnt=0;
+  short int i16_timeFrameCnt=0;
 
+  te_DCM_ComplexImageComponent e_DCM_CIC;
 
   // Build list of all files
 
-    // Check weather path is a path or a directory
+  // Check weather path is a path or a directory
   pc_dirName = (i16_memory_io_isFile(path)) ? dirname(path) : path;
-
   p_dicomDirectory = opendir (pc_dirName);
 
   if (p_dicomDirectory == NULL)
@@ -152,7 +166,14 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
     strcpy(&pc_fullPath[strlen(pc_fullPath)],p_dirEntry->d_name);
 
     Coordinate3D ts_slicePosition;
-    if (i16_memory_io_dicom_loadMetaData(ps_patient,ps_study,ps_serie, &ts_slicePosition, pc_fullPath))
+
+    // check if file is enhanced or not
+//    if (i16_memory_io_dicom_CheckEnhanced(pc_fullPath))
+//    {
+//    }
+
+
+    if (i16_memory_io_dicom_loadMetaData(ps_patient,ps_study,ps_serie, &ts_slicePosition, &i16_TemporalPositionIdentifier, &i16_StackPositionIdentifier, &e_DCM_CIC,  pc_fullPath))
     {
       ts_dicom_FileProperties *ps_dicomFile=calloc(1,sizeof(ts_dicom_FileProperties));
 
@@ -168,6 +189,15 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
                                                                                    &ps_dicomFile->ts_Position,
                                                                                    ps_serie->pt_InverseMatrix,
                                                                                    &ps_serie->pixel_dimension);
+
+      ps_dicomFile->i16_TemporalPositionIdentifier = i16_TemporalPositionIdentifier;
+      ps_dicomFile->i16_StackPositionIdentifier = i16_StackPositionIdentifier;
+      ps_dicomFile->e_DCM_CIC = e_DCM_CIC;
+
+
+
+
+
 
       if (ps_dicomFile->i16_relativeOrderNumber < i16_MinimumReferenceOrderValue)
       {
@@ -187,8 +217,6 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   }
 
   closedir (p_dicomDirectory);
-  ps_serie->matrix.z=i16_NumberOfSlices;
-
 
   //Check if patient exists
   patientTreeIterator=tree_nth(*patient_tree,1);
@@ -196,7 +224,7 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   {
     patient=(Patient * )(patientTreeIterator->data);
 
-    if (strcmp(patient->name,ps_patient->name) == 0)
+    if (strcmp(patient->c_patientID,ps_patient->c_patientID) == 0)
     {
       b_PatientExists=1;
       *patient_tree = patientTreeIterator;
@@ -216,7 +244,7 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   {
     study=(Study * )(studyTreeIterator->data);
 
-    if (strcmp(study->name,ps_study->name) == 0)
+    if (strcmp(study->c_studyInstanceUID,ps_study->c_studyInstanceUID) == 0)
     {
       b_StudyExists=1;
       studyTreeIterator = (*patient_tree)->child;
@@ -235,7 +263,7 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   {
     serie=(Serie *)(studyTreeIterator->data);
 
-    if (strcmp(serie->name,ps_serie->name) == 0)
+    if (strcmp(serie->c_serieInstanceUID,ps_serie->c_serieInstanceUID) == 0)
     {
       b_SerieExists=1;
       break;
@@ -249,6 +277,7 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   }
   else
   {
+    pll_dicomFiles = pll_dicomFilesIter;
     // clean up all mess
     ts_dicom_FileProperties *ps_dicomFile;
     pll_dicomFilesIter = list_nth(pll_dicomFiles,1);
@@ -266,31 +295,107 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   }
 
 
+  // check if there where several timeframes?
+/*
   pll_dicomFiles = list_nth(pll_dicomFilesIter,1);
-  i16_NumberOfSlices=0;
-  for (i16_Cnt=i16_MinimumReferenceOrderValue; i16_Cnt<=i16_MaximumReferenceOrderValue; i16_Cnt++ )
+  pll_dicomFilesIter = pll_dicomFiles;
+
+
+  List *pll_dicomFilesSecondIter=NULL;
+  short int i16_numberOfTimeFrames;
+
+  ts_dicom_FileProperties *ps_firstdicomFile = pll_dicomFiles;
+  ts_dicom_FileProperties *ps_seconddicomFile = NULL;
+
+  i16_numberOfTimeFrames=0;
+  while (pll_dicomFilesIter != NULL)
   {
-    pll_dicomFilesIter = pll_dicomFiles;
-    while (pll_dicomFilesIter != NULL)
+    ps_firstdicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesIter->data);
+
+    pll_dicomFilesSecondIter=list_next(pll_dicomFilesIter);
+
+    while (pll_dicomFilesSecondIter != NULL)
     {
-      ps_dicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesIter->data);
+      ps_seconddicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesSecondIter->data);
 
-      if (ps_dicomFile->i16_relativeOrderNumber == i16_Cnt)
+      if ( ps_firstdicomFile->ts_Position.x == ps_seconddicomFile->ts_Position.x )
       {
-        i16_memory_io_dicom_loadSingleSlice(ps_serie, ps_dicomFile->pc_Filename, i16_NumberOfSlices);
-
-        if (pll_dicomFilesIter != pll_dicomFiles)
-        {
-          pll_dicomFilesIter=list_remove(pll_dicomFilesIter);
-          break;
-        }
+        i16_numberOfTimeFrames++;
       }
-      pll_dicomFilesIter = list_next(pll_dicomFilesIter);
+
+
     }
-    i16_NumberOfSlices++;
+    pll_dicomFilesIter = list_next(pll_dicomFilesIter);
+    //pll_dicomFilesIter = list_next(pll_dicomFilesIter);
   }
 
-  memory_serie_set_upper_and_lower_borders_from_data(ps_serie);
+*/
+
+
+  ps_serie->matrix.z=(ps_serie->matrix.z==0) ? i16_NumberOfSlices/ps_serie->num_time_series : 1;
+  i16_NumberOfReconstructions=(short int)(ps_serie->matrix.z)/(i16_MaximumReferenceOrderValue - i16_MinimumReferenceOrderValue + 1);
+
+  if (i16_NumberOfReconstructions <= 1)
+  {
+    i16_NumberOfReconstructions =1;
+    e_DCM_CIC = DCM_CIC_REAL;
+  }
+  else
+  {
+    ps_serie->matrix.z= ps_serie->matrix.z/i16_NumberOfReconstructions;
+    ps_serie->num_time_series*=i16_NumberOfReconstructions;
+  }
+
+
+  pll_dicomFiles = list_nth(pll_dicomFilesIter,1);
+
+  short int i16_RecoCnt;
+  short int b_RecoDoesntMatter=0;
+  for (i16_RecoCnt=0; i16_RecoCnt<i16_NumberOfReconstructions; i16_RecoCnt++)
+  {
+    if (i16_NumberOfReconstructions > 1)
+    {
+      switch (i16_RecoCnt)
+      {
+        case 0: e_DCM_CIC = DCM_CIC_MAGNITUDE; break;
+        case 1: e_DCM_CIC = DCM_CIC_PHASE; break;
+      }
+    }
+    else
+    {
+      b_RecoDoesntMatter=1;
+    }
+
+
+    for (i16_timeFrameCnt=1; i16_timeFrameCnt<=ps_serie->num_time_series/i16_NumberOfReconstructions; i16_timeFrameCnt++)
+    {
+      i16_NumberOfSlices=0;
+      for (i16_Cnt=i16_MinimumReferenceOrderValue; i16_Cnt<=i16_MaximumReferenceOrderValue; i16_Cnt++ )
+      {
+        pll_dicomFilesIter = pll_dicomFiles;
+        while (pll_dicomFilesIter != NULL)
+        {
+          ps_dicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesIter->data);
+
+          if ((ps_dicomFile->i16_relativeOrderNumber == i16_Cnt) &&
+              (ps_dicomFile->i16_TemporalPositionIdentifier == i16_timeFrameCnt) &&
+              ((ps_dicomFile->e_DCM_CIC == e_DCM_CIC) || b_RecoDoesntMatter))
+          {
+            i16_memory_io_dicom_loadSingleSlice(ps_serie, ps_dicomFile->pc_Filename, i16_NumberOfSlices, i16_timeFrameCnt-1 + i16_RecoCnt * ps_serie->num_time_series/i16_NumberOfReconstructions);
+            i16_NumberOfSlices++;
+
+            if (pll_dicomFilesIter != pll_dicomFiles)
+            {
+              pll_dicomFilesIter=list_remove(pll_dicomFilesIter);
+              break;
+            }
+
+          }
+          pll_dicomFilesIter = list_next(pll_dicomFilesIter);
+        }
+      }
+    }
+  }
 
   // clear everything
   pll_dicomFilesIter = list_nth(pll_dicomFiles,1);
@@ -303,6 +408,18 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
     pll_dicomFilesIter = list_next(pll_dicomFilesIter);
   }
   list_free(pll_dicomFiles);
+
+  ps_serie->d_Qfac=1;
+  ps_serie->i16_QuaternionCode=0;
+  ps_serie->i16_StandardSpaceCode=0;
+  ps_serie->input_type=MUMC_FILETYPE_DICOM;
+  ps_serie->raw_data_type=MEMORY_TYPE_UINT16;
+  ps_serie->u8_AxisUnits=0;
+
+
+  memory_serie_set_upper_and_lower_borders_from_data(ps_serie);
+
+
   return 1;
 }
 
@@ -312,10 +429,6 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
 /* GLOBAL FUNCTIONS                                                                                   */
 /*                                                                                                    */
 /*                                                                                                    */
-
-
-
-
 short int
 memory_io_load_file (Tree **patient_tree, char *path)
 {
@@ -411,6 +524,8 @@ memory_io_load_file (Tree **patient_tree, char *path)
   }
   else
   {
+    // maybe a dicom?
+
     return i16_memory_io_load_file_dicom(&(*patient_tree), path);
   }
   return 1;
@@ -430,7 +545,6 @@ short int memory_io_save_file (Serie *serie, const char *path)
     case MUMC_FILETYPE_ANALYZE75:
       break;
     case MUMC_FILETYPE_DICOM:
-      break;
     case MUMC_FILETYPE_NIFTII_SF:
       if (pc_Extension == NULL)
       {

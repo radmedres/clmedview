@@ -44,17 +44,10 @@ short int i16_memory_io_dicom_relativePosition(Coordinate3D *ps_referencePositio
   Vector3D z_Vector;
   Vector3D relativeVector;
 
-//  s_Delta.x = ps_serie->ts_SlicePostion.x - ps_reference->x;
-//  s_Delta.y = ps_serie->ts_SlicePostion.y - ps_reference->y;
   s_Delta.z = ps_position->z - ps_referencePosition->z;
 
-//  z_Vector.x = ps_serie->pt_InverseMatrix->d_Matrix[0][2];
-//  z_Vector.y = ps_serie->pt_InverseMatrix->d_Matrix[1][2];
   z_Vector.z = pt_rotationMatrix->d_Matrix[2][2];
 
-
-//  relativeVector.x = s_Delta.x / (z_Vector.x * ps_serie->pixel_dimension.z);
-//  relativeVector.y = s_Delta.y / (z_Vector.y * ps_serie->pixel_dimension.z);
   relativeVector.z = s_Delta.z / (z_Vector.z * ps_pixel_dimension->z);
 
   return round(relativeVector.z);
@@ -64,6 +57,9 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
                                            Study *ps_study,
                                            Serie *ps_serie,
                                            Coordinate3D *ps_SlicePosition,
+                                           short int *pi16_TemporalPositionIdentifier,
+                                           short int *pi16_StackPositionIdentifier,
+                                           te_DCM_ComplexImageComponent *pe_DCM_CIC,
                                            const char *pc_dicom)
 {
   struct zzfile szz, *zz;
@@ -81,13 +77,17 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
     return 0;
   }
 
+
+
   char c_currentPatientID[MAX_LEN_LO];
   char c_currentStudyInstanceUID[MAX_LEN_LO];
   char c_currentSerieInstanceUID[MAX_LEN_LO];
+  char c_ComplexImageComponent[MAX_LEN_LO];
 
   memset(c_currentPatientID,'\0',MAX_LEN_LO);
   memset(c_currentStudyInstanceUID,'\0',MAX_LEN_LO);
   memset(c_currentSerieInstanceUID,'\0',MAX_LEN_LO);
+  memset(c_ComplexImageComponent,'\0',MAX_LEN_LO);
 
 
   zziterinit(zz);
@@ -117,9 +117,12 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
       (ps_serie->c_serieInstanceUID[0] == '\0'))
   {
     // first time, set params.
-    memcpy(ps_patient->c_patientID,c_currentPatientID,sizeof(ps_patient->c_patientID));
-    memcpy(ps_study->c_studyInstanceUID,c_currentStudyInstanceUID,sizeof(ps_study->c_studyInstanceUID));
-    memcpy(ps_serie->c_serieInstanceUID,c_currentSerieInstanceUID,sizeof(ps_serie->c_serieInstanceUID));
+    memcpy(ps_patient->c_patientID,c_currentPatientID,strlen(c_currentPatientID));
+    memcpy(ps_study->c_studyInstanceUID,c_currentStudyInstanceUID,strlen(c_currentStudyInstanceUID));
+    memcpy(ps_serie->c_serieInstanceUID,c_currentSerieInstanceUID,strlen(c_currentSerieInstanceUID));
+    ps_serie->pc_filename = calloc(1,strlen(pc_dicom));
+    memcpy(ps_serie->pc_filename,pc_dicom, strlen(pc_dicom));
+
   }
 
   if ((memcmp(ps_patient->c_patientID, c_currentPatientID,sizeof(ps_patient->c_patientID))==0) &&
@@ -132,9 +135,10 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
     ps_serie->input_type = MUMC_FILETYPE_DICOM;
 
     ps_serie->i16_QuaternionCode = COORDINATES_SCANNER_ANAT;
-    ps_serie->matrix.z = 1;
     ps_serie->num_time_series = 1;
 
+    zzclose(zz);
+    zz = zzopen(pc_dicom, "r", &szz);
     zziterinit(zz);
     while (zziternext(zz, &group, &element, &len))
     {
@@ -193,6 +197,47 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
           zzrDS(zz, 1, tmpd);
           ps_serie->pixel_dimension.z = tmpd[0];
           break;
+        case DCM_NumberOfTemporalPositions:
+          zzrDS(zz, 1, tmpd);
+          ps_serie->num_time_series = tmpd[0];
+          break;
+        case DCM_TemporalPositionIdentifier:
+          zzrDS(zz, 1, tmpd);
+          *pi16_TemporalPositionIdentifier = tmpd[0];
+          break;
+        case DCM_InStackPositionNumber:
+          zzrDS(zz, 1, tmpd);
+          *pi16_StackPositionIdentifier = tmpd[0];
+          break;
+        case DCM_ComplexImageComponent:
+          zzgetstring(zz, c_ComplexImageComponent, sizeof(c_ComplexImageComponent) - 1);
+
+          if (memcmp("MAGNITUDE", c_ComplexImageComponent,9)==0)
+          {
+            *pe_DCM_CIC = DCM_CIC_MAGNITUDE;
+          }
+          else if (memcmp("PHASE", c_ComplexImageComponent,5)==0)
+          {
+            *pe_DCM_CIC = DCM_CIC_PHASE;
+          }
+          else if (memcmp("REAL", c_ComplexImageComponent,4)==0)
+          {
+            *pe_DCM_CIC = DCM_CIC_REAL;
+          }
+          else if (memcmp("IMAGINARY", c_ComplexImageComponent,9)==0)
+          {
+            *pe_DCM_CIC = DCM_CIC_IMAGINARY;
+          }
+          else if (memcmp("MIXED", c_ComplexImageComponent,5)==0)
+          {
+            *pe_DCM_CIC = DCM_CIC_MIXED;
+          }
+
+          break;
+
+
+
+
         default : break;
       }
     }
@@ -233,8 +278,6 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
     ps_serie->ps_QuaternationOffset->J = -(imageposvector[1]);
     ps_serie->ps_QuaternationOffset->K =  (imageposvector[2]);
 
-
-
     return 1;
   }
   else
@@ -245,7 +288,7 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
   return 0;
 }
 
-short int i16_memory_io_dicom_loadSingleSlice(Serie *ps_serie, const char *pc_dicom, short int i16_SliceNumber)
+short int i16_memory_io_dicom_loadSingleSlice(Serie *ps_serie, const char *pc_dicom, short int i16_SliceNumber, short int i16_timeFrameNumber)
 {
   struct zzfile szz, *zz;
   uint16_t group, element;
@@ -254,7 +297,7 @@ short int i16_memory_io_dicom_loadSingleSlice(Serie *ps_serie, const char *pc_di
   void *pv_data;
 
   short int i16_BytesToRead;
-  int i32_PixelsInSlice, i32_MemoryPerSlice, i32_MemoryOffset;
+  int i32_PixelsInSlice, i32_MemoryPerSlice, i32_MemoryOffset, i32_MemoryPerVolume, i32_MemoryInBlob;
 
   zz = zzopen(pc_dicom, "r", &szz);
   if (!zz)
@@ -270,19 +313,28 @@ short int i16_memory_io_dicom_loadSingleSlice(Serie *ps_serie, const char *pc_di
       case DCM_PixelData:
         if (ps_serie->data == NULL)
         {
+          if (ps_serie->matrix.z == 0)
+          {
+            ps_serie->matrix.z = 1;
+          }
+
           i16_BytesToRead = 2;
           i32_PixelsInSlice = ps_serie->matrix.x * ps_serie->matrix.y * ps_serie->matrix.z;
-          i32_MemoryPerSlice = i16_BytesToRead * i32_PixelsInSlice;
+          i32_MemoryPerVolume = i16_BytesToRead * i32_PixelsInSlice;
+          i32_MemoryInBlob = i32_MemoryPerVolume * ps_serie->num_time_series;
 
-          ps_serie->data = calloc (1, i32_MemoryPerSlice);
+          ps_serie->data = calloc (1, i32_MemoryInBlob);
           ps_serie->pv_OutOfBlobValue = calloc (1, i16_BytesToRead);
+
         }
 
         i16_BytesToRead = 2;
         i32_PixelsInSlice = ps_serie->matrix.x * ps_serie->matrix.y;
         i32_MemoryPerSlice = i16_BytesToRead * i32_PixelsInSlice;
 
-        i32_MemoryOffset=i16_SliceNumber*i32_MemoryPerSlice;
+        i32_MemoryOffset= i16_timeFrameNumber * i32_MemoryPerSlice * ps_serie->matrix.z;
+        i32_MemoryOffset+=i16_SliceNumber * i32_MemoryPerSlice;
+
 
         pv_data=ps_serie->data;
         pv_data+=i32_MemoryOffset;

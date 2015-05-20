@@ -34,6 +34,17 @@
 #include "lib-memory-study.h"
 #include "lib-memory-serie.h"
 
+
+typedef enum
+{
+  DCM_CIC_MAGNITUDE,
+  DCM_CIC_PHASE,
+  DCM_CIC_REAL,
+  DCM_CIC_IMAGINARY,
+  DCM_CIC_MIXED
+} te_DCM_ComplexImageComponent;
+
+
 /**
  * Load a dicom file from disk to the selected memory.
  *
@@ -61,6 +72,9 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
                                            Study *ps_study,
                                            Serie *ps_serie,
                                            Coordinate3D *ps_SlicePosition,
+                                           short int *pi16_TemporalPositionIdentifier,
+                                           short int *pi16_StackPositionIdentifier,
+                                           te_DCM_ComplexImageComponent *pe_DCM_CIC,
                                            const char *pc_dicom);
 
 
@@ -73,7 +87,10 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
  *
  * @return 0 or FALSE if function executes wrong, 1 or TRUE if execution is correct
  */
-short int i16_memory_io_dicom_loadSingleSlice(Serie *ps_serie, const char *pc_dicom, short int i16_SliceNumber);
+short int i16_memory_io_dicom_loadSingleSlice(Serie *ps_serie,
+                                              const char *pc_dicom,
+                                              short int i16_SliceNumber,
+                                              short int i16_timeFrameNumber);
 
 /**
  * Load a dicom file from disk to the selected memory.

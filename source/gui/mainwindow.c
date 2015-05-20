@@ -606,8 +606,6 @@ gui_mainwindow_menu_file_activate (UNUSED GtkWidget *widget, void *data)
   {
     case GUI_FILE_OPEN:
       gui_mainwindow_file_load (NULL);
-
-
       break;
     case GUI_FILE_SAVE_MASK:
       gui_mainwindow_file_export ();
