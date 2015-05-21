@@ -53,8 +53,8 @@
  */
 short int i16_memory_io_isDirectory(const char *path);
 short int i16_memory_io_isFile(const char *path);
+short int i16_memory_io_load_file_nifti (Tree **patient_tree, char *path);
 short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path);
-
 
 
 typedef struct s_dicom_FileProperties
@@ -98,20 +98,87 @@ i16_memory_io_isFile(const char *path)
   return S_ISREG(statbuf.st_mode);
 }
 
-short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
+Tree *pt_memory_io_load_file_nifti (Tree **ppt_study, char *pc_path)
+{
+  char *pc_filename=NULL;
+
+  Tree *pt_patient=NULL;
+  Tree *pt_serie=NULL;
+
+  Patient *ps_patient = NULL;
+  Study *ps_study = NULL;
+  Serie *ps_serie = NULL;
+
+  pc_filename = basename(pc_path);
+
+  if (*ppt_study==NULL)
+  {
+    ps_patient=memory_patient_new("unknown");
+    pt_patient=tree_append(NULL,ps_patient,TREE_TYPE_PATIENT);
+
+    ps_study=memory_study_new ("unknown");
+    *ppt_study=tree_append_child(pt_patient, ps_study, TREE_TYPE_STUDY);
+  }
+
+  ps_serie = memory_serie_new (pc_filename, pc_path);
+  pt_serie = tree_append_child (*ppt_study, ps_serie, TREE_TYPE_SERIE);
+
+  switch (memory_io_niftii_file_type (pc_path))
+  {
+    case MUMC_FILETYPE_NIFTII_SF: return (memory_io_niftii_load (ps_serie, pc_path, NULL) == 1) ? pt_serie : NULL; break;
+    case MUMC_FILETYPE_NIFTII_TF:
+      {
+        //Check weather the hdr or img file is passed
+        char* pc_Extension = strrchr (pc_path, '.');
+
+        char c_ImageFile[1024];
+        char c_HeaderFile[1024];
+
+        strcpy(&c_ImageFile[0],pc_path);
+        strcpy(&c_HeaderFile[0],pc_path);
+
+        if (pc_Extension == NULL)
+        {
+          pc_Extension = strrchr (&c_ImageFile[0], '.');
+          strcat(pc_Extension, ".img");
+
+          pc_Extension = strrchr (&c_HeaderFile[0], '.');
+          strcat(pc_Extension, ".hdr");
+        }
+        else
+        {
+          pc_Extension = strrchr (&c_ImageFile[0], '.');
+          strcpy(pc_Extension, ".img");
+          pc_Extension = strrchr (&c_HeaderFile[0], '.');
+          strcpy(pc_Extension, ".hdr");
+        }
+
+        return (memory_io_niftii_load (ps_serie, c_ImageFile, c_HeaderFile) == 1) ? pt_serie : NULL; break;
+      }
+      break;
+    case MUMC_FILETYPE_ANALYZE75:
+    case MUMC_FILETYPE_DICOM:
+    case MUMC_FILETYPE_NOT_KNOWN:
+    default:
+      return NULL;
+  }
+
+}
+
+Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
 {
   Patient *ps_patient = NULL;
   Patient *patient=NULL;
 
   Study *ps_study = NULL;
   Study *study=NULL;
-
-  Serie *ps_serie = NULL;
+  Serie *ps_serie=NULL;
   Serie *serie=NULL;
 
   Tree *patientTreeIterator=NULL;
   Tree *studyTreeIterator=NULL;
   Tree *serieTreeIterator=NULL;
+  Tree *pt_serie=NULL;
 
   DIR *p_dicomDirectory;
   struct dirent *p_dirEntry;
@@ -142,7 +209,7 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   // Build list of all files
 
   // Check weather path is a path or a directory
-  pc_dirName = (i16_memory_io_isFile(path)) ? dirname(path) : path;
+  pc_dirName = (i16_memory_io_isFile(pc_path)) ? dirname(pc_path) : pc_path;
   p_dicomDirectory = opendir (pc_dirName);
 
   if (p_dicomDirectory == NULL)
@@ -152,6 +219,7 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
 
   ps_patient = memory_patient_new ("TEST");
   ps_study = memory_study_new("TEST");
+
   ps_serie = memory_serie_new("TEST",NULL);
 
   p_dirEntry = readdir (p_dicomDirectory);
@@ -160,18 +228,12 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   while (p_dirEntry!=NULL)
   {
     // create Full path name
-    pc_fullPath = calloc(1, strlen(path)+2+strlen(p_dirEntry->d_name));
+    pc_fullPath = calloc(1, strlen(pc_path)+2+strlen(p_dirEntry->d_name));
     strcpy(pc_fullPath,pc_dirName);
     strcpy(&pc_fullPath[strlen(pc_fullPath)],"/");
     strcpy(&pc_fullPath[strlen(pc_fullPath)],p_dirEntry->d_name);
 
     Coordinate3D ts_slicePosition;
-
-    // check if file is enhanced or not
-//    if (i16_memory_io_dicom_CheckEnhanced(pc_fullPath))
-//    {
-//    }
-
 
     if (i16_memory_io_dicom_loadMetaData(ps_patient,ps_study,ps_serie, &ts_slicePosition, &i16_TemporalPositionIdentifier, &i16_StackPositionIdentifier, &e_DCM_CIC,  pc_fullPath))
     {
@@ -266,6 +328,7 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
     if (strcmp(serie->c_serieInstanceUID,ps_serie->c_serieInstanceUID) == 0)
     {
       b_SerieExists=1;
+      pt_serie=serieTreeIterator;
       break;
     }
     serieTreeIterator=tree_next(serieTreeIterator);
@@ -273,7 +336,7 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
 
   if (!b_SerieExists)
   {
-     tree_append_child (studyTreeIterator, ps_serie, TREE_TYPE_SERIE);
+     pt_serie=tree_append_child (studyTreeIterator, ps_serie, TREE_TYPE_SERIE);
   }
   else
   {
@@ -291,46 +354,8 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
     }
     list_free(pll_dicomFiles);
 
-    return 1;
+    return NULL;
   }
-
-
-  // check if there where several timeframes?
-/*
-  pll_dicomFiles = list_nth(pll_dicomFilesIter,1);
-  pll_dicomFilesIter = pll_dicomFiles;
-
-
-  List *pll_dicomFilesSecondIter=NULL;
-  short int i16_numberOfTimeFrames;
-
-  ts_dicom_FileProperties *ps_firstdicomFile = pll_dicomFiles;
-  ts_dicom_FileProperties *ps_seconddicomFile = NULL;
-
-  i16_numberOfTimeFrames=0;
-  while (pll_dicomFilesIter != NULL)
-  {
-    ps_firstdicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesIter->data);
-
-    pll_dicomFilesSecondIter=list_next(pll_dicomFilesIter);
-
-    while (pll_dicomFilesSecondIter != NULL)
-    {
-      ps_seconddicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesSecondIter->data);
-
-      if ( ps_firstdicomFile->ts_Position.x == ps_seconddicomFile->ts_Position.x )
-      {
-        i16_numberOfTimeFrames++;
-      }
-
-
-    }
-    pll_dicomFilesIter = list_next(pll_dicomFilesIter);
-    //pll_dicomFilesIter = list_next(pll_dicomFilesIter);
-  }
-
-*/
-
 
   ps_serie->matrix.z=(ps_serie->matrix.z==0) ? i16_NumberOfSlices/ps_serie->num_time_series : 1;
   i16_NumberOfReconstructions=(short int)(ps_serie->matrix.z)/(i16_MaximumReferenceOrderValue - i16_MinimumReferenceOrderValue + 1);
@@ -345,7 +370,6 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
     ps_serie->matrix.z= ps_serie->matrix.z/i16_NumberOfReconstructions;
     ps_serie->num_time_series*=i16_NumberOfReconstructions;
   }
-
 
   pll_dicomFiles = list_nth(pll_dicomFilesIter,1);
 
@@ -416,11 +440,9 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
   ps_serie->raw_data_type=MEMORY_TYPE_UINT16;
   ps_serie->u8_AxisUnits=0;
 
-
   memory_serie_set_upper_and_lower_borders_from_data(ps_serie);
 
-
-  return 1;
+  return pt_serie;
 }
 
 
@@ -429,106 +451,28 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path)
 /* GLOBAL FUNCTIONS                                                                                   */
 /*                                                                                                    */
 /*                                                                                                    */
-short int
-memory_io_load_file (Tree **patient_tree, char *path)
+Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
 {
+  Tree *pt_patient=NULL
   debug_functions ();
 
-  if (patient_tree == NULL || path == NULL) return 0;
-
-  const char *filename = strrchr (path, PATH_SEPARATOR);
-
-  if (filename == NULL) filename = path;
-
-  Patient *patient = NULL;
-  Study *study = NULL;
-  Serie *serie = NULL;
-
+  if (pc_path == NULL)
+  {
+    return NULL;
+  }
 
   // check wheater it is a niftii
-  if (memory_io_niftii_file_type ((char *)path) != MUMC_FILETYPE_NOT_KNOWN)
+  if (memory_io_niftii_file_type(pc_path) != MUMC_FILETYPE_NOT_KNOWN)
   {
-    switch (memory_io_niftii_file_type ((char *)path))
-    {
-      case MUMC_FILETYPE_NIFTII_SF:
-        {
-          patient = (filename[0] == PATH_SEPARATOR)
-            ? memory_patient_new (filename + 1)
-            : memory_patient_new (filename);
-
-          *patient_tree = tree_append (*patient_tree, patient, TREE_TYPE_PATIENT);
-
-          study = (filename[0] == PATH_SEPARATOR)
-            ? memory_study_new (filename + 1)
-            : memory_study_new (filename);
-
-          Tree *study_tree = tree_append_child (*patient_tree, study, TREE_TYPE_STUDY);
-
-          serie = (filename[0] == PATH_SEPARATOR)
-            ? memory_serie_new (filename + 1, path )
-            : memory_serie_new (filename, path );
-
-          tree_append_child (study_tree, serie, TREE_TYPE_SERIE);
-
-          if (!memory_io_niftii_load (serie, path, NULL)) return 0;
-        }
-        break;
-      case MUMC_FILETYPE_NIFTII_TF:
-        {
-          //Check weather the hdr or img file is passed
-          char* pc_Extension = strrchr (path, '.');
-
-          char c_ImageFile[1024];
-          char c_HeaderFile[1024];
-
-          strcpy(&c_ImageFile[0],path);
-          strcpy(&c_HeaderFile[0],path);
-
-          if (pc_Extension == NULL)
-          {
-            pc_Extension = strrchr (&c_ImageFile[0], '.');
-            strcat(pc_Extension, ".img");
-
-            pc_Extension = strrchr (&c_HeaderFile[0], '.');
-            strcat(pc_Extension, ".hdr");
-          }
-          else
-          {
-            pc_Extension = strrchr (&c_ImageFile[0], '.');
-            strcpy(pc_Extension, ".img");
-            pc_Extension = strrchr (&c_HeaderFile[0], '.');
-            strcpy(pc_Extension, ".hdr");
-          }
-
-          printf("Header: %s\n",c_HeaderFile);
-          printf("Image: %s\n",c_ImageFile);
-
-          Patient *patient = memory_patient_new (filename);
-          *patient_tree = tree_append (*patient_tree, patient, TREE_TYPE_PATIENT);
-
-          Study *study = memory_study_new (filename);
-          Tree *study_tree = tree_append_child (*patient_tree, study, TREE_TYPE_STUDY);
-
-          Serie *serie = memory_serie_new (filename,filename);
-          tree_append_child (study_tree, serie, TREE_TYPE_SERIE);
-
-          if (!memory_io_niftii_load (serie, &c_HeaderFile[0], &c_ImageFile[0])) return 0;
-        }
-        break;
-      case MUMC_FILETYPE_ANALYZE75:
-      case MUMC_FILETYPE_DICOM:
-      case MUMC_FILETYPE_NOT_KNOWN:
-      default:
-        return 0;
-    }
+    return pt_memory_io_load_file_nifti(&(*ppt_study),pc_path);
   }
   else
   {
     // maybe a dicom?
-
-    return i16_memory_io_load_file_dicom(&(*patient_tree), path);
+    pt_patient=(*ppt_study)->parent;
+    return pt_memory_io_load_file_dicom(&pt_patient, pc_path);
   }
-  return 1;
+  return NULL;
 }
 
 short int memory_io_save_file (Serie *serie, const char *path)

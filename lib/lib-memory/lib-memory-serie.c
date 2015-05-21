@@ -262,7 +262,7 @@ memory_serie_create_mask_from_serie (Serie *serie)
 
   Serie* mask = memory_serie_new (NULL,NULL);
   assert (mask != NULL);
-
+  mask->e_SerieType = SERIE_MASK;
   mask->group_id = serie->group_id;
   mask->matrix = serie->matrix;
   mask->pixel_dimension = serie->pixel_dimension;

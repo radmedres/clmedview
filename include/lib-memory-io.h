@@ -54,7 +54,9 @@
  *
  * @return 1 on success, 0 on failure.
  */
-short int memory_io_load_file (Tree **patient_tree, char *path);
+
+Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path);
+//short int memory_io_load_file (Tree **patient_tree, char *path, Serie **pp_serie);
 
 /**
  * This function saves a serie to a file.

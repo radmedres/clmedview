@@ -54,6 +54,14 @@ extern "C" {
  * This module provides Serie-specific functionality.
  */
 
+typedef enum
+{
+  SERIE_UNKNOWN,
+  SERIE_ORIGINAL,
+  SERIE_OVERLAY,
+  SERIE_MASK
+} te_SerieType;
+
 /**
  * This structure is the base element to store serie information.
  */
@@ -84,6 +92,14 @@ typedef struct
    * The group identifier to which this Serie belongs.
    */
   unsigned long long group_id;
+
+  /**
+   * Type of serie content, Original, Overlay or Mask
+   */
+  te_SerieType e_SerieType;
+
+
+
 
   /**
    * The 3D size matrix of the Serie volume.

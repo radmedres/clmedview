@@ -69,7 +69,9 @@ typedef struct
 {
   Tree *memory_tree; /*< The actively maintained memory tree. */
   Tree *active_study; /*< The active study element in the tree. */
-  Tree *active_original; /*< The active original serie in the tree. */
+  Tree *active_serie; /*< The active serie element in the tree. */
+
+//  Tree *active_original; /*< The active original serie in the tree. */
   /* Tree *active_mask; / *< The active mask serie in the tree. */
 
   Serie *active_layer; /*< The active layer to apply some action on. */
@@ -94,17 +96,22 @@ typedef struct
  */
 #define CONFIGURATION_ACTIVE_STUDY(c)      c->active_study
 
+/**
+ * Returns the active serie in the memory tree.
+ */
+#define CONFIGURATION_ACTIVE_SERIE(c)      c->active_serie
+
 
 /**
  * Returns the active original serie in the memory tree.
  */
-#define CONFIGURATION_ACTIVE_ORIGINAL(c)   c->active_original
+//#define CONFIGURATION_ACTIVE_ORIGINAL(c)   c->active_original
 
 
 /**
  * Returns the active mask serie in the memory tree.
  */
-#define CONFIGURATION_ACTIVE_MASK(c)       c->active_mask
+//#define CONFIGURATION_ACTIVE_MASK(c)       c->active_mask
 
 
 /**

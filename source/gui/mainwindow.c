@@ -134,7 +134,7 @@ gboolean gui_mainwindow_sidebar_toggle (GtkWidget *widget, void *data);
 gboolean gui_mainwindow_terminal_toggle (GtkWidget *widget, void *data);
 gboolean gui_mainwindow_on_timeline_change (GtkWidget *widget, void *data);
 gboolean gui_mainwindow_overlay_add (GtkWidget *widget, void *data);
-void gui_mainwindow_set_active_layer (GtkListBox *box, GtkListBoxRow *row, void *user_data);
+//void gui_mainwindow_set_active_layer (GtkListBox *box, GtkListBoxRow *row, void *user_data);
 void gui_mainwindow_update_viewer_wwwl (Viewer *viewer, void *data);
 
 gboolean gui_mainwindow_reset_viewport ();
@@ -148,7 +148,7 @@ void gui_mainwindow_sidebar_destroy ();
 
 // Layout manager functions
 GtkWidget* gui_mainwindow_layer_manager_new ();
-void gui_mainwindow_layer_manager_refresh (Tree *pll_Study);
+void gui_mainwindow_layer_manager_refresh (Tree *pll_Serie);
 GtkWidget* gui_mainwindow_layer_manager_row_label_new (const char *name,
                                                        gboolean (*fp_AddCallback)(GtkWidget *, void *),
                                                        gboolean (*fp_LoadCallback)(GtkWidget *, void *));
@@ -686,6 +686,11 @@ gui_mainwindow_file_load (void* data)
 {
   debug_functions ();
 
+  Tree *pt_Study=NULL;
+  Tree *pt_Serie=NULL;
+
+  Serie *ps_serie = NULL;
+
   char* filename = NULL;
 
   // The filename can be passed by 'data'. Otherwise we need to show a
@@ -702,18 +707,23 @@ gui_mainwindow_file_load (void* data)
 
     free (window_title);
 
-    Tree *root_tree = tree_nth (CONFIGURATION_MEMORY_TREE (config), 1);
-    if (!memory_io_load_file (&root_tree, filename)) return;
 
+    pt_Study = CONFIGURATION_ACTIVE_STUDY(config);
+    pt_Serie=pt_memory_io_load_file(&pt_Study,filename);
 
+    // initialize the configuration struct.
+    if ( config->memory_tree == NULL)
+    {
+      config->memory_tree = tree_parent(pt_Study);
+    }
 
-    CONFIGURATION_MEMORY_TREE (config) = root_tree;
-    assert (CONFIGURATION_MEMORY_TREE (config) != NULL);
+    config->active_study = pt_Study;
+    config->active_serie = pt_Serie;
 
-    Tree *pll_Study = tree_child (CONFIGURATION_MEMORY_TREE (config));
-    Tree *pll_LastStudy = tree_last (pll_Study);
+    ps_serie = pt_Serie->data;
+    ps_serie->e_SerieType=SERIE_ORIGINAL;
 
-    gui_mainwindow_load_study (pll_LastStudy);
+    gui_mainwindow_load_serie(pt_Serie);
 
     gtk_widget_set_sensitive (btn_file_save, TRUE);
     gtk_widget_set_sensitive (btn_reset_viewport, TRUE);
@@ -721,29 +731,18 @@ gui_mainwindow_file_load (void* data)
     gtk_widget_set_sensitive (hbox_mainmenu, TRUE);
 
     gui_mainwindow_views_activate (views_combo, (void *)te_DisplayType);
+    gtk_tree_view_expand_all(GTK_TREE_VIEW(treeview));
   }
 }
 
 
 void
-gui_mainwindow_load_study (Tree *study_tree)
+gui_mainwindow_load_serie (Tree *pll_Serie)
 {
-  debug_functions ();
-
-  assert (study_tree != NULL);
-  assert (study_tree->type == TREE_TYPE_STUDY);
-
-  // Clean up the viewing widgets.
-  //gui_mainwindow_clear_viewers ();
-
-  CONFIGURATION_ACTIVE_STUDY (config) = study_tree;
-
-  Tree *pll_Serie = tree_child (study_tree);
-
   if (pll_Serie == NULL) return;
   if (pll_Serie->type != TREE_TYPE_SERIE) return;
 
-  CONFIGURATION_ACTIVE_ORIGINAL (config) = pll_Serie;
+  CONFIGURATION_ACTIVE_SERIE(config) = pll_Serie;
   CONFIGURATION_ACTIVE_LAYER (config) = pll_Serie->data;
 
   if (!memory_tree_serie_has_mask (pll_Serie))
@@ -757,7 +756,7 @@ gui_mainwindow_load_study (Tree *study_tree)
 
   Tree *root_tree = tree_nth (CONFIGURATION_MEMORY_TREE (config), 1);
   gui_mainwindow_sidebar_populate (root_tree);
-  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
+  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE(config));
 
   Serie *serie = pll_Serie->data;
   if (serie == NULL || ts_ActiveMask == NULL) return;
@@ -988,7 +987,7 @@ gui_mainwindow_reset_viewport ()
   gtk_widget_set_sensitive (btn_reset_viewport, FALSE);
 
   // Reset the viewport.
-  gui_mainwindow_load_study (CONFIGURATION_ACTIVE_STUDY (config));
+  gui_mainwindow_load_serie (CONFIGURATION_ACTIVE_SERIE(config));
 
   // Release the "lock" for resetting the viewport.
   gtk_widget_set_sensitive (btn_reset_viewport, TRUE);
@@ -1774,10 +1773,10 @@ gui_mainwindow_mask_add (UNUSED GtkWidget *widget, UNUSED void *data)
 {
   debug_functions ();
 
-  assert (CONFIGURATION_ACTIVE_ORIGINAL (config) != NULL);
+  assert (CONFIGURATION_ACTIVE_SERIE (config) != NULL);
 
   Tree *pll_MaskSerie;
-  pll_MaskSerie = memory_tree_add_mask_for_serie (CONFIGURATION_ACTIVE_ORIGINAL (config));
+  pll_MaskSerie = memory_tree_add_mask_for_serie (CONFIGURATION_ACTIVE_SERIE (config));
 
   assert (pll_MaskSerie != NULL);
   assert (pll_MaskSerie->data != NULL);
@@ -1791,7 +1790,8 @@ gui_mainwindow_mask_add (UNUSED GtkWidget *widget, UNUSED void *data)
   }
 
   ts_ActiveMask = pll_MaskSerie->data;
-  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
+
+  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE (config));
 
   return FALSE;
 }
@@ -1800,29 +1800,51 @@ gui_mainwindow_mask_add (UNUSED GtkWidget *widget, UNUSED void *data)
 gboolean
 gui_mainwindow_overlay_add (UNUSED GtkWidget *widget, void *data)
 {
+  char* pc_path = NULL;
+  Tree *pt_Patient = NULL;
+  Tree *pt_Study = NULL;
+  Tree *pt_Serie = NULL;
+
+  Serie *ps_Overlay = NULL;
+  Serie *ps_Original = NULL;
+
   debug_functions ();
 
-  char* filename = NULL;
-
-  filename = (data != NULL)
-    ? data
+  pc_path = (data != NULL)
+    ? (char*)(data)
     : gui_mainwindow_file_dialog (window, GTK_FILE_CHOOSER_ACTION_OPEN);
 
-  if (filename != NULL)
+  if (pc_path != NULL)
   {
-    Serie *serie = memory_serie_new (filename, filename);
-    if (!memory_io_niftii_load (serie, filename, NULL)) return FALSE;
+    pt_Serie = CONFIGURATION_ACTIVE_SERIE(config);
+    pt_Study = CONFIGURATION_ACTIVE_STUDY(config);
+//    pt_Patient = pll_Study->parent;
 
-    tree_append_child (CONFIGURATION_ACTIVE_STUDY (config), serie, TREE_TYPE_SERIE_OVERLAY);
+    ps_Original = pt_Serie->data;
+//    const char *filename = basename (pc_path);
+
+    pt_Serie=pt_memory_io_load_file(&pt_Study,pc_path);
+
+    if (pt_Serie == NULL)
+    {
+      return 0;
+    }
+
+    pt_Serie->type=TREE_TYPE_SERIE_OVERLAY;
+
+    ps_Overlay=(Serie *)(pt_Serie->data);
+    ps_Overlay->e_SerieType=SERIE_OVERLAY;
+    ps_Overlay->group_id = ps_Original->group_id;
 
     List *viewers = list_nth (pll_Viewers, 1);
     while (viewers != NULL)
     {
-      viewer_add_overlay_serie (viewers->data, serie);
+      viewer_add_overlay_serie (viewers->data, ps_Overlay);
       viewers = list_next (viewers);
     }
 
-    gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
+    gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE (config));
+
   }
 
   return FALSE;
@@ -1853,7 +1875,7 @@ gui_mainwindow_mask_remove (UNUSED GtkWidget *widget, void *data)
   pll_Serie = tree_remove (pll_Serie);
   assert (pll_Serie != NULL);
 
-  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
+  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE(config));
 }
 
 void
@@ -1880,7 +1902,7 @@ gui_mainwindow_overlay_remove (UNUSED GtkWidget *widget, void *data)
   pll_Serie = tree_remove (pll_Serie);
   assert (pll_Serie != NULL);
 
-  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
+  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE (config));
 }
 
 
@@ -1918,13 +1940,13 @@ gui_mainwindow_layer_manager_row_activated (GtkWidget *widget, void *data)
       while (viewers != NULL)
       {
         viewer_set_active_mask_serie (viewers->data, serie);
-	ts_ActiveMask = serie;
+        ts_ActiveMask = serie;
         viewers = list_next (viewers);
       }
     }
   }
 
-  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_STUDY (config));
+  gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE (config));
 
   return FALSE;
 }
@@ -2165,18 +2187,20 @@ gui_mainwindow_layer_manager_row_header_new ()
 
 
 void
-gui_mainwindow_layer_manager_refresh (Tree *pll_Study)
+gui_mainwindow_layer_manager_refresh (Tree *pll_Series)
 {
   debug_functions ();
 
-  assert (pll_Study != NULL);
+  assert (pll_Series != NULL);
 
   gui_mainwindow_layer_manager_clear ();
 
-  Tree *pll_Series;
+  Serie *ps_Serie = pll_Series->data;
 
-  Study *study = pll_Study->data;
-  if (study == NULL) return;
+  Tree *pll_Masks=NULL;
+  Tree *pll_Overlays=NULL;
+
+  if (ps_Serie == NULL) return;
 
   /* NOTE:
    * ---------------------------------------------------------------------------
@@ -2185,50 +2209,53 @@ gui_mainwindow_layer_manager_refresh (Tree *pll_Study)
    * ---------------------------------------------------------------------------
    */
 
-  gui_mainwindow_sanitize_string (study->name);
+  gui_mainwindow_sanitize_string (ps_Serie->name);
+
 
   GtkWidget *row;
 
   /*--------------------------------------------------------------------------.
    | ADD MASK SERIES                                                          |
    '--------------------------------------------------------------------------*/
-  pll_Series = tree_child (pll_Study);
-  while (pll_Series != NULL)
+  pll_Masks=pll_Series;
+
+  while (pll_Masks != NULL)
   {
-    Serie *serie = pll_Series->data;
+    Serie *ps_Mask = pll_Masks->data;
 
     // Filter out the original serie and empty series.
-    if (serie == NULL
-        || pll_Series == CONFIGURATION_ACTIVE_ORIGINAL (config)
-        || pll_Series->type != TREE_TYPE_SERIE_MASK)
+    if ((ps_Mask == NULL) ||
+        (pll_Masks == CONFIGURATION_ACTIVE_SERIE (config)) ||
+        (pll_Masks->type != TREE_TYPE_SERIE_MASK) ||
+        (ps_Serie->group_id != ps_Mask->group_id))
     {
-      pll_Series = tree_next (pll_Series);
+      pll_Masks = tree_next (pll_Masks);
       continue;
     }
 
     // Figure out whether the serie has a special role.
-    short int i16_MaskState = (serie == ts_ActiveMask) ? 1 : 0;
+    short int i16_MaskState = (ps_Mask == ts_ActiveMask) ? 1 : 0;
 
     char serie_name[100];
     memset (serie_name, 0, 100);
-    strcpy (serie_name, serie->name);
+    strcpy (serie_name, ps_Mask->name);
 
     //gui_mainwindow_pretty_string (serie_name);
 
     // Add the row to the list box.
-    gui_mainwindow_sanitize_string (serie->name);
+    gui_mainwindow_sanitize_string (ps_Mask->name);
 
     GtkWidget *row = gui_mainwindow_layer_manager_row_item_new (serie_name,
                                                                 i16_MaskState,
-                                                                pll_Series);
+                                                                pll_Masks);
     gtk_list_box_prepend (GTK_LIST_BOX (layer_manager), row);
 
-    if (serie == CONFIGURATION_ACTIVE_LAYER (config))
+    if (ps_Mask == CONFIGURATION_ACTIVE_LAYER (config))
     {
       gtk_list_box_select_row (GTK_LIST_BOX (layer_manager), GTK_LIST_BOX_ROW (row));
     }
 
-    pll_Series = tree_next (pll_Series);
+    pll_Masks = tree_next (pll_Masks);
   }
 
   // Add a "Masks" header.
@@ -2242,37 +2269,40 @@ gui_mainwindow_layer_manager_refresh (Tree *pll_Study)
   /*--------------------------------------------------------------------------.
    | ADD OVERLAY SERIES                                                       |
    '--------------------------------------------------------------------------*/
-  pll_Series = tree_child (pll_Study);
-  while (pll_Series != NULL)
+  pll_Overlays=pll_Series;
+
+  while (pll_Overlays != NULL)
   {
-    Serie *serie = pll_Series->data;
+    Serie *ps_Overlay = pll_Overlays->data;
 
     // Filter out the original serie and empty series.
-    if (serie == NULL
-        || pll_Series == CONFIGURATION_ACTIVE_ORIGINAL (config)
-        || pll_Series->type != TREE_TYPE_SERIE_OVERLAY)
+
+    if ((ps_Overlay == NULL) ||
+        (pll_Overlays == CONFIGURATION_ACTIVE_SERIE (config)) ||
+        (pll_Overlays->type != TREE_TYPE_SERIE_OVERLAY) ||
+        (ps_Serie->group_id != ps_Overlay->group_id))
     {
-      pll_Series = tree_next (pll_Series);
+      pll_Overlays = tree_next (pll_Overlays);
       continue;
     }
 
     // Figure out whether the serie has a special role.
-    short int i16_MaskState = (serie == ts_ActiveMask) ? 1 : 0;
+    short int i16_MaskState = (ps_Overlay == ts_ActiveMask) ? 1 : 0;
 
     // Add the row to the list box.
-    gui_mainwindow_sanitize_string (serie->name);
+    gui_mainwindow_sanitize_string (ps_Overlay->name);
 
-    GtkWidget *row = gui_mainwindow_layer_manager_row_item_new (serie->name,
+    GtkWidget *row = gui_mainwindow_layer_manager_row_item_new (ps_Overlay->name,
                                                                 i16_MaskState,
-                                                                pll_Series);
+                                                                pll_Overlays);
     gtk_list_box_prepend (GTK_LIST_BOX (layer_manager), row);
 
-    if (serie == CONFIGURATION_ACTIVE_LAYER (config))
+    if (ps_Overlay == CONFIGURATION_ACTIVE_LAYER (config))
     {
       gtk_list_box_select_row (GTK_LIST_BOX (layer_manager), GTK_LIST_BOX_ROW (row));
     }
 
-    pll_Series = tree_next (pll_Series);
+    pll_Overlays = tree_next (pll_Overlays);
   }
 
   // Add a "Overlays" header.
@@ -2287,21 +2317,21 @@ gui_mainwindow_layer_manager_refresh (Tree *pll_Study)
    | ADD ORIGINAL SERIES                                                      |
    '--------------------------------------------------------------------------*/
 
-  assert (CONFIGURATION_ACTIVE_ORIGINAL (config)->type == TREE_TYPE_SERIE);
+  assert (CONFIGURATION_ACTIVE_SERIE (config)->type == TREE_TYPE_SERIE);
 
-  Serie *serie = CONFIGURATION_ACTIVE_ORIGINAL (config)->data;
-  if (serie != NULL)
+  if (ps_Serie != NULL)
   {
     GtkWidget *original;
-    original = gui_mainwindow_layer_manager_row_item_new (serie->name, 0,
-							  CONFIGURATION_ACTIVE_ORIGINAL (config));
+    original = gui_mainwindow_layer_manager_row_item_new (ps_Serie->name, 0,
+							  CONFIGURATION_ACTIVE_SERIE (config));
 
-    if (serie == CONFIGURATION_ACTIVE_LAYER (config))
+    gtk_list_box_prepend (GTK_LIST_BOX (layer_manager), original);
+    if (ps_Serie == CONFIGURATION_ACTIVE_LAYER (config))
     {
       gtk_list_box_select_row (GTK_LIST_BOX (layer_manager), GTK_LIST_BOX_ROW (original));
     }
 
-    gtk_list_box_prepend (GTK_LIST_BOX (layer_manager), original);
+
   }
 
   // Add a "Original" header.
@@ -2405,9 +2435,11 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
 
   // Populate the store.
   Tree *pll_Studies;
+  Tree *pll_Series;
 
   GtkTreeIter PatientIterator;
   GtkTreeIter StudyIterator;
+  GtkTreeIter SerieIterator;
 
   /*--------------------------------------------------------------------------.
    | PATIENTS                                                                 |
@@ -2445,6 +2477,7 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
         continue;
       }
 
+
       gui_mainwindow_sanitize_string (study->name);
       gtk_tree_store_append (sidebar_TreeStore,
 			     &StudyIterator,
@@ -2454,9 +2487,32 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
                           SIDEBAR_NAME, study->name,
                           SIDEBAR_ID, study->id, -1);
 
+
+      /*------------------------------------------------------------------------.
+      | SERIES                                                                  |
+      '------------------------------------------------------------------------*/
+      pll_Series = tree_child(pll_Studies);
+      while (pll_Series != NULL)
+      {
+        Serie *serie = pll_Series->data;
+        if (serie == NULL)
+        {
+          pll_Series = tree_next (pll_Series);
+          continue;
+        }
+
+        if (serie->e_SerieType == SERIE_ORIGINAL)
+        {
+          gui_mainwindow_sanitize_string (serie->name);
+          gtk_tree_store_append (sidebar_TreeStore, &SerieIterator, &StudyIterator);
+
+          gtk_tree_store_set (sidebar_TreeStore, &SerieIterator, SIDEBAR_NAME, serie->name, SIDEBAR_ID, serie->id, -1);
+        }
+
+        pll_Series = tree_next(pll_Series);
+      }
       pll_Studies = tree_next (pll_Studies);
     }
-
     pll_Patients = tree_next (pll_Patients);
   }
 }
@@ -2467,8 +2523,8 @@ gui_mainwindow_sidebar_clicked (GtkWidget *widget)
 {
   GtkTreePath *path = NULL;
 
-  unsigned long long study_id = 0;
-  Tree *study_tree = NULL;
+  unsigned long long serie_id = 0;
+  Tree *pll_SerieTree = NULL;
 
   gtk_tree_view_get_cursor (GTK_TREE_VIEW (widget), &path, NULL);
   if (path != NULL)
@@ -2476,15 +2532,19 @@ gui_mainwindow_sidebar_clicked (GtkWidget *widget)
     GtkTreeIter iter;
     if (gtk_tree_model_get_iter (GTK_TREE_MODEL (sidebar_TreeStore), &iter, path))
     {
-      gtk_tree_model_get (GTK_TREE_MODEL (sidebar_TreeStore), &iter, SIDEBAR_ID, &study_id, -1);
-      study_tree = memory_tree_get_study_by_id (CONFIGURATION_MEMORY_TREE (config), study_id);
+      gtk_tree_model_get (GTK_TREE_MODEL (sidebar_TreeStore), &iter, SIDEBAR_ID, &serie_id, -1);
+      pll_SerieTree=memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), serie_id);
     }
     gtk_tree_path_free (path);
   }
 
-  if (study_tree != NULL && study_tree->type == TREE_TYPE_STUDY
-      && study_tree != CONFIGURATION_ACTIVE_STUDY (config))
-    gui_mainwindow_load_study (study_tree);
+  if ((pll_SerieTree != NULL) &&
+      (pll_SerieTree->type == TREE_TYPE_SERIE) &&
+      (pll_SerieTree != CONFIGURATION_ACTIVE_SERIE(config)))
+  {
+    gui_mainwindow_load_serie (pll_SerieTree);
+    gtk_tree_view_expand_all(GTK_TREE_VIEW (widget));
+  }
 }
 
 
@@ -2519,6 +2579,7 @@ gui_mainwindow_sidebar_new ()
 
   treeview = gtk_tree_view_new_with_model (GTK_TREE_MODEL (sidebar_TreeStore));
 
+
   g_signal_connect (treeview, "realize",
 		    G_CALLBACK (gui_mainwindow_sidebar_realized),
 		    NULL);
@@ -2541,10 +2602,11 @@ gui_mainwindow_sidebar_new ()
 
   renderer = gtk_cell_renderer_text_new ();
   column = gtk_tree_view_column_new_with_attributes ("ID", renderer, "text", SIDEBAR_ID, NULL);
+  gtk_tree_view_column_set_visible(column,FALSE);
+
   gtk_tree_view_append_column (GTK_TREE_VIEW (treeview), column);
   gtk_cell_renderer_set_alignment (renderer, 1.0, 0.0);
   gtk_container_add (GTK_CONTAINER (scrolled), treeview);
-
   return vbox_sidebar;
 }
 
@@ -2721,6 +2783,10 @@ gui_mainwindow_properties_manager_refresh (Tree *serie_tree)
   if (serie_tree->type == TREE_TYPE_SERIE)
   {
     gtk_widget_set_sensitive (properties_opacity_scale, FALSE);
+  }
+  else
+  {
+    gtk_widget_set_sensitive (properties_opacity_scale, TRUE);
   }
 }
 

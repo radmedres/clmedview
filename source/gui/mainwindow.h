@@ -115,11 +115,12 @@ void gui_mainwindow_file_load (void* data);
 
 
 /**
- * This function allows a user to display a specific study.
+ * This function allows a user to display a specific serie.
  *
  * @param pll_Study The study to display.
  */
-void gui_mainwindow_load_study (Tree *pll_Study);
+void
+gui_mainwindow_load_serie (Tree *pll_Serie);
 
 
 /**
