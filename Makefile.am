@@ -21,8 +21,8 @@ SUBDIRS                 = . plugin
 ACLOCAL_AMFLAGS         = -I m4
 AUTOMAKE_OPTIONS 	= subdir-objects
 AM_CFLAGS 		= $(gtk_CFLAGS) $(glib_CFLAGS) $(zlib_CFLAGS) \
-                $(clutter_CFLAGS) $(vte_CFLAGS) \
-                $(cluttergtk_CFLAGS) -Iinclude/ \
+                $(clutter_CFLAGS) \
+                $(cluttergtk_CFLAGS) $(uuid_CFLAGS) -Iinclude/ \
                 -Ilib/lib-common/include/ -Iplugin/
 
 bin_PROGRAMS 		= clmedview
@@ -33,6 +33,7 @@ INCLUDE_SOURCES 	= include/lib-pixeldata.h \
 			  include/lib-common.h \
 			  include/lib-memory.h \
 			  include/lib-common-history.h \
+			  include/lib-lib-io-dicom.h \
 			  include/lib-lib-io-niftii.h \
 			  include/lib-memory-io.h \
 			  include/lib-memory-patient.h \
@@ -69,10 +70,12 @@ DOXYGEN_FILES           = doc/Doxyfile doc/custom.css doc/footer.html \
                           doc/images/component-diagram.dia \
                           doc/clmedview.texi
 
-LIB_IO_DICOM_SOURCES = lib/lib-io-dicom/znzlib.c \
-        lib/lib-io-dicom/zzwrite.c \
-        lib/lib-io-dicom/zzio.c \
-        lib/lib-io-dicom/zz.c
+LIB_IO_DICOM_SOURCES    = lib/lib-io-dicom/lib-io-dicom.c \
+                          lib/lib-io-dicom/znzlib.c \
+                          lib/lib-io-dicom/zzio.c \
+                          lib/lib-io-dicom/zz.c
+
+
 
 LIB_IO_NIFTI_SOURCES = lib/lib-io-nifti/lib-io-nifti.c
 
@@ -106,8 +109,8 @@ clmedview_SOURCES	= source/main.c \
 			  $(LIB_VIEWER_SOURCES) $(LIB_CONFIGURATION_SOURCES)
 
 clmedview_LDFLAGS       = -fdata-sections -ffunction-sections -Wl,--gc-sections
-clmedview_LDADD         = $(gtk_LIBS) $(glib_LIBS) $(zlib_LIBS) \
-                          $(clutter_LIBS) $(cluttergtk_LIBS) $(vte_LIBS) -lm -ldl
+clmedview_LDADD         = $(gtk_LIBS) $(glib_LIBS) $(zlib_LIBS) $(uuid_LIBS) \
+                          $(clutter_LIBS) $(cluttergtk_LIBS) -lm -ldl
 
 dist_data_DATA          = $(PLUGIN_FILES) $(DOXYGEN_FILES) $(LUT_FILES)
 

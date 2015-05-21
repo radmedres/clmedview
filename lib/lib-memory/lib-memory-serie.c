@@ -74,6 +74,8 @@ memory_serie_new (const char *name, const char *pc_filename)
   }
 
   serie->id = memory_serie_next_id ();
+  serie->group_id = memory_serie_next_id ();
+
   return serie;
 }
 
@@ -260,7 +262,7 @@ memory_serie_create_mask_from_serie (Serie *serie)
 
   Serie* mask = memory_serie_new (NULL,NULL);
   assert (mask != NULL);
-
+  mask->e_SerieType = SERIE_MASK;
   mask->group_id = serie->group_id;
   mask->matrix = serie->matrix;
   mask->pixel_dimension = serie->pixel_dimension;
@@ -277,10 +279,10 @@ memory_serie_create_mask_from_serie (Serie *serie)
 
   debug_extra ("About to allocate: ~ %.2f megabytes.", data_size / 1000000.0);
 
-  mask->data = malloc (data_size);
+  mask->data = calloc (1, data_size);
   assert (mask->data != NULL);
 
-  memset (mask->data, 0, data_size);
+//  memset (mask->data, 0, data_size);
 
   mask->pv_OutOfBlobValue = calloc (1, memory_serie_get_memory_space (mask));
 
@@ -376,7 +378,21 @@ memory_serie_create_mask_from_serie (Serie *serie)
   }
   else
   {
-    snprintf (mask->name, 100, "%s_clone_%d.nii", serie->name, (int)mask->id);
+    char *pc_pathToOriginalSerie = dirname (serie->pc_filename);
+    char *pc_maskFileName = NULL;
+
+    char serie_name[100];
+    memset (serie_name, 0, sizeof (serie_name));
+    strncpy (serie_name, serie->name, 90);
+    snprintf (mask->name, 100, "%s_mask_%02d", serie_name, (int)(mask->id));
+
+    pc_maskFileName = calloc(1, strlen(pc_pathToOriginalSerie)+2+strlen(mask->name));
+
+    strcpy(pc_maskFileName,pc_pathToOriginalSerie);
+    strcpy(&pc_maskFileName[strlen(pc_maskFileName)],"/");
+    strcpy(&pc_maskFileName[strlen(pc_maskFileName)],mask->name);
+
+    mask->pc_filename=pc_maskFileName;
   }
 
   return mask;

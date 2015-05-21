@@ -35,7 +35,7 @@ extern "C" {
 /**
  * @ingroup memory
  * @{
- * 
+ *
  *   @defgroup memory_patient Patient
  *   @{
  *
@@ -51,7 +51,12 @@ typedef struct
   /**
    * A unique identifier for a patient.
    */
-  unsigned long long id; 
+  unsigned long long id;
+
+  /**
+   * A unique identifier for a patient used in dicom files.
+   */
+  char c_patientID[64];
 
   /**
    * The name of a patient.
@@ -66,7 +71,7 @@ typedef struct
  *
  * @param name  The name of the patient.
  *
- * @return A pointer to a newly created Patient object. 
+ * @return A pointer to a newly created Patient object.
  */
 Patient* memory_patient_new (const char *name);
 

@@ -37,7 +37,7 @@ extern "C" {
 /**
  * @ingroup memory
  * @{
- * 
+ *
  *   @defgroup memory_study Study
  *   @{
  *
@@ -56,9 +56,15 @@ typedef struct
   unsigned long long id;
 
   /**
+   * A unique identifier for a Study used in dicom files.
+   */
+  char c_studyInstanceUID[64];
+
+
+  /**
    * The name for a Study.
    */
-  char name[100];  
+  char name[100];
 
 } Study;
 
@@ -69,7 +75,7 @@ typedef struct
  *
  * @param name  The name of the study.
  *
- * @return A pointer to a newly created Study object. 
+ * @return A pointer to a newly created Study object.
  */
 Study* memory_study_new (const char *name);
 

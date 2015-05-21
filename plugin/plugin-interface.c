@@ -117,6 +117,7 @@ CLM_Plugin_GetPixelAtPoint (PixelData *ps_Layer, Coordinate ts_Point, void *pv_P
 
   switch (ps_Layer->serie->data_type)
   {
+    case MEMORY_TYPE_UINT8   : *(unsigned char *)pv_PixelValue      = *(unsigned char *)*ppv_ImageDataCounter; break;
     case MEMORY_TYPE_INT16   : *(short int *)pv_PixelValue          = *(short int *)*ppv_ImageDataCounter; break;
     case MEMORY_TYPE_INT32   : *(int *)pv_PixelValue                = *(int *)*ppv_ImageDataCounter; break;
     case MEMORY_TYPE_UINT16  : *(short unsigned int *)pv_PixelValue = *(short unsigned int *)*ppv_ImageDataCounter; break;

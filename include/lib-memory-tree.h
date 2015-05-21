@@ -42,7 +42,7 @@ extern "C" {
 /**
  * @ingroup memory
  * @{
- * 
+ *
  *   @defgroup memory_tree Tree
  *   @{
  *
@@ -113,8 +113,20 @@ Tree* memory_tree_get_study_by_id (Tree* tree, unsigned long long id);
 
 
 /**
+ * This function returns the serie tree element that contains
+ * serie data with a specific id.
+ *
+ * @param tree  The patient tree to search in.
+ * @param id    The id to look for.
+ *
+ * @return A pointer to the study tree element.
+ */
+Tree*
+memory_tree_get_serie_by_id (Tree* tree, unsigned long long id);
+
+/**
  * This function returns the serie at the nth position. When a patient
- * or a study tree is given, it will use the tree's child to search for 
+ * or a study tree is given, it will use the tree's child to search for
  * series.
  *
  * @param tree  The tree to search in.
@@ -169,7 +181,7 @@ void memory_tree_destroy (Tree* tree);
  *   @}
  * @}
  */
-  
+
 #ifdef __cplusplus
 }
 #endif

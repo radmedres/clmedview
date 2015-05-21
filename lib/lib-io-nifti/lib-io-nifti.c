@@ -573,7 +573,7 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
   if (ps_Header->sizeof_hdr == MIN_HEADER_SIZE)
   {
 //    serie->pv_Header = ps_Header;
-
+    serie->e_SerieType = SERIE_ORIGINAL;
     serie->matrix.x = ps_Header->dim[1];
     serie->matrix.y = ps_Header->dim[2];
     serie->matrix.z = ps_Header->dim[3];

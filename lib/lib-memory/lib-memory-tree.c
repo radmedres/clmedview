@@ -90,6 +90,48 @@ memory_tree_get_study_by_id (Tree* tree, unsigned long long id)
   return 0;
 }
 
+Tree*
+memory_tree_get_serie_by_id (Tree* tree, unsigned long long id)
+{
+  debug_functions ();
+
+  if (tree == NULL) return NULL;
+  if (tree->type != TREE_TYPE_PATIENT) return NULL;
+  if (tree->type == TREE_TYPE_STUDY) return NULL;
+  if (tree->type == TREE_TYPE_SERIE) return NULL;
+
+  Tree *root = tree_nth (tree, 1);
+  while (root != NULL)
+  {
+    Tree *studies = tree_child (root);
+    while (studies != NULL)
+    {
+      Tree *pll_Serie = tree_child(studies);
+      while (pll_Serie != NULL)
+      {
+        Serie *ps_Serie = pll_Serie->data;
+
+        if (ps_Serie == NULL)
+        {
+          pll_Serie = tree_next(pll_Serie);
+          continue;
+        }
+
+        if (ps_Serie->id == id)
+        {
+          return pll_Serie;
+        }
+
+        pll_Serie = tree_next(pll_Serie);
+      }
+      studies = tree_next (studies);
+    }
+
+    root = tree_next (root);
+  }
+
+  return 0;
+}
 
 Tree*
 memory_tree_get_nth_serie (Tree* tree, unsigned int nth)

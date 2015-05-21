@@ -1687,8 +1687,8 @@ viewer_add_overlay_serie (Viewer *resources, Serie *serie)
 
   PixelDataLookupTable *overlay_lut = pixeldata_lookup_table_get_default_overlay ();
   overlay = pixeldata_new_with_lookup_table (overlay_lut,
-					     serie->i32_MinimumValue,
-					     serie->i32_MaximumValue,
+					     serie->i32_MaximumValue - serie->i32_MinimumValue,
+					     serie->i32_MaximumValue/2,
 					     overlay_slice,
 					     serie);
   assert (overlay != NULL);
