@@ -469,7 +469,7 @@ Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
   else
   {
     // maybe a dicom?
-    pt_patient=(*ppt_study)->parent;
+    pt_patient=((*ppt_study) == NULL)?NULL:(*ppt_study)->parent;
     return pt_memory_io_load_file_dicom(&pt_patient, pc_path);
   }
   return NULL;
