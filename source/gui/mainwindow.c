@@ -1845,7 +1845,7 @@ gui_mainwindow_overlay_add (UNUSED GtkWidget *widget, void *data)
 
     pt_Serie=pt_memory_io_load_file(&pt_Study,pc_path);
 
-    if (pt_Serie != NULL)
+    if (pt_Serie == NULL)
     {
       return FALSE;
     }
