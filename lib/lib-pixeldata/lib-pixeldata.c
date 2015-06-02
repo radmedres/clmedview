@@ -446,7 +446,7 @@ pixeldata_create_rgb_pixbuf (PixelData *pixeldata)
   Serie *serie = slice->serie;
   assert (serie != NULL);
 
-  pixeldata->rgb = realloc (pixeldata->rgb, sizeof (unsigned int) * slice->matrix.x * slice->matrix.y);
+  pixeldata->rgb = realloc (pixeldata->rgb, sizeof (unsigned int) * slice->matrix.i16_x * slice->matrix.i16_y);
 
   unsigned int *rgb = pixeldata->rgb;
   unsigned int *display_lookup_table = pixeldata->display_lookup_table;
@@ -456,7 +456,7 @@ pixeldata_create_rgb_pixbuf (PixelData *pixeldata)
 
   // TODO: What happens when *data_counter contains a negative value?
   unsigned int counter;
-  for (counter = 0; counter < (unsigned int)(slice->matrix.x * slice->matrix.y); counter++)
+  for (counter = 0; counter < (unsigned int)(slice->matrix.i16_x * slice->matrix.i16_y); counter++)
   {
     switch (serie->data_type)
     {
@@ -505,7 +505,7 @@ pixeldata_get_pixel_value_as_string (PixelData *pixeldata, Coordinate ts_Point)
   Slice *slice = PIXELDATA_ACTIVE_SLICE (pixeldata);
   assert (slice != NULL);
 
-  if ((ts_Point.x > slice->matrix.x || ts_Point.y > slice->matrix.y)
+  if ((ts_Point.x > slice->matrix.i16_x || ts_Point.y > slice->matrix.i16_y)
       || (ts_Point.x < 0 || ts_Point.y < 0))
   {
     sprintf (output, "-");
@@ -518,7 +518,7 @@ pixeldata_get_pixel_value_as_string (PixelData *pixeldata, Coordinate ts_Point)
   short int i16_X  = (short int)ts_Point.x;
   short int i16_Y  = (short int)ts_Point.y;
 
-  source += (unsigned int)(i16_Y * slice->matrix.x + i16_X);
+  source += (unsigned int)(i16_Y * slice->matrix.i16_x + i16_X);
 
   switch (pixeldata->serie->data_type)
   {
@@ -753,7 +753,6 @@ pixeldata_apply_brush (PixelData *ps_Original, PixelData *ps_Mask,
 {
   debug_functions ();
 
-  if (ts_End.x == 0 && ts_End.y == 0) return;
 
   if (ps_Mask == NULL) return;
   if (fp_BrushCallback == NULL) return;
@@ -778,17 +777,17 @@ pixeldata_set_voxel (PixelData *mask, PixelData *selection,
 
   // Boundary checks.
   if (point.x < 0 || point.y < 0) return 0;
-  if (point.x >= mask_slice->matrix.x || point.y >= mask_slice->matrix.y) return 0;
+  if (point.x >= mask_slice->matrix.i16_x || point.y >= mask_slice->matrix.i16_y) return 0;
 
   void **ppv_SelectionDataCounter = NULL;
   if (selection != NULL)
   {
     ppv_SelectionDataCounter = PIXELDATA_ACTIVE_SLICE_DATA (selection);
-    ppv_SelectionDataCounter += (unsigned int)(point.y * mask_slice->matrix.x + point.x);
+    ppv_SelectionDataCounter += (unsigned int)(point.y * mask_slice->matrix.i16_x + point.x);
   }
 
   void **ppv_ImageDataCounter = PIXELDATA_ACTIVE_SLICE_DATA (mask);
-  ppv_ImageDataCounter += (unsigned int)(point.y * mask_slice->matrix.x + point.x);
+  ppv_ImageDataCounter += (unsigned int)(point.y * mask_slice->matrix.i16_x + point.x);
 
   switch (mask->serie->data_type)
   {
@@ -832,13 +831,13 @@ pixeldata_get_voxel (PixelData *layer, Coordinate point, void *value)
 
   // Boundary checks.
   if (point.x < 0 || point.y < 0) return 0;
-  if (point.x >= mask_slice->matrix.x || point.y >= mask_slice->matrix.y) return 0;
+  if (point.x >= mask_slice->matrix.i16_x || point.y >= mask_slice->matrix.i16_y) return 0;
 
   short int i16_Y = (short int)point.y;
   short int i16_X = (short int)point.x;
 
   void **ppv_ImageDataCounter = PIXELDATA_ACTIVE_SLICE_DATA (layer);
-  ppv_ImageDataCounter += (unsigned int)(i16_Y * mask_slice->matrix.x + i16_X);
+  ppv_ImageDataCounter += (unsigned int)(i16_Y * mask_slice->matrix.i16_x + i16_X);
 
   switch (layer->serie->data_type)
   {

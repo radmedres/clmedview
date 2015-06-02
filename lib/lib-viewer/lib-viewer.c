@@ -347,7 +347,7 @@ viewer_on_mouse_scroll_prevnext (UNUSED ClutterActor *actor, ClutterEvent *event
       PIXELDATA_ACTIVE_SLICE (resources->ps_Original) =
         memory_slice_get_next (PIXELDATA_ACTIVE_SLICE (resources->ps_Original));
 
-      f_Z = PIXELDATA_ACTIVE_SLICE (resources->ps_Original)->matrix.z;
+      f_Z = PIXELDATA_ACTIVE_SLICE (resources->ps_Original)->matrix.i16_z;
 
       break;
      /*-----------------------------------------------------------------------.
@@ -357,13 +357,13 @@ viewer_on_mouse_scroll_prevnext (UNUSED ClutterActor *actor, ClutterEvent *event
       PIXELDATA_ACTIVE_SLICE (resources->ps_Original) =
         memory_slice_get_previous (PIXELDATA_ACTIVE_SLICE (resources->ps_Original));
 
-      f_Z = PIXELDATA_ACTIVE_SLICE (resources->ps_Original)->matrix.z;
+      f_Z = PIXELDATA_ACTIVE_SLICE (resources->ps_Original)->matrix.i16_z;
 
       break;
     default: break;
   }
 
-  f_Z = PIXELDATA_ACTIVE_SLICE (resources->ps_Original)->matrix.z;
+  f_Z = PIXELDATA_ACTIVE_SLICE (resources->ps_Original)->matrix.i16_z;
 
   viewer_update_slices (resources->pll_MaskSeries, f_Z);
   viewer_update_slices (resources->pll_OverlaySeries, f_Z);
@@ -498,13 +498,13 @@ viewer_update_text (Viewer *resources)
   char *pc_PixelValue = pixeldata_get_pixel_value_as_string (pixeldata, ts_PixelPosition);
 
   char *text = calloc (1, 110);
-  sprintf (text, "Slice:\t\t %-5.0f\n"
+  sprintf (text, "Slice:\t\t %d\n"
                  "Window/Level:\t %d / %d\n"
                  "Position:\t\t %.0f , %.0f\n"
                  "Zoom:\t\t %.0f%%\n"
                  "Value:\t\t %s\n"
                  "Macro:\t\t %s\n",
-                 slice->matrix.z,
+                 slice->matrix.i16_z,
                  pixeldata->ts_WWWL.i32_windowWidth, pixeldata->ts_WWWL.i32_windowLevel,
                  ts_PixelPosition.x, ts_PixelPosition.y,
                  resources->f_ZoomFactor * 100,
@@ -596,8 +596,8 @@ viewer_redraw (Viewer *resources, RedrawMode redraw_mode)
   Slice *slice = PIXELDATA_ACTIVE_SLICE (resources->ps_Original);
   assert (slice != NULL);
 
-  int i32_Width  = slice->matrix.x;
-  int i32_Height = slice->matrix.y;
+  int i32_Width  = slice->matrix.i16_x;
+  int i32_Height = slice->matrix.i16_y;
 
   /*--------------------------------------------------------------------------.
    | NON-MINIMAL REDRAW                                                       |
@@ -625,8 +625,8 @@ viewer_redraw (Viewer *resources, RedrawMode redraw_mode)
 
     ClutterActor *c_BaseImage;
     c_BaseImage = viewer_create_actor_from_pixeldata (resources->ps_Original,
-                                                      slice->matrix.x,
-                                                      slice->matrix.y,
+                                                      slice->matrix.i16_x,
+                                                      slice->matrix.i16_y,
                                                       (redraw_mode == REDRAW_ALL));
 
     clutter_actor_add_child (resources->c_Actor, c_BaseImage);
@@ -646,8 +646,8 @@ viewer_redraw (Viewer *resources, RedrawMode redraw_mode)
     /*------------------------------------------------------------------------.
      | APPLY PARENT SETTINGS                                                  |
      '------------------------------------------------------------------------*/
-    clutter_actor_set_width (resources->c_Actor, slice->matrix.x);
-    clutter_actor_set_height (resources->c_Actor, slice->matrix.y);
+    clutter_actor_set_width (resources->c_Actor, slice->matrix.i16_x);
+    clutter_actor_set_height (resources->c_Actor, slice->matrix.i16_y);
     clutter_actor_set_scale (resources->c_Actor,
                              slice->f_ScaleFactorX * resources->f_ZoomFactor,
                              slice->f_ScaleFactorY * resources->f_ZoomFactor);
@@ -660,8 +660,8 @@ viewer_redraw (Viewer *resources, RedrawMode redraw_mode)
   else
   {
     Slice *slice = PIXELDATA_ACTIVE_SLICE (resources->ps_Original);
-    clutter_actor_set_width (CLUTTER_ACTOR (resources->c_Actor), slice->matrix.x);
-    clutter_actor_set_height (CLUTTER_ACTOR (resources->c_Actor), slice->matrix.y);
+    clutter_actor_set_width (CLUTTER_ACTOR (resources->c_Actor), slice->matrix.i16_x);
+    clutter_actor_set_height (CLUTTER_ACTOR (resources->c_Actor), slice->matrix.i16_y);
     clutter_actor_set_scale (resources->c_Actor,
                              slice->f_ScaleFactorX * resources->f_ZoomFactor,
                              slice->f_ScaleFactorY * resources->f_ZoomFactor);
@@ -727,9 +727,9 @@ viewer_create_actor_from_pixeldata (PixelData *pixeldata, int width,
     if (!clutter_image_set_data (CLUTTER_IMAGE (mask_Content),
                                  (guint8 *)pixbuf,
                                  COGL_PIXEL_FORMAT_RGBA_8888,
-                                 slice->matrix.x,
-                                 slice->matrix.y,
-                                 (slice->matrix.x * 4),
+                                 slice->matrix.i16_x,
+                                 slice->matrix.i16_y,
+                                 (slice->matrix.i16_x * 4),
                                  &error))
     {
       debug_warning ("Could not load pixels to buffer: %s\n", error->message);
@@ -913,8 +913,8 @@ viewer_coordinate_within_image (Viewer *resources, Coordinate ts_Point)
 
   Slice *slice = VIEWER_ACTIVE_SLICE (resources);
   Plane ts_AbsolutePixelSize;
-  ts_AbsolutePixelSize.width = slice->matrix.x * slice->f_ScaleFactorX * resources->f_ZoomFactor;
-  ts_AbsolutePixelSize.height = slice->matrix.y * slice->f_ScaleFactorY * resources->f_ZoomFactor;
+  ts_AbsolutePixelSize.width = slice->matrix.i16_x * slice->f_ScaleFactorX * resources->f_ZoomFactor;
+  ts_AbsolutePixelSize.height = slice->matrix.i16_y * slice->f_ScaleFactorY * resources->f_ZoomFactor;
 
   Coordinate ts_ActorPosition;
   clutter_actor_get_position (resources->c_Actor, &ts_ActorPosition.x, &ts_ActorPosition.y);
@@ -1075,7 +1075,6 @@ viewer_on_mouse_move (UNUSED ClutterActor *actor, ClutterEvent *event, gpointer 
     resources->ts_PreviousMousePosition.x = ts_CurrentMousePosition.x;
     resources->ts_PreviousMousePosition.y = ts_CurrentMousePosition.y;
 
-    Serie *serie = resources->ps_ActiveLayer;
     PixelData *pixeldata = viewer_get_pixeldata_for_serie (resources, resources->ps_ActiveLayer);
 
     ts_WWWL.i32_windowWidth = (int)(ts_Diff.x);
@@ -1148,11 +1147,11 @@ viewer_on_leave_stage (UNUSED GtkWidget *widget, UNUSED GdkEvent *event, gpointe
 
   Slice *slice = VIEWER_ACTIVE_SLICE (resources);
   char *text = calloc (1, 110);
-  sprintf (text, "Slice:\t\t %-5.0f\n"
+  sprintf (text, "Slice:\t\t %d\n"
                  "Window/Level:\t %d / %d\n"
                  "Position:\nZoom:\nValue:\n"
                  "Macro:\t\t %s\n",
-                 slice->matrix.z,
+                 slice->matrix.i16_z,
                  pixeldata->ts_WWWL.i32_windowWidth, pixeldata->ts_WWWL.i32_windowLevel,
                  (resources->is_recording) ? "Recording" : "");
 
@@ -1235,11 +1234,11 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
   assert (resources->ps_Original != NULL);
 
   // Set the default width and height.
-  resources->ts_OriginalPlane.width = slice->matrix.x;
-  resources->ts_OriginalPlane.height = slice->matrix.y;
+  resources->ts_OriginalPlane.width = slice->matrix.i16_x;
+  resources->ts_OriginalPlane.height = slice->matrix.i16_y;
 
-  resources->ts_ScaledPlane.width = slice->matrix.x * slice->f_ScaleFactorX;
-  resources->ts_ScaledPlane.height = slice->matrix.y * slice->f_ScaleFactorY;
+  resources->ts_ScaledPlane.width = slice->matrix.i16_x * slice->f_ScaleFactorX;
+  resources->ts_ScaledPlane.height = slice->matrix.i16_y * slice->f_ScaleFactorY;
 
   // Set up the display slice resources for the mask.
   viewer_add_mask_serie (resources, ts_Mask);
@@ -1264,8 +1263,8 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
 
   assert (resources->c_Handles != NULL);
 
-  clutter_actor_set_width (resources->c_Actor, slice->matrix.x);
-  clutter_actor_set_height (resources->c_Actor, slice->matrix.y);
+  clutter_actor_set_width (resources->c_Actor, slice->matrix.i16_x);
+  clutter_actor_set_height (resources->c_Actor, slice->matrix.i16_y);
   clutter_actor_set_content_scaling_filters (resources->c_Actor, SCALING_FILTER, SCALING_FILTER);
 
   /*--------------------------------------------------------------------------.
@@ -1331,11 +1330,11 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
   assert (resources->ps_Original != NULL);
 
   // Set the default width and height.
-  resources->ts_OriginalPlane.width = slice->matrix.x;
-  resources->ts_OriginalPlane.height = slice->matrix.y;
+  resources->ts_OriginalPlane.width = slice->matrix.i16_x;
+  resources->ts_OriginalPlane.height = slice->matrix.i16_y;
 
-  resources->ts_ScaledPlane.width = slice->matrix.x * slice->f_ScaleFactorX;
-  resources->ts_ScaledPlane.height = slice->matrix.y * slice->f_ScaleFactorY;
+  resources->ts_ScaledPlane.width = slice->matrix.i16_x * slice->f_ScaleFactorX;
+  resources->ts_ScaledPlane.height = slice->matrix.i16_y * slice->f_ScaleFactorY;
 
   // Set up the display slice resources for the mask.
   viewer_add_mask_serie (resources, ts_Mask);
@@ -1378,8 +1377,8 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
   g_signal_connect (c_Canvas, "draw", G_CALLBACK (viewer_on_redraw_update_handles), resources);
 
   clutter_actor_set_background_color (resources->c_Stage, CLUTTER_COLOR_Black);
-  clutter_actor_set_width (resources->c_Actor, slice->matrix.x);
-  clutter_actor_set_height (resources->c_Actor, slice->matrix.y);
+  clutter_actor_set_width (resources->c_Actor, slice->matrix.i16_x);
+  clutter_actor_set_height (resources->c_Actor, slice->matrix.i16_y);
   clutter_actor_set_content_scaling_filters (resources->c_Actor, SCALING_FILTER, SCALING_FILTER);
 
   /*--------------------------------------------------------------------------.
@@ -1585,7 +1584,7 @@ viewer_set_active_mask_serie (Viewer *resources, Serie *serie)
 
   Slice *original_slice = PIXELDATA_ACTIVE_SLICE (resources->ps_Original);
   if (original_slice != NULL)
-    slice->matrix.z = original_slice->matrix.z;
+    slice->matrix.i16_z = original_slice->matrix.i16_z;
 
   if (resources->ps_ActiveMask == NULL)
   {

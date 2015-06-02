@@ -18,17 +18,17 @@ CLM_Plugin_DrawPixelAtPoint (PixelData *ps_Mask, PixelData *ps_Selection,
 
   // Boundary checks.
   if (ts_Point.x < 0 || ts_Point.y < 0) return 0;
-  if (ts_Point.x + 1 > mask_slice->matrix.x || ts_Point.y >= mask_slice->matrix.y) return 0;
+  if (ts_Point.x + 1 > mask_slice->matrix.i16_x || ts_Point.y >= mask_slice->matrix.i16_y) return 0;
 
   void **ppv_SelectionDataCounter = NULL;
   if (ps_Selection != NULL)
   {
     ppv_SelectionDataCounter = PIXELDATA_ACTIVE_SLICE_DATA (ps_Selection);
-    ppv_SelectionDataCounter += (unsigned int)(ts_Point.y * mask_slice->matrix.x + ts_Point.x);
+    ppv_SelectionDataCounter += (unsigned int)(ts_Point.y * mask_slice->matrix.i16_x + ts_Point.x);
   }
 
   void **ppv_ImageDataCounter = PIXELDATA_ACTIVE_SLICE_DATA (ps_Mask);
-  ppv_ImageDataCounter += (unsigned int)(ts_Point.y * mask_slice->matrix.x + ts_Point.x);
+  ppv_ImageDataCounter += (unsigned int)(ts_Point.y * mask_slice->matrix.i16_x + ts_Point.x);
 
   switch (ps_Mask->serie->data_type)
   {
@@ -107,13 +107,13 @@ CLM_Plugin_GetPixelAtPoint (PixelData *ps_Layer, Coordinate ts_Point, void *pv_P
 
   // Boundary checks.
   if (ts_Point.x < 0 || ts_Point.y < 0) return 0;
-  if (ts_Point.x >= mask_slice->matrix.x || ts_Point.y >= mask_slice->matrix.y) return 0;
+  if (ts_Point.x >= mask_slice->matrix.i16_x || ts_Point.y >= mask_slice->matrix.i16_y) return 0;
 
   short int i16_Y = (short int)ts_Point.y;
   short int i16_X = (short int)ts_Point.x;
 
   void **ppv_ImageDataCounter = PIXELDATA_ACTIVE_SLICE_DATA (ps_Layer);
-  ppv_ImageDataCounter += (unsigned int)(i16_Y * mask_slice->matrix.x + i16_X);
+  ppv_ImageDataCounter += (unsigned int)(i16_Y * mask_slice->matrix.i16_x + i16_X);
 
   switch (ps_Layer->serie->data_type)
   {

@@ -80,9 +80,9 @@ CLM_Plugin_Selection_Apply (UNUSED PixelData *ps_Original, PixelData *ps_Mask, P
     int i32_RowCount, i32_ColumnCount;
     Coordinate ts_Position;
 
-    for (i32_RowCount = 0; i32_RowCount < selection_slice->matrix.y; i32_RowCount++)
+    for (i32_RowCount = 0; i32_RowCount < selection_slice->matrix.i16_y; i32_RowCount++)
     {
-      for (i32_ColumnCount = 0; i32_ColumnCount < selection_slice->matrix.x; i32_ColumnCount++)
+      for (i32_ColumnCount = 0; i32_ColumnCount < selection_slice->matrix.i16_x; i32_ColumnCount++)
       {
         ts_Position.x = i32_ColumnCount;
         ts_Position.y = i32_RowCount;

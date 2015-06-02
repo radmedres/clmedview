@@ -147,7 +147,7 @@ memory_serie_set_upper_and_lower_borders_from_data (Serie *serie)
 {
   short int num_bytes = memory_serie_get_memory_space(serie);
 
-  unsigned int i32_memory_size = serie->matrix.x * serie->matrix.y * serie->matrix.z * serie->num_time_series;
+  unsigned int i32_memory_size = serie->matrix.i16_x * serie->matrix.i16_y * serie->matrix.i16_z * serie->num_time_series;
   unsigned int i32_blobCnt;
 
   int i32_Value = 0, i32_minimum, i32_maximum;
@@ -274,7 +274,7 @@ memory_serie_create_mask_from_serie (Serie *serie)
   mask->num_time_series = serie->num_time_series;
 
   double data_size =
-    mask->matrix.x * mask->matrix.y * mask->matrix.z *
+    mask->matrix.i16_x * mask->matrix.i16_y * mask->matrix.i16_z *
     memory_serie_get_memory_space (mask) * mask->num_time_series;
 
   debug_extra ("About to allocate: ~ %.2f megabytes.", data_size / 1000000.0);
@@ -302,57 +302,58 @@ memory_serie_create_mask_from_serie (Serie *serie)
   mask->ps_QuaternationOffset->K = serie->ps_QuaternationOffset->K;
   mask->ps_QuaternationOffset->W = serie->ps_QuaternationOffset->W;
 
-  mask->t_ScannerSpaceIJKtoXYZ=tda_memory_quaternion_to_matrix(mask->ps_Quaternion, mask->ps_QuaternationOffset, &mask->pixel_dimension, mask->d_Qfac);
-  mask->t_ScannerSpaceXYZtoIJK=tda_memory_quaternion_inverse_matrix(&mask->t_ScannerSpaceIJKtoXYZ);
+  mask->t_ScannerSpaceIJKtoXYZ = serie->t_ScannerSpaceIJKtoXYZ;
+  mask->t_ScannerSpaceXYZtoIJK = serie->t_ScannerSpaceXYZtoIJK;
 
   mask->i16_StandardSpaceCode = serie->i16_StandardSpaceCode;
   mask->t_StandardSpaceIJKtoXYZ = serie->t_StandardSpaceIJKtoXYZ;
   mask->t_StandardSpaceXYZtoIJK = serie->t_StandardSpaceXYZtoIJK;
 
-
-
   mask->i32_MinimumValue = 0;
   mask->i32_MaximumValue = 255;
   mask->u8_AxisUnits = serie->u8_AxisUnits;
 
-  if (serie->i16_StandardSpaceCode > 0)
+  if((mask->i16_StandardSpaceCode == NIFTI_XFORM_UNKNOWN) &&
+         (mask->i16_QuaternionCode == NIFTI_XFORM_UNKNOWN))
   {
-    mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK;
-    mask->pt_InverseMatrix = &mask->t_StandardSpaceIJKtoXYZ;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0]=1;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3]=0;
 
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1]=1;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3]=0;
+
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2]=1;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3]=0;
+
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[3][0]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[3][1]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[3][2]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[3][3]=1;
+
+    mask->t_StandardSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&mask->t_StandardSpaceIJKtoXYZ);
+
+    mask->pt_RotationMatrix = &mask->t_StandardSpaceIJKtoXYZ;
+    mask->pt_InverseMatrix = &mask->t_StandardSpaceXYZtoIJK;
   }
-  else
+  else if((mask->i16_StandardSpaceCode == NIFTI_XFORM_ALIGNED_ANAT) ||
+          (mask->i16_StandardSpaceCode == NIFTI_XFORM_TALAIRACH) ||
+          (mask->i16_StandardSpaceCode == NIFTI_XFORM_MNI_152))
   {
-    v_memory_io_handleSpace (mask);
-    mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK;
-    mask->pt_InverseMatrix = &mask->t_ScannerSpaceIJKtoXYZ;
+    mask->t_StandardSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&mask->t_StandardSpaceIJKtoXYZ);
+    mask->pt_RotationMatrix = &mask->t_StandardSpaceIJKtoXYZ;
+    mask->pt_InverseMatrix = &mask->t_StandardSpaceXYZtoIJK;
   }
-
-
-
-  if (mask->i16_StandardSpaceCode > 0)
+  else if(mask->i16_QuaternionCode == NIFTI_XFORM_SCANNER_ANAT)
   {
-    switch(mask->i16_StandardSpaceCode)
-    {
-      case NIFTI_XFORM_UNKNOWN      : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
-      case NIFTI_XFORM_SCANNER_ANAT : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
-      case NIFTI_XFORM_ALIGNED_ANAT : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
-      case NIFTI_XFORM_TALAIRACH    : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
-      case NIFTI_XFORM_MNI_152      : mask->pt_RotationMatrix = &mask->t_StandardSpaceXYZtoIJK; break;
-      default                       : mask->pt_RotationMatrix = NULL; break;
-    }
-  }
-  else
-  {
-    switch(mask->i16_QuaternionCode)
-    {
-      case NIFTI_XFORM_UNKNOWN      : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
-      case NIFTI_XFORM_SCANNER_ANAT : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
-      case NIFTI_XFORM_ALIGNED_ANAT : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
-      case NIFTI_XFORM_TALAIRACH    : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
-      case NIFTI_XFORM_MNI_152      : mask->pt_RotationMatrix = &mask->t_ScannerSpaceXYZtoIJK; break;
-      default                       : mask->pt_RotationMatrix = NULL; break;
-    }
+    //v_memory_io_handleSpace (mask);
+    mask->pt_RotationMatrix = &mask->t_ScannerSpaceIJKtoXYZ;
+    mask->pt_InverseMatrix = &mask->t_ScannerSpaceXYZtoIJK;
   }
 
 
@@ -402,15 +403,21 @@ Vector3D
 memory_serie_GetPivotpoint(Serie *serie)
 {
   Vector3D ts_PivotPoint;
+  Vector3D ts_TmpBlobVector;
 
   ts_PivotPoint.x = 0;
   ts_PivotPoint.y = 0;
   ts_PivotPoint.z = 0;
   if (serie != NULL)
   {
-    ts_PivotPoint.x = serie->matrix.x/2;
-    ts_PivotPoint.y = serie->matrix.y/2;
-    ts_PivotPoint.z = serie->matrix.z/2;
+    ts_TmpBlobVector.x=0;
+    ts_TmpBlobVector.y=0;
+    ts_TmpBlobVector.z=0;
+    ts_TmpBlobVector.x = (float)((serie->matrix.i16_x-1)/2);
+    ts_TmpBlobVector.y = (float)((serie->matrix.i16_y-1)/2);
+    ts_TmpBlobVector.z = (float)((serie->matrix.i16_z-1)/2);
+
+    ts_PivotPoint=ts_memory_matrix_multiply4x4(serie->pt_RotationMatrix, &ts_TmpBlobVector);
   }
 
   return ts_PivotPoint;

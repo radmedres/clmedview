@@ -55,6 +55,20 @@ typedef struct
 typedef Coordinate3D Vector3D;
 
 /**
+ * In the program there's a common need for storing x/y/z as short int data.
+ * This struct provides just that.
+ */
+typedef struct
+{
+  short int i16_x;
+  short int i16_y;
+  short int i16_z;
+} ts_Coordinate3DInt;
+
+typedef ts_Coordinate3DInt ts_Vector3DInt;
+
+
+/**
  * In the program there's a common need for storing width/height data.
  * This struct provides just that.
  */

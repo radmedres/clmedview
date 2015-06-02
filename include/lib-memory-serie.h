@@ -104,7 +104,7 @@ typedef struct
   /**
    * The 3D size matrix of the Serie volume.
    */
-  Coordinate3D matrix;
+  ts_Coordinate3DInt matrix;
 
   /**
    * The pixel dimension matrix of the Serie.
@@ -170,11 +170,6 @@ typedef struct
   */
   double d_Qfac;
 
-  /**
-  * A value which indicates the stride in a positive direction according to
-  * the right handed coordinate system
-  */
-  Vector3D ts_Stride;
 
   /**
   * Quaternion code code which defined the type of space
