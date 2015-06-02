@@ -704,8 +704,6 @@ gui_mainwindow_file_load (void* data)
 
     free (window_title);
 
-
-
     pt_Serie=pt_memory_io_load_file(&config->active_study,filename);
 
     if (pt_Serie != NULL)
@@ -730,6 +728,10 @@ gui_mainwindow_file_load (void* data)
 void
 gui_mainwindow_load_serie (Tree *pt_Serie)
 {
+  Serie *ps_Serie ;
+  unsigned long long ull_groupID;
+  Tree *p_Iter=NULL;
+
   if (pt_Serie == NULL) return;
   if (pt_Serie->type != TREE_TYPE_SERIE) return;
 
@@ -750,6 +752,29 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     assert (pll_MaskSerie->data != NULL);
 
     ts_ActiveMask = pll_MaskSerie->data;
+  }
+
+  if (ts_ActiveMask->group_id != config->active_layer->group_id)
+  {
+    // search for masks in serie tree
+    ps_Serie = pt_Serie->data;
+    ull_groupID = ps_Serie->group_id;
+
+    Tree *p_Iter=tree_nth(pt_Serie,1);
+    while (p_Iter != NULL)
+    {
+      if (p_Iter->type == TREE_TYPE_SERIE_MASK)
+      {
+        ps_Serie = p_Iter->data;
+        if (ps_Serie->group_id == ull_groupID)
+        {
+          ts_ActiveMask = ps_Serie;
+          break;
+        }
+      }
+      p_Iter=tree_next(p_Iter);
+    }
+
   }
 
   Tree *root_tree = tree_nth (CONFIGURATION_MEMORY_TREE (config), 1);
