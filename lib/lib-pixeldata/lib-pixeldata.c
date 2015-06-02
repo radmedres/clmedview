@@ -346,7 +346,7 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
   }
 
   // Above maximum value.
-  for (counter = maximumWWWL; counter < range; counter++)
+  for (counter = maximumWWWL; counter <= range; counter++)
   {
     display_lookup_table[counter] = color_lookup_table[array_items - 1];
   }
