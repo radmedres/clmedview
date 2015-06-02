@@ -148,14 +148,14 @@ void gui_mainwindow_sidebar_destroy ();
 
 // Layout manager functions
 GtkWidget* gui_mainwindow_layer_manager_new ();
-void gui_mainwindow_layer_manager_refresh (Tree *pll_Serie);
+void gui_mainwindow_layer_manager_refresh (Tree *pt_Serie);
 GtkWidget* gui_mainwindow_layer_manager_row_label_new (const char *name,
                                                        gboolean (*fp_AddCallback)(GtkWidget *, void *),
                                                        gboolean (*fp_LoadCallback)(GtkWidget *, void *));
 
 // Layout properties manager functions
 GtkWidget* gui_mainwindow_properties_manager_new ();
-void gui_mainwindow_properties_manager_refresh (Tree *pll_Serie);
+void gui_mainwindow_properties_manager_refresh (Tree *pt_Serie);
 
 // Other
 GtkWidget* gui_mainwindow_toolbar_new ();
@@ -686,11 +686,8 @@ gui_mainwindow_file_load (void* data)
 {
   debug_functions ();
 
-  Tree *pt_Study=NULL;
   Tree *pt_Serie=NULL;
-
   Serie *ps_serie = NULL;
-
   char* filename = NULL;
 
   // The filename can be passed by 'data'. Otherwise we need to show a
@@ -707,58 +704,84 @@ gui_mainwindow_file_load (void* data)
 
     free (window_title);
 
+    pt_Serie=pt_memory_io_load_file(&config->active_study,filename);
 
-    pt_Study = CONFIGURATION_ACTIVE_STUDY(config);
-    pt_Serie=pt_memory_io_load_file(&pt_Study,filename);
-
-    // initialize the configuration struct.
-    if ( config->memory_tree == NULL)
+    if (pt_Serie != NULL)
     {
-      config->memory_tree = tree_parent(pt_Study);
+      ps_serie = pt_Serie->data;
+      ps_serie->e_SerieType=SERIE_ORIGINAL;
+
+      gui_mainwindow_load_serie(pt_Serie);
+
+      gtk_widget_set_sensitive (btn_file_save, TRUE);
+      gtk_widget_set_sensitive (btn_reset_viewport, TRUE);
+      gtk_widget_set_sensitive (views_combo, TRUE);
+      gtk_widget_set_sensitive (hbox_mainmenu, TRUE);
+
+      gui_mainwindow_views_activate (views_combo, (void *)te_DisplayType);
+      gtk_tree_view_expand_all(GTK_TREE_VIEW(treeview));
     }
-
-    config->active_study = pt_Study;
-    config->active_serie = pt_Serie;
-
-    ps_serie = pt_Serie->data;
-    ps_serie->e_SerieType=SERIE_ORIGINAL;
-
-    gui_mainwindow_load_serie(pt_Serie);
-
-    gtk_widget_set_sensitive (btn_file_save, TRUE);
-    gtk_widget_set_sensitive (btn_reset_viewport, TRUE);
-    gtk_widget_set_sensitive (views_combo, TRUE);
-    gtk_widget_set_sensitive (hbox_mainmenu, TRUE);
-
-    gui_mainwindow_views_activate (views_combo, (void *)te_DisplayType);
-    gtk_tree_view_expand_all(GTK_TREE_VIEW(treeview));
   }
 }
 
 
 void
-gui_mainwindow_load_serie (Tree *pll_Serie)
+gui_mainwindow_load_serie (Tree *pt_Serie)
 {
-  if (pll_Serie == NULL) return;
-  if (pll_Serie->type != TREE_TYPE_SERIE) return;
+  Serie *ps_Serie ;
+  unsigned long long ull_groupID;
+  Tree *p_Iter=NULL;
 
-  CONFIGURATION_ACTIVE_SERIE(config) = pll_Serie;
-  CONFIGURATION_ACTIVE_LAYER (config) = pll_Serie->data;
+  if (pt_Serie == NULL) return;
+  if (pt_Serie->type != TREE_TYPE_SERIE) return;
 
-  if (!memory_tree_serie_has_mask (pll_Serie))
+  config->active_serie = pt_Serie;
+  config->active_layer = pt_Serie->data;
+  config->active_study = tree_parent(pt_Serie);
+
+  // initialize the configuration struct.
+  if ( config->memory_tree == NULL)
   {
-    Tree *pll_MaskSerie = memory_tree_add_mask_for_serie (pll_Serie);
+    config->memory_tree = tree_parent(config->active_study);
+  }
+
+  if (!memory_tree_serie_has_mask (pt_Serie))
+  {
+    Tree *pll_MaskSerie = memory_tree_add_mask_for_serie (pt_Serie);
     assert (pll_MaskSerie != NULL);
     assert (pll_MaskSerie->data != NULL);
 
     ts_ActiveMask = pll_MaskSerie->data;
   }
 
+  if (ts_ActiveMask->group_id != config->active_layer->group_id)
+  {
+    // search for masks in serie tree
+    ps_Serie = pt_Serie->data;
+    ull_groupID = ps_Serie->group_id;
+
+    Tree *p_Iter=tree_nth(pt_Serie,1);
+    while (p_Iter != NULL)
+    {
+      if (p_Iter->type == TREE_TYPE_SERIE_MASK)
+      {
+        ps_Serie = p_Iter->data;
+        if (ps_Serie->group_id == ull_groupID)
+        {
+          ts_ActiveMask = ps_Serie;
+          break;
+        }
+      }
+      p_Iter=tree_next(p_Iter);
+    }
+
+  }
+
   Tree *root_tree = tree_nth (CONFIGURATION_MEMORY_TREE (config), 1);
   gui_mainwindow_sidebar_populate (root_tree);
   gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE(config));
 
-  Serie *serie = pll_Serie->data;
+  Serie *serie = pt_Serie->data;
   if (serie == NULL || ts_ActiveMask == NULL) return;
 
   gtk_range_set_range (GTK_RANGE (timeline), 1, serie->num_time_series);
@@ -1040,20 +1063,20 @@ gui_mainwindow_file_export ()
   //char* filename = gui_mainwindow_file_dialog (window, GTK_FILE_CHOOSER_ACTION_SAVE);
   //if (filename == NULL) return FALSE;
 
-  Tree *pll_Series = tree_child (CONFIGURATION_ACTIVE_STUDY (config));
-  while (pll_Series != NULL)
+  Tree *pt_Series = tree_child (CONFIGURATION_ACTIVE_STUDY (config));
+  while (pt_Series != NULL)
   {
-    Serie *serie = pll_Series->data;
+    Serie *serie = pt_Series->data;
 
     // Filter out the series that shouldn't be exported.
-    if (serie == NULL || pll_Series->type != TREE_TYPE_SERIE_MASK)
+    if (serie == NULL || pt_Series->type != TREE_TYPE_SERIE_MASK)
     {
-      pll_Series = tree_next (pll_Series);
+      pt_Series = tree_next (pt_Series);
       continue;
     }
 
     memory_io_save_file (serie, serie->pc_filename);
-    pll_Series = tree_next (pll_Series);
+    pt_Series = tree_next (pt_Series);
   }
 
   gtk_label_set_text (GTK_LABEL (lbl_info), "The files have been saved.");
@@ -1801,7 +1824,6 @@ gboolean
 gui_mainwindow_overlay_add (UNUSED GtkWidget *widget, void *data)
 {
   char* pc_path = NULL;
-  Tree *pt_Patient = NULL;
   Tree *pt_Study = NULL;
   Tree *pt_Serie = NULL;
 
@@ -1818,16 +1840,14 @@ gui_mainwindow_overlay_add (UNUSED GtkWidget *widget, void *data)
   {
     pt_Serie = CONFIGURATION_ACTIVE_SERIE(config);
     pt_Study = CONFIGURATION_ACTIVE_STUDY(config);
-//    pt_Patient = pll_Study->parent;
 
     ps_Original = pt_Serie->data;
-//    const char *filename = basename (pc_path);
 
     pt_Serie=pt_memory_io_load_file(&pt_Study,pc_path);
 
-    if (pt_Serie == NULL)
+    if (pt_Serie != NULL)
     {
-      return 0;
+      return FALSE;
     }
 
     pt_Serie->type=TREE_TYPE_SERIE_OVERLAY;
@@ -1844,7 +1864,6 @@ gui_mainwindow_overlay_add (UNUSED GtkWidget *widget, void *data)
     }
 
     gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE (config));
-
   }
 
   return FALSE;
@@ -1856,24 +1875,24 @@ gui_mainwindow_mask_remove (UNUSED GtkWidget *widget, void *data)
 {
   debug_functions ();
 
-  Tree *pll_Serie = data;
-  assert (pll_Serie != NULL);
+  Tree *pt_Serie = data;
+  assert (pt_Serie != NULL);
 
-  Serie *serie = pll_Serie->data;
+  Serie *serie = pt_Serie->data;
   assert (serie != NULL);
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
   {
-    viewer_remove_mask_serie (viewers->data, pll_Serie->data);
+    viewer_remove_mask_serie (viewers->data, pt_Serie->data);
     viewers = list_next (viewers);
   }
 
   memory_serie_destroy (serie);
   serie = NULL;
 
-  pll_Serie = tree_remove (pll_Serie);
-  assert (pll_Serie != NULL);
+  pt_Serie = tree_remove (pt_Serie);
+  assert (pt_Serie != NULL);
 
   gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE(config));
 }
@@ -1883,24 +1902,24 @@ gui_mainwindow_overlay_remove (UNUSED GtkWidget *widget, void *data)
 {
   debug_functions ();
 
-  Tree *pll_Serie = data;
-  assert (pll_Serie != NULL);
+  Tree *pt_Serie = data;
+  assert (pt_Serie != NULL);
 
-  Serie *serie = pll_Serie->data;
+  Serie *serie = pt_Serie->data;
   assert (serie != NULL);
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
   {
-    viewer_remove_overlay_serie (viewers->data, pll_Serie->data);
+    viewer_remove_overlay_serie (viewers->data, pt_Serie->data);
     viewers = list_next (viewers);
   }
 
   memory_serie_destroy (serie);
   serie = NULL;
 
-  pll_Serie = tree_remove (pll_Serie);
-  assert (pll_Serie != NULL);
+  pt_Serie = tree_remove (pt_Serie);
+  assert (pt_Serie != NULL);
 
   gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE (config));
 }
@@ -1911,14 +1930,14 @@ gui_mainwindow_layer_manager_row_activated (GtkWidget *widget, void *data)
 {
   debug_functions ();
 
-  Tree *pll_Series = data;
-  if (pll_Series == NULL || pll_Series->type != TREE_TYPE_SERIE_MASK)
+  Tree *pt_Series = data;
+  if (pt_Series == NULL || pt_Series->type != TREE_TYPE_SERIE_MASK)
   {
-    debug_warning ("Bailing early.. pll_Series = %p", pll_Series);
+    debug_warning ("Bailing early.. pt_Series = %p", pt_Series);
     return FALSE;
   }
 
-  Serie *serie = pll_Series->data;
+  Serie *serie = pt_Series->data;
   if (serie == NULL)
   {
     debug_warning ("Bailing early.. The serie is empty.", NULL);
@@ -2055,13 +2074,13 @@ gui_mainwindow_set_active_layer (UNUSED GtkListBox *box, GtkListBoxRow *row, UNU
   const char *name = gtk_label_get_text (GTK_LABEL (lbl_name));
 
   // Get a pointer to the serie and set it as global active layer.
-  Tree *pll_Series = tree_nth (tree_child (CONFIGURATION_ACTIVE_STUDY (config)), 1);
-  while (pll_Series != NULL)
+  Tree *pt_Series = tree_nth (tree_child (CONFIGURATION_ACTIVE_STUDY (config)), 1);
+  while (pt_Series != NULL)
   {
-    Serie *serie = pll_Series->data;
+    Serie *serie = pt_Series->data;
     if (serie == NULL)
     {
-      pll_Series = tree_next (pll_Series);
+      pt_Series = tree_next (pt_Series);
       continue;
     }
 
@@ -2079,11 +2098,11 @@ gui_mainwindow_set_active_layer (UNUSED GtkListBox *box, GtkListBoxRow *row, UNU
       }
 
       // Update the properties box.
-      gui_mainwindow_properties_manager_refresh (pll_Series);
+      gui_mainwindow_properties_manager_refresh (pt_Series);
       break;
     }
 
-    pll_Series = tree_next (pll_Series);
+    pt_Series = tree_next (pt_Series);
   }
 }
 
@@ -2187,15 +2206,15 @@ gui_mainwindow_layer_manager_row_header_new ()
 
 
 void
-gui_mainwindow_layer_manager_refresh (Tree *pll_Series)
+gui_mainwindow_layer_manager_refresh (Tree *pt_Series)
 {
   debug_functions ();
 
-  assert (pll_Series != NULL);
+  assert (pt_Series != NULL);
 
   gui_mainwindow_layer_manager_clear ();
 
-  Serie *ps_Serie = pll_Series->data;
+  Serie *ps_Serie = pt_Series->data;
 
   Tree *pll_Masks=NULL;
   Tree *pll_Overlays=NULL;
@@ -2217,7 +2236,7 @@ gui_mainwindow_layer_manager_refresh (Tree *pll_Series)
   /*--------------------------------------------------------------------------.
    | ADD MASK SERIES                                                          |
    '--------------------------------------------------------------------------*/
-  pll_Masks=pll_Series;
+  pll_Masks=pt_Series;
 
   while (pll_Masks != NULL)
   {
@@ -2269,7 +2288,7 @@ gui_mainwindow_layer_manager_refresh (Tree *pll_Series)
   /*--------------------------------------------------------------------------.
    | ADD OVERLAY SERIES                                                       |
    '--------------------------------------------------------------------------*/
-  pll_Overlays=pll_Series;
+  pll_Overlays=pt_Series;
 
   while (pll_Overlays != NULL)
   {
@@ -2435,7 +2454,7 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
 
   // Populate the store.
   Tree *pll_Studies;
-  Tree *pll_Series;
+  Tree *pt_Series;
 
   GtkTreeIter PatientIterator;
   GtkTreeIter StudyIterator;
@@ -2491,13 +2510,13 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
       /*------------------------------------------------------------------------.
       | SERIES                                                                  |
       '------------------------------------------------------------------------*/
-      pll_Series = tree_child(pll_Studies);
-      while (pll_Series != NULL)
+      pt_Series = tree_child(pll_Studies);
+      while (pt_Series != NULL)
       {
-        Serie *serie = pll_Series->data;
+        Serie *serie = pt_Series->data;
         if (serie == NULL)
         {
-          pll_Series = tree_next (pll_Series);
+          pt_Series = tree_next (pt_Series);
           continue;
         }
 
@@ -2509,7 +2528,7 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
           gtk_tree_store_set (sidebar_TreeStore, &SerieIterator, SIDEBAR_NAME, serie->name, SIDEBAR_ID, serie->id, -1);
         }
 
-        pll_Series = tree_next(pll_Series);
+        pt_Series = tree_next(pt_Series);
       }
       pll_Studies = tree_next (pll_Studies);
     }
@@ -2524,7 +2543,7 @@ gui_mainwindow_sidebar_clicked (GtkWidget *widget)
   GtkTreePath *path = NULL;
 
   unsigned long long serie_id = 0;
-  Tree *pll_SerieTree = NULL;
+  Tree *pt_SerieTree = NULL;
 
   gtk_tree_view_get_cursor (GTK_TREE_VIEW (widget), &path, NULL);
   if (path != NULL)
@@ -2533,16 +2552,16 @@ gui_mainwindow_sidebar_clicked (GtkWidget *widget)
     if (gtk_tree_model_get_iter (GTK_TREE_MODEL (sidebar_TreeStore), &iter, path))
     {
       gtk_tree_model_get (GTK_TREE_MODEL (sidebar_TreeStore), &iter, SIDEBAR_ID, &serie_id, -1);
-      pll_SerieTree=memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), serie_id);
+      pt_SerieTree=memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), serie_id);
     }
     gtk_tree_path_free (path);
   }
 
-  if ((pll_SerieTree != NULL) &&
-      (pll_SerieTree->type == TREE_TYPE_SERIE) &&
-      (pll_SerieTree != CONFIGURATION_ACTIVE_SERIE(config)))
+  if ((pt_SerieTree != NULL) &&
+      (pt_SerieTree->type == TREE_TYPE_SERIE) &&
+      (pt_SerieTree != CONFIGURATION_ACTIVE_SERIE(config)))
   {
-    gui_mainwindow_load_serie (pll_SerieTree);
+    gui_mainwindow_load_serie (pt_SerieTree);
     gtk_tree_view_expand_all(GTK_TREE_VIEW (widget));
   }
 }
