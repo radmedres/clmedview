@@ -91,7 +91,7 @@ void v_PixelData_SobelEdgeDetection (PixelData *ps_Original, PixelData *ps_Mask,
 
     case MEMORY_TYPE_INT16   : v_PixelData_handleINT16(ps_Original, ps_Mask, ps_Selection, ts_Point, ui32_DrawValue, te_Action); break;
     case MEMORY_TYPE_INT32   : break;
-    case MEMORY_TYPE_UINT16  : break;
+    case MEMORY_TYPE_UINT16  : v_PixelData_handleUINT16(ps_Original, ps_Mask, ps_Selection, ts_Point, ui32_DrawValue, te_Action); break;
     case MEMORY_TYPE_UINT32  : break;
     case MEMORY_TYPE_FLOAT32 : v_PixelData_handleFLOAT32(ps_Original, ps_Mask, ps_Selection, ts_Point, ui32_DrawValue, te_Action); break;
     case MEMORY_TYPE_FLOAT64 : break;
@@ -111,6 +111,9 @@ CLM_Plugin_Brush_Apply (PixelData *ps_Original, PixelData *ps_Mask, PixelData *p
   // Apply the sobel edge detection algorithm.
   v_PixelData_SobelEdgeDetection (ps_Original, ps_Mask, ps_Selection, ts_Point, ui32_DrawValue, te_Action);
 }
+
+
+
 
 
 void
@@ -317,6 +320,212 @@ v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
     }
   }
 }
+
+void
+v_PixelData_handleUINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
+                         Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action)
+{
+  Slice *slice = PIXELDATA_ACTIVE_SLICE (ps_Original);
+  assert (slice != NULL);
+
+  // Boundary check for a 10x10 local image.
+  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
+      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
+  {
+    return;
+  }
+
+  int X_Cnt, Y_Cnt;
+  Coordinate ts_BlobCount;
+
+  unsigned int u32_tempValue;
+
+  /* DECLARATIONS FOR SHORT UNSIGNED INT16 */
+  unsigned short int u16_tempImage[10][10];
+  unsigned short int u16_tempImageSmooth[10][10];
+
+  unsigned short int u16_GradientX[10][10];
+  unsigned short int u16_GradientY[10][10];
+  unsigned short int u16_Gradient[10][10];
+
+  unsigned short int u16_MaxValue = 0;
+
+  unsigned int u32_AvarageValue = 0;
+
+  // Initialize the data to zero.
+  memset (&u16_tempImage,       0, 100 * sizeof (unsigned char));
+  memset (&u16_tempImageSmooth, 0, 100 * sizeof (unsigned char));
+  memset (&u16_GradientX,       0, 100 * sizeof (unsigned char));
+  memset (&u16_GradientY,       0, 100 * sizeof (unsigned char));
+  memset (&u16_Gradient,        0, 100 * sizeof (unsigned char));
+
+  /*--------------------------------------------------------------------------.
+   | CREATE LOCAL 10x10 IMAGE                                                 |
+   '--------------------------------------------------------------------------*/
+  u32_AvarageValue = 0;
+
+  for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
+  {
+    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+
+    for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
+    {
+      ts_BlobCount.x = ts_Point.x + X_Cnt;
+
+      CLM_Plugin_GetPixelAtPoint (ps_Original, ts_BlobCount, &(u16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
+      u32_AvarageValue += u16_tempImage[Y_Cnt + 5][X_Cnt + 5];
+    }
+  }
+
+  u32_AvarageValue = u32_AvarageValue / 100;
+
+  /*--------------------------------------------------------------------------.
+   | SMOOTH WITH GAUSIAN FILTER                                               |
+   | ~~~~~~~~~~~~~~~~~~~~~~~                                                  |
+   | | 2 | 4 |  5 |  4 | 2 |                                                  |
+   | |~~~+~~~+~~~~+~~~~+~~~|                                                  |
+   | | 4 | 9 | 12 |  9 | 4 |                                                  |
+   | |~~~+~~~+~~~~+~~~~+~~~|                                                  |
+   | | 5 |12 | 15 | 12 | 5 | * 1/159 * IMAGE                                  |
+   | |~~~+~~~+~~~~+~~~~+~~~|                                                  |
+   | | 4 | 9 | 12 |  9 | 4 |                                                  |
+   | |~~~+~~~+~~~~+~~~~+~~~|                                                  |
+   | | 2 | 4 |  5 |  4 | 2 |                                                  |
+   | ~~~~~~~~~~~~~~~~~~~~~~~                                                  |
+   '--------------------------------------------------------------------------*/
+
+  for (Y_Cnt = 2; Y_Cnt < 8; Y_Cnt++)
+  {
+    for (X_Cnt = 2; X_Cnt < 8; X_Cnt++)
+    {
+      u32_tempValue =
+        // first row kernel
+        (unsigned int)(u16_tempImage[Y_Cnt-2][X_Cnt-2]) *  2 +
+        (unsigned int)(u16_tempImage[Y_Cnt-2][X_Cnt-1]) *  4 +
+        (unsigned int)(u16_tempImage[Y_Cnt-2][X_Cnt  ]) *  5 +
+        (unsigned int)(u16_tempImage[Y_Cnt-2][X_Cnt+2]) *  2 +
+        (unsigned int)(u16_tempImage[Y_Cnt-2][X_Cnt+1]) *  4 +
+
+        // second row kernel
+        (unsigned int)(u16_tempImage[Y_Cnt-1][X_Cnt-2]) *  4 +
+        (unsigned int)(u16_tempImage[Y_Cnt-1][X_Cnt-1]) *  9 +
+        (unsigned int)(u16_tempImage[Y_Cnt-1][X_Cnt  ]) * 12 +
+        (unsigned int)(u16_tempImage[Y_Cnt-1][X_Cnt+1]) *  9 +
+        (unsigned int)(u16_tempImage[Y_Cnt-1][X_Cnt+2]) *  4 +
+
+        // third row kernel
+        (unsigned int)(u16_tempImage[Y_Cnt  ][X_Cnt-2]) *  5 +
+        (unsigned int)(u16_tempImage[Y_Cnt  ][X_Cnt-1]) * 12 +
+        (unsigned int)(u16_tempImage[Y_Cnt  ][X_Cnt  ]) * 15 +
+        (unsigned int)(u16_tempImage[Y_Cnt  ][X_Cnt+1]) * 12 +
+        (unsigned int)(u16_tempImage[Y_Cnt  ][X_Cnt+2]) *  5 +
+
+        // fourth row kernel
+        (unsigned int)(u16_tempImage[Y_Cnt+1][X_Cnt-2]) *  4 +
+        (unsigned int)(u16_tempImage[Y_Cnt+1][X_Cnt-1]) *  9 +
+        (unsigned int)(u16_tempImage[Y_Cnt+1][X_Cnt  ]) * 12 +
+        (unsigned int)(u16_tempImage[Y_Cnt+1][X_Cnt+1]) *  9 +
+        (unsigned int)(u16_tempImage[Y_Cnt+1][X_Cnt+2]) *  4 +
+
+        // fifth row kernel
+        (unsigned int)(u16_tempImage[Y_Cnt+2][X_Cnt-2]) *  2 +
+        (unsigned int)(u16_tempImage[Y_Cnt+2][X_Cnt-1]) *  4 +
+        (unsigned int)(u16_tempImage[Y_Cnt+2][X_Cnt  ]) *  5 +
+        (unsigned int)(u16_tempImage[Y_Cnt+2][X_Cnt+1]) *  4 +
+        (unsigned int)(u16_tempImage[Y_Cnt+2][X_Cnt+2]) *  2;
+
+        u16_tempImageSmooth[Y_Cnt][X_Cnt] = (short unsigned int)(u32_tempValue / 159);
+
+    }
+  }
+
+
+  /*
+
+    ~~~~~~~~~~~~~
+    |-1 | 0 | 1 |
+    |~~~+~~~+~~~|
+    |-2 | 0 | 2 |
+    |~~~+~~~+~~~|
+    |-1 | 0 | 1 |
+    ~~~~~~~~~~~~~
+    X i16_Gradient kernel
+
+    ~~~~~~~~~~~~~
+    |-1 |-2 |-1 |
+    |~~~+~~~+~~~|
+    | 0 | 0 | 0 |
+    |~~~+~~~+~~~|
+    | 1 | 2 | 1 |
+    ~~~~~~~~~~~~~
+
+*/
+
+
+
+  for (Y_Cnt = 1; Y_Cnt < 9; Y_Cnt++)
+  {
+    for (X_Cnt = 1; X_Cnt < 9; X_Cnt++)
+    {
+      u16_GradientX[Y_Cnt][X_Cnt] =
+        (u16_tempImageSmooth[Y_Cnt - 1][X_Cnt + 1] + 2 * u16_tempImageSmooth[Y_Cnt][X_Cnt + 1] + u16_tempImageSmooth[Y_Cnt + 1][X_Cnt + 1]) -
+        (u16_tempImageSmooth[Y_Cnt - 1][X_Cnt + 1] + 2 * u16_tempImageSmooth[Y_Cnt][X_Cnt + 1] + u16_tempImageSmooth[Y_Cnt + 1][X_Cnt + 1]);
+
+      u16_GradientY[Y_Cnt][X_Cnt] =
+        (u16_tempImageSmooth[Y_Cnt - 1][X_Cnt - 1] + 2 * u16_tempImageSmooth[Y_Cnt - 1][X_Cnt] + u16_tempImageSmooth[Y_Cnt - 1][X_Cnt + 1]) -
+        (u16_tempImageSmooth[Y_Cnt + 1][X_Cnt - 1] + 2 * u16_tempImageSmooth[Y_Cnt + 1][X_Cnt] + u16_tempImageSmooth[Y_Cnt + 1][X_Cnt + 1]);
+
+      u16_Gradient[Y_Cnt][X_Cnt] = sqrt (u16_GradientX[Y_Cnt][X_Cnt] * u16_GradientX[Y_Cnt][X_Cnt] +
+                                     u16_GradientY[Y_Cnt][X_Cnt] * u16_GradientY[Y_Cnt][X_Cnt]);
+
+      if (u16_Gradient[Y_Cnt][X_Cnt] > u16_MaxValue)
+      {
+        u16_MaxValue = u16_Gradient[Y_Cnt][X_Cnt];
+      }
+    }
+  }
+
+  // When the maximum value is 0, don't continue.
+  // A minimum threshold could be set here.
+  if (u16_MaxValue == 0) return;
+
+  // NORMALIZE
+
+  for (Y_Cnt = 0; Y_Cnt < 10; Y_Cnt++)
+  {
+    for (X_Cnt = 0; X_Cnt < 10; X_Cnt++)
+    {
+      u16_Gradient[Y_Cnt][X_Cnt] = (u16_Gradient[Y_Cnt][X_Cnt] * 255) / u16_MaxValue;
+    }
+  }
+
+  for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
+  {
+    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+
+    for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
+    {
+      ts_BlobCount.x = ts_Point.x + X_Cnt;
+
+      if (u16_tempImage[Y_Cnt+5][X_Cnt+5] > u32_AvarageValue)
+      {
+        CLM_Plugin_DrawPixelAtPoint (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
+      }
+      /* DO NOT ERASE AUTOMATICALLY
+         --------------------------
+      else
+      {
+        short int *pi16_SelectionPosition = ((short int *)*ppv_SelectionDataCounter + ts_BlobCount.y + ts_BlobCount.x);
+        short int *pi16_ImagePosition = ((short int *)*ppv_ImageDataCounter + ts_BlobCount.y + ts_BlobCount.x);
+        *pi16_ImagePosition = 0 & *pi16_SelectionPosition;
+      }
+      */
+    }
+  }
+}
+
+
+
 
 void
 v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
