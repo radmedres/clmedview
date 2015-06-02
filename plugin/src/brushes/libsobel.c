@@ -79,8 +79,8 @@ void v_PixelData_SobelEdgeDetection (PixelData *ps_Original, PixelData *ps_Mask,
   assert (slice != NULL);
 
   // Boundary check for a 10x10 local image.
-  if ((ts_Point.x > (slice->matrix.x - 5)) || (ts_Point.x < 5)
-      || (ts_Point.y > (slice->matrix.y - 5)) || (ts_Point.y < 5))
+  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
+      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
   {
     return;
   }
@@ -121,8 +121,8 @@ v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
   assert (slice != NULL);
 
   // Boundary check for a 10x10 local image.
-  if ((ts_Point.x > (slice->matrix.x - 5)) || (ts_Point.x < 5)
-      || (ts_Point.y > (slice->matrix.y - 5)) || (ts_Point.y < 5))
+  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
+      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
   {
     return;
   }
@@ -326,8 +326,8 @@ v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
   assert (slice != NULL);
 
   // Boundary check for a 10x10 local image.
-  if ((ts_Point.x > (slice->matrix.x - 5)) || (ts_Point.x < 5)
-      || (ts_Point.y > (slice->matrix.y - 5)) || (ts_Point.y < 5))
+  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
+      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
   {
     return;
   }
@@ -532,8 +532,8 @@ v_PixelData_handleFLOAT32 (PixelData *ps_Original, PixelData *ps_Mask, PixelData
   assert (slice != NULL);
 
   // Boundary check for a 10x10 local image.
-  if ((ts_Point.x > (slice->matrix.x - 5)) || (ts_Point.x < 5)
-      || (ts_Point.y > (slice->matrix.y - 5)) || (ts_Point.y < 5))
+  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
+      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
   {
     return;
   }

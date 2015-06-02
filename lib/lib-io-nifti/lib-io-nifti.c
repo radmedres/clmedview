@@ -315,7 +315,7 @@ v_NIFTII_convert_data_big_to_little_endian (Serie *serie)
 {
   short int num_bytes = memory_serie_get_memory_space(serie);
 
-  unsigned int i32_memory_size = serie->matrix.x * serie->matrix.y * serie->matrix.z * serie->num_time_series;
+  unsigned int i32_memory_size = serie->matrix.i16_x * serie->matrix.i16_y * serie->matrix.i16_z * serie->num_time_series;
   unsigned int i32_blobCnt;
 
   void *pv_Data=serie->data;
@@ -554,7 +554,6 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
   short int i16_BytesToRead;
   short int i16_wasSwapped=0;
   int i32_PixelsInSlice, i32_MemoryPerSlice, i32_MemoryVolume;
-  Vector3D t_Maximum;
 
 
   nifti_1_header *ps_Header;
@@ -570,13 +569,16 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
     i16_wasSwapped=1;
   }
 
-  if (ps_Header->sizeof_hdr == MIN_HEADER_SIZE)
+  if ((ps_Header->sizeof_hdr == MIN_HEADER_SIZE) && (ps_Header->intent_code == NIFTI_INTENT_NONE))
   {
 //    serie->pv_Header = ps_Header;
     serie->e_SerieType = SERIE_ORIGINAL;
-    serie->matrix.x = ps_Header->dim[1];
-    serie->matrix.y = ps_Header->dim[2];
-    serie->matrix.z = ps_Header->dim[3];
+    serie->matrix.i16_x = ps_Header->dim[1];
+    serie->matrix.i16_y = ps_Header->dim[2];
+    serie->matrix.i16_z = ps_Header->dim[3];
+
+
+
 
     serie->num_time_series = ps_Header->dim[4];
 
@@ -629,23 +631,19 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
 
       serie->i16_StandardSpaceCode = ps_Header->sform_code;
 
-      t_Maximum.x = sqrt(ps_Header->srow_x[0] *ps_Header->srow_x[0] + ps_Header->srow_y[0]*ps_Header->srow_y[0] + ps_Header->srow_z[0]*ps_Header->srow_z[0]);
-      t_Maximum.y = sqrt(ps_Header->srow_x[1] *ps_Header->srow_x[1] + ps_Header->srow_y[1]*ps_Header->srow_y[1] + ps_Header->srow_z[1]*ps_Header->srow_z[1]);
-      t_Maximum.z = sqrt(ps_Header->srow_x[2] *ps_Header->srow_x[2] + ps_Header->srow_y[2]*ps_Header->srow_y[2] + ps_Header->srow_z[2]*ps_Header->srow_z[2]);
-
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0]=ps_Header->srow_x[0] / t_Maximum.x;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1]=ps_Header->srow_x[1] / t_Maximum.x;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2]=ps_Header->srow_x[2] / t_Maximum.x;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0]=ps_Header->srow_x[0];// / t_Maximum.x;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1]=ps_Header->srow_x[1];// / t_Maximum.x;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2]=ps_Header->srow_x[2];// / t_Maximum.x;
       serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3]=ps_Header->srow_x[3];
 
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0]=ps_Header->srow_y[0] / t_Maximum.y;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1]=ps_Header->srow_y[1] / t_Maximum.y;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2]=ps_Header->srow_y[2] / t_Maximum.y;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0]=ps_Header->srow_y[0];// / t_Maximum.y;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1]=ps_Header->srow_y[1];// / t_Maximum.y;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2]=ps_Header->srow_y[2];// / t_Maximum.y;
       serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3]=ps_Header->srow_y[3];
 
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0]=ps_Header->srow_z[0] / t_Maximum.z;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1]=ps_Header->srow_z[1] / t_Maximum.z;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2]=ps_Header->srow_z[2] / t_Maximum.z;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0]=ps_Header->srow_z[0];// / t_Maximum.z;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1]=ps_Header->srow_z[1];// / t_Maximum.z;
+      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2]=ps_Header->srow_z[2];// / t_Maximum.z;
       serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3]=ps_Header->srow_z[3];
 
       serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][0]=0;
@@ -653,26 +651,55 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
       serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][2]=0;
       serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][3]=1;
 
-      if (serie->i16_StandardSpaceCode > 0)
+      if((serie->i16_StandardSpaceCode == NIFTI_XFORM_UNKNOWN) &&
+         (serie->i16_QuaternionCode == NIFTI_XFORM_UNKNOWN))
+      {
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0]=1;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1]=0;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2]=0;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3]=0;
+
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0]=0;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1]=1;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2]=0;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3]=0;
+
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0]=0;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1]=0;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2]=1;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3]=0;
+
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][0]=0;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][1]=0;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][2]=0;
+        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][3]=1;
+
+        serie->t_StandardSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&serie->t_StandardSpaceIJKtoXYZ);
+
+        serie->pt_RotationMatrix = &serie->t_StandardSpaceIJKtoXYZ;
+        serie->pt_InverseMatrix = &serie->t_StandardSpaceXYZtoIJK;
+      }
+      else if((serie->i16_StandardSpaceCode == NIFTI_XFORM_ALIGNED_ANAT) ||
+              (serie->i16_StandardSpaceCode == NIFTI_XFORM_TALAIRACH) ||
+              (serie->i16_StandardSpaceCode == NIFTI_XFORM_MNI_152))
       {
         serie->t_StandardSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&serie->t_StandardSpaceIJKtoXYZ);
-        serie->pt_RotationMatrix = &serie->t_StandardSpaceXYZtoIJK;
-        serie->pt_InverseMatrix = &serie->t_StandardSpaceIJKtoXYZ;
-
+        serie->pt_RotationMatrix = &serie->t_StandardSpaceIJKtoXYZ;
+        serie->pt_InverseMatrix = &serie->t_StandardSpaceXYZtoIJK;
       }
-      else
+      else if(serie->i16_QuaternionCode == NIFTI_XFORM_SCANNER_ANAT)
       {
         v_memory_io_handleSpace (serie);
-        serie->pt_RotationMatrix = &serie->t_ScannerSpaceXYZtoIJK;
-        serie->pt_InverseMatrix = &serie->t_ScannerSpaceIJKtoXYZ;
+        serie->pt_RotationMatrix = &serie->t_ScannerSpaceIJKtoXYZ;
+        serie->pt_InverseMatrix = &serie->t_ScannerSpaceXYZtoIJK;
       }
     }
 
     i16_BytesToRead = i16_NIFTII_GetMemorySizePerElement (ps_Header->datatype);
 
-    i32_PixelsInSlice = serie->matrix.x * serie->matrix.y;
+    i32_PixelsInSlice = serie->matrix.i16_x * serie->matrix.i16_y;
     i32_MemoryPerSlice = i16_BytesToRead * i32_PixelsInSlice;
-    i32_MemoryVolume = i32_MemoryPerSlice * serie->matrix.z * serie->num_time_series;
+    i32_MemoryVolume = i32_MemoryPerSlice * serie->matrix.i16_z * serie->num_time_series;
 
 
     serie->data = calloc (1, i32_MemoryVolume);
@@ -684,7 +711,7 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
       if (pc_Image==NULL)
       {
         // Image and header file are the same;
-        i32_Offset=sizeof(nifti_1_header);
+        i32_Offset=352;
         b_NIFTII_ReadVolumeToMemory ((char *)pc_Filename, i32_Offset, i32_MemoryVolume, serie->data);
 
         if (i16_wasSwapped)
@@ -723,9 +750,9 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
   ps_Header->sizeof_hdr = MIN_HEADER_SIZE;
 
   ps_Header->dim[0] = (serie->num_time_series>1) ? 4 : 3;
-  ps_Header->dim[1] = serie->matrix.x;
-  ps_Header->dim[2] = serie->matrix.y;
-  ps_Header->dim[3] = serie->matrix.z;
+  ps_Header->dim[1] = serie->matrix.i16_x;
+  ps_Header->dim[2] = serie->matrix.i16_y;
+  ps_Header->dim[3] = serie->matrix.i16_z;
   ps_Header->dim[4] = serie->num_time_series;
 
   ps_Header->pixdim[1] = serie->pixel_dimension.x;
@@ -739,9 +766,9 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
   ps_Header->bitpix = i16_NIFTII_GetBitPix (serie->raw_data_type);
 
   i16_BytesToWrite = i16_NIFTII_GetMemorySizePerElement (serie->raw_data_type);
-  i32_PixelsInSlice = serie->matrix.x * serie->matrix.y;
+  i32_PixelsInSlice = serie->matrix.i16_x * serie->matrix.i16_y;
   i32_MemoryPerSlice = i16_BytesToWrite * i32_PixelsInSlice;
-  i32_MemoryVolume = i32_MemoryPerSlice * serie->matrix.z;
+  i32_MemoryVolume = i32_MemoryPerSlice * serie->matrix.i16_z;
   i32_MemoryInBlob = i32_MemoryVolume * serie->num_time_series;
 
   // If the File should be saved as two files

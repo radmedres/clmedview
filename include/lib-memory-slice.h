@@ -51,11 +51,14 @@ extern "C" {
  */
 typedef struct
 {
+  Vector3D ts_normalVector;
   Vector3D ts_perpendicularVector;
   Vector3D ts_crossproductVector;
 
-  int i32_StrideHeight;
-  int i32_StrideWidth;
+
+  short int i16_StrideHeight;
+  short int i16_StrideWidth;
+  short int i16_StrideDepth;
 
   short int i16_StartHeight;
   short int i16_StartWidth;
@@ -77,7 +80,7 @@ typedef struct
   /**
    * The size matrix of the Slice.
    */
-  Coordinate3D matrix;
+  ts_Coordinate3DInt matrix;
 
   /**
    * The point in time for time series.

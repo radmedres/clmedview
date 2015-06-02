@@ -67,7 +67,7 @@ CLM_Plugin_Brush_Apply (UNUSED PixelData *ps_Original, PixelData *ps_Mask, Pixel
   Slice *mask_slice = PIXELDATA_ACTIVE_SLICE (ps_Mask);
   assert (mask_slice != NULL);
 
-  if (ts_Point.x > mask_slice->matrix.x || ts_Point.y > mask_slice->matrix.y) return;
+  if (ts_Point.x > mask_slice->matrix.i16_x || ts_Point.y > mask_slice->matrix.i16_y) return;
 
   int i32_CntArray;
   int i32_CntKernel;
@@ -76,8 +76,8 @@ CLM_Plugin_Brush_Apply (UNUSED PixelData *ps_Original, PixelData *ps_Mask, Pixel
 
   int i32_lengthArrayToRead = 1;
 
-  Coordinate *p_ArrayToReadFrom = calloc (1, PIXELDATA_ACTIVE_SLICE (ps_Original)->matrix.x *
-                                             PIXELDATA_ACTIVE_SLICE (ps_Original)->matrix.y *
+  Coordinate *p_ArrayToReadFrom = calloc (1, PIXELDATA_ACTIVE_SLICE (ps_Original)->matrix.i16_x *
+                                             PIXELDATA_ACTIVE_SLICE (ps_Original)->matrix.i16_y *
                                              sizeof (Coordinate));
   Coordinate *p_PointInArray = NULL;
 
@@ -110,8 +110,8 @@ CLM_Plugin_Brush_Apply (UNUSED PixelData *ps_Original, PixelData *ps_Mask, Pixel
     {
       ts_PixelPoint = ps_Kernel[i32_CntKernel];
 
-      if ((ts_PixelPoint.x >= 0) && (ts_PixelPoint.x < PIXELDATA_ACTIVE_SLICE (ps_Mask)->matrix.x) &&
-          (ts_PixelPoint.y >= 0) && (ts_PixelPoint.y < PIXELDATA_ACTIVE_SLICE (ps_Mask)->matrix.y))
+      if ((ts_PixelPoint.x >= 0) && (ts_PixelPoint.x < PIXELDATA_ACTIVE_SLICE (ps_Mask)->matrix.i16_x) &&
+          (ts_PixelPoint.y >= 0) && (ts_PixelPoint.y < PIXELDATA_ACTIVE_SLICE (ps_Mask)->matrix.i16_y))
       {
         if (CLM_Plugin_GetPixelAtPoint (ps_Mask, ts_PixelPoint, &i16_Value) && i16_Value == 0)
         {

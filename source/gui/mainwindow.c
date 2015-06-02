@@ -566,8 +566,8 @@ gui_mainwindow_save_undo_step (UNUSED GtkWidget *widget, UNUSED void *data)
   assert (ts_ActiveMask != NULL);
 
   unsigned long ul64_SerieSize;
-  ul64_SerieSize = ts_ActiveMask->matrix.x * ts_ActiveMask->matrix.y *
-    ts_ActiveMask->matrix.z * memory_serie_get_memory_space (ts_ActiveMask);
+  ul64_SerieSize = ts_ActiveMask->matrix.i16_x * ts_ActiveMask->matrix.i16_y *
+    ts_ActiveMask->matrix.i16_z * memory_serie_get_memory_space (ts_ActiveMask);
 
   pll_History = common_history_save_state (pll_History,
 					   ts_ActiveMask->data,
@@ -1166,17 +1166,17 @@ gui_mainwindow_update_viewer_positions (Viewer *viewer, void *data)
     switch (orientation)
     {
       case ORIENTATION_AXIAL:
-        i16_SliceNumber_Axial = slice->matrix.z;
+        i16_SliceNumber_Axial = slice->matrix.i16_z;
         i16_SliceNumber_Sagital = ts_Pivot.x - ts_Position->x;
         i16_SliceNumber_Coronal = ts_Pivot.y - ts_Position->y;
         break;
       case ORIENTATION_SAGITAL:
-        i16_SliceNumber_Sagital = slice->matrix.z;
+        i16_SliceNumber_Sagital = slice->matrix.i16_z;
         i16_SliceNumber_Axial =  ts_Pivot.z - ts_Position->y;
         i16_SliceNumber_Coronal =  ts_Pivot.x - ts_Position->x;
         break;
       case ORIENTATION_CORONAL:
-        i16_SliceNumber_Coronal = slice->matrix.z;
+        i16_SliceNumber_Coronal = slice->matrix.i16_z;
         i16_SliceNumber_Sagital = ts_Pivot.x - ts_Position->x;
         i16_SliceNumber_Axial = ts_Pivot.z - ts_Position->y;
         break;

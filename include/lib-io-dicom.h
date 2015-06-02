@@ -92,14 +92,4 @@ short int i16_memory_io_dicom_loadSingleSlice(Serie *ps_serie,
                                               short int i16_SliceNumber,
                                               short int i16_timeFrameNumber);
 
-/**
- * Load a dicom file from disk to the selected memory.
- *
- * @param serie    The selected memory to store all needed parameters in
- * @param pc_file Filename/path of the header file
- *
- * @return 0 or FALSE if function executes wrong, 1 or TRUE if execution is correct
- */
-short int i16_memory_io_dicom_load(Patient  *ps_patient, Study *ps_study, Serie *ps_serie, const char *pc_dicom);
-
 #endif//NIFTII_NIFTII_H

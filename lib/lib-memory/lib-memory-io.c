@@ -357,8 +357,8 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
     return NULL;
   }
 
-  ps_serie->matrix.z=(ps_serie->matrix.z==0) ? i16_NumberOfSlices/ps_serie->num_time_series : 1;
-  i16_NumberOfReconstructions=(short int)(ps_serie->matrix.z)/(i16_MaximumReferenceOrderValue - i16_MinimumReferenceOrderValue + 1);
+  ps_serie->matrix.i16_z=(ps_serie->matrix.i16_z==0) ? i16_NumberOfSlices/ps_serie->num_time_series : 1;
+  i16_NumberOfReconstructions=(short int)(ps_serie->matrix.i16_z)/(i16_MaximumReferenceOrderValue - i16_MinimumReferenceOrderValue + 1);
 
   if (i16_NumberOfReconstructions <= 1)
   {
@@ -367,7 +367,7 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
   }
   else
   {
-    ps_serie->matrix.z= ps_serie->matrix.z/i16_NumberOfReconstructions;
+    ps_serie->matrix.i16_z= ps_serie->matrix.i16_z/i16_NumberOfReconstructions;
     ps_serie->num_time_series*=i16_NumberOfReconstructions;
   }
 
@@ -432,13 +432,6 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
     pll_dicomFilesIter = list_next(pll_dicomFilesIter);
   }
   list_free(pll_dicomFiles);
-
-  ps_serie->d_Qfac=1;
-  ps_serie->i16_QuaternionCode=0;
-  ps_serie->i16_StandardSpaceCode=0;
-  ps_serie->input_type=MUMC_FILETYPE_DICOM;
-  ps_serie->raw_data_type=MEMORY_TYPE_UINT16;
-  ps_serie->u8_AxisUnits=0;
 
   memory_serie_set_upper_and_lower_borders_from_data(ps_serie);
 
