@@ -21,6 +21,8 @@
 void v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
                               Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
 
+void v_PixelData_handleUINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
+                              Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
 void v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
                               Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
 

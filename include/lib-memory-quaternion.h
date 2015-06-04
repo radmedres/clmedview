@@ -66,6 +66,14 @@ typedef struct
 } td_Matrix4x4;
 
 /**
+ * Matrix definition (3x3).
+ */
+typedef struct
+{
+  double d_Matrix[3][3];
+} td_Matrix3x3;
+
+/**
  * Function that convert a quaternion with its offset to a rotation matrix.
  * @param[in]  ps_Source            Quaternion that should be converted.
  * @param[in]  ps_SourceOffset      Offset of quaternion in [i,j,k,w].
@@ -73,7 +81,9 @@ typedef struct
  * @param[in]  d_Qfac               Factor which defines stride Z-axis.
  * @param[out] matrix               A rotation matrix according to quaternion
  */
-td_Matrix4x4 tda_memory_quaternion_to_matrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, Coordinate3D *ps_pixel_dimension, double d_Qfac);
+td_Matrix4x4 tda_memory_quaternion_to_matrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, double d_Qfac);
+
+ts_Quaternion ts_memory_matrix_to_quaternion(td_Matrix4x4 *pt_Matrix, double * pd_Qfac);
 
 /**
  * Function that calculates a inverse of a 4x4 matrix.

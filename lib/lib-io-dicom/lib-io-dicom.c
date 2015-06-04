@@ -243,50 +243,28 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
     }
     zz = zzclose(zz);
 
-    ps_serie->d_Qfac=1;
-    ps_serie->i16_QuaternionCode=1; //NIFTI_XFORM_SCANNER_ANAT
-
     ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][0] = -imageorientation[0];
     ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][1] = -imageorientation[3];
-    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][2] = -(imageorientation[1] * imageorientation[5] -
-                                                      imageorientation[2] * imageorientation[4]);
-    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][3] = -imageposvector[0];
+    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][2] =  -(imageorientation[1] * imageorientation[5] -
+                                                        imageorientation[2] * imageorientation[4]);
+    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][3] = 0;
 
     ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][0] = -imageorientation[1];
     ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][1] = -imageorientation[4];
-    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][2] = -(imageorientation[2] * imageorientation[3] -
-                                                      imageorientation[0] * imageorientation[5]);
-    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][3] = -imageposvector[1];
+    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][2] =  -(imageorientation[2] * imageorientation[3] -
+                                                        imageorientation[0] * imageorientation[5]);
+    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][3] = 0;
 
     ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][0] = imageorientation[2];
     ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][1] = imageorientation[5];
     ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][2] = (imageorientation[0] * imageorientation[4] -
-                                                      imageorientation[1] * imageorientation[3]);
-    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][3] = imageposvector[2];
+                                                       imageorientation[1] * imageorientation[3]);
+    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][3] = 0;
 
-    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][0] = 0;
-    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][1] = 0;
-    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][2] = 0;
+    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][0] = -imageposvector[0];
+    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][1] = -imageposvector[1];
+    ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][2] = imageposvector[2];;
     ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][3] = 1;
-
-    ps_serie->t_ScannerSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&ps_serie->t_ScannerSpaceIJKtoXYZ);
-
-    ps_serie->pt_RotationMatrix = &ps_serie->t_ScannerSpaceIJKtoXYZ;
-    ps_serie->pt_InverseMatrix = &ps_serie->t_ScannerSpaceXYZtoIJK;
-
-    ps_serie->ps_Quaternion = calloc (1, sizeof (ts_Quaternion));
-
-    ps_serie->ps_QuaternationOffset = calloc (1, sizeof (ts_Quaternion));
-
-    // to be done, convert Sannerspace to quaternion
-
-    ps_serie->ps_QuaternationOffset->I = -(imageposvector[0]);
-    ps_serie->ps_QuaternationOffset->J = -(imageposvector[1]);
-    ps_serie->ps_QuaternationOffset->K =  (imageposvector[2]);
-
-    ps_serie->i16_StandardSpaceCode=0;
-    ps_serie->raw_data_type=MEMORY_TYPE_UINT16;
-    ps_serie->u8_AxisUnits=0;
 
     return 1;
   }

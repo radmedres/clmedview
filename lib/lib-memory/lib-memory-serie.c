@@ -317,23 +317,23 @@ memory_serie_create_mask_from_serie (Serie *serie)
          (mask->i16_QuaternionCode == NIFTI_XFORM_UNKNOWN))
   {
     mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0]=1;
-    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1]=0;
-    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2]=0;
-    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3]=0;
-
     mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0]=0;
-    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1]=1;
-    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2]=0;
-    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3]=0;
-
     mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0]=0;
-    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1]=0;
-    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2]=1;
-    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3]=0;
-
     mask->t_StandardSpaceIJKtoXYZ.d_Matrix[3][0]=0;
+
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1]=1;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1]=0;
     mask->t_StandardSpaceIJKtoXYZ.d_Matrix[3][1]=0;
+
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2]=1;
     mask->t_StandardSpaceIJKtoXYZ.d_Matrix[3][2]=0;
+
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3]=0;
+    mask->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3]=0;
     mask->t_StandardSpaceIJKtoXYZ.d_Matrix[3][3]=1;
 
     mask->t_StandardSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&mask->t_StandardSpaceIJKtoXYZ);
@@ -430,19 +430,19 @@ v_memory_io_handleSpace (Serie *serie)
 
   if (serie->i16_QuaternionCode == NIFTI_XFORM_UNKNOWN)
   {
-    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][0] = serie->pixel_dimension.x;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][0] = 1;
     serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][1] = 0;
     serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][2] = 0;
     serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][3] = 0;
 
     serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][0] = 0;
-    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][1] = serie->pixel_dimension.y;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][1] = 1;
     serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][2] = 0;
-    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][3] = 0;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][3] = 0;
 
     serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][0] = 0;
     serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][1] = 0;
-    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][2] = serie->pixel_dimension.z;
+    serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][2] = 1;
     serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][3] = 0;
 
     serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][0] = 0;
@@ -454,28 +454,7 @@ v_memory_io_handleSpace (Serie *serie)
   }
   else if (serie->i16_QuaternionCode == NIFTI_XFORM_SCANNER_ANAT)
   {
-    d_Rotation = 1.0 - (serie->ps_Quaternion->I * serie->ps_Quaternion->I +
-                        serie->ps_Quaternion->J * serie->ps_Quaternion->J +
-                        serie->ps_Quaternion->K * serie->ps_Quaternion->K);
-
-    if (d_Rotation == 0 )
-    {
-      /* Special case according to niftii standard !?!*/
-      /* There should be a 180 degree rotation        */
-      d_Rotation = 1 / sqrt((serie->ps_Quaternion->I * serie->ps_Quaternion->I +
-                                          serie->ps_Quaternion->J * serie->ps_Quaternion->J +
-                                          serie->ps_Quaternion->K * serie->ps_Quaternion->K));
-      serie->ps_Quaternion->I *= d_Rotation;
-      serie->ps_Quaternion->J *= d_Rotation;
-      serie->ps_Quaternion->K *= d_Rotation;
-      serie->ps_Quaternion->W = 0;
-    }
-    else
-    {
-      serie->ps_Quaternion->W = sqrt(d_Rotation);
-    }
-
-    serie->t_ScannerSpaceIJKtoXYZ = tda_memory_quaternion_to_matrix(serie->ps_Quaternion, serie->ps_QuaternationOffset, &serie->pixel_dimension, serie->d_Qfac);
+    serie->t_ScannerSpaceIJKtoXYZ = tda_memory_quaternion_to_matrix(serie->ps_Quaternion, serie->ps_QuaternationOffset, serie->d_Qfac);
     serie->t_ScannerSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&serie->t_ScannerSpaceIJKtoXYZ);
   }
 

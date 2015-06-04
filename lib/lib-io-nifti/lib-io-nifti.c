@@ -690,6 +690,16 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
       else if(serie->i16_QuaternionCode == NIFTI_XFORM_SCANNER_ANAT)
       {
         v_memory_io_handleSpace (serie);
+
+  Serie *ps_serie = serie;
+  printf("Translation matrix in scannerspace:\n");
+  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][0], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][0], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][0], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][0]);
+  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][1], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][1], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][1], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][1]);
+  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][2], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][2], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][2], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][2]);
+  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][3], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][3], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][3], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][3]);
+  printf("\n");
+
+
         serie->pt_RotationMatrix = &serie->t_ScannerSpaceIJKtoXYZ;
         serie->pt_InverseMatrix = &serie->t_ScannerSpaceXYZtoIJK;
       }
@@ -761,6 +771,33 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
 
   ps_Header->scl_slope = serie->slope;
   ps_Header->scl_inter = serie->offset;
+
+  ps_Header->qform_code = serie->i16_QuaternionCode;
+  ps_Header->quatern_b = serie->ps_Quaternion->I;
+  ps_Header->quatern_c = serie->ps_Quaternion->J;
+  ps_Header->quatern_d = serie->ps_Quaternion->K;
+
+  ps_Header->qoffset_x = serie->ps_QuaternationOffset->I;
+  ps_Header->qoffset_y = serie->ps_QuaternationOffset->J;
+  ps_Header->qoffset_z = serie->ps_QuaternationOffset->K;
+
+  ps_Header->sform_code = serie->i16_StandardSpaceCode;
+
+  ps_Header->srow_x[0] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0];
+  ps_Header->srow_x[1] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1];
+  ps_Header->srow_x[2] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2];
+  ps_Header->srow_x[3] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3];
+
+  ps_Header->srow_y[0] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0];
+  ps_Header->srow_y[1] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1];
+  ps_Header->srow_y[2] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2];
+  ps_Header->srow_y[3] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3];
+
+  ps_Header->srow_z[0] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0];
+  ps_Header->srow_z[1] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1];
+  ps_Header->srow_z[2] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2];
+  ps_Header->srow_z[3] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3];
+
 
   ps_Header->datatype = i16_NIFTII_ConvertMemoryDataTypeToNIFTII(serie->data_type);
   ps_Header->bitpix = i16_NIFTII_GetBitPix (serie->raw_data_type);
