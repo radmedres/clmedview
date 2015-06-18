@@ -24,13 +24,13 @@
 extern "C" {
 #endif
 
-
+#include <assert.h>
 #include "lib-common.h"
 
 
 /**
- * @file   include/lib-memory-quaternion.h
- * @brief  The interface to Quaternion-specific functionality.
+ * @file   include/lib-common-algebra.h
+ * @brief  The interface to algebra-specific functionality.
  * @author Jos Slenter
  */
 
@@ -62,7 +62,7 @@ typedef struct
  */
 typedef struct
 {
-  double d_Matrix[4][4];
+  float af_Matrix[4][4];
 } td_Matrix4x4;
 
 /**
@@ -70,41 +70,119 @@ typedef struct
  */
 typedef struct
 {
-  double d_Matrix[3][3];
+  double af_Matrix[3][3];
 } td_Matrix3x3;
 
+
+
 /**
- * Function that convert a quaternion with its offset to a rotation matrix.
+ * Function that normalize a vector
+ * @param[in]  ps_Vector  Input vector.
+ * @param[out] vector     Normalized vector.
+ */
+Vector3D s_algebra_vector_normalize(Vector3D *ps_InputVector);
+
+/**
+ * Function that normalize a vector
+ * @param[in]  ps_Vector    Input vector.
+ * @param[in]  ps_UpVector  perpendicular vector.
+ * @param[out] vector       Normalized vector.
+ */
+Vector3D s_algebra_vector_perpendicular(Vector3D *ps_InputVector, Vector3D *ps_UpVector);
+
+/**
+ * Function that normalize a vector
+ * @param[in]  ps_Vector  Input vector.
+ * @param[in]  ps_Vector  perpendicular vector.
+ * @param[out] vector     Normalized vector.
+ */
+Vector3D s_algebra_vector_crossproduct(Vector3D *ps_InputVector,Vector3D *pts_perpendicularVector);
+
+/**
+ * Function that transforms a vector according to a rotation matrix.
+ * @param[in]  ps_Matrix  Translation matrix.
+ * @param[in]  ps_Vector  Vector to transform.
+ * @param[out] vector     Transformed vector.
+ */
+Vector3D ts_algebra_vector_translate(td_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector);
+
+/**
+ * Function that calculates the maximum of a vector.
+ * @param[in]  ps_InputVector  Vector to calculate max of.
+ * @param[out] float           Maximum value.
+ */
+float f_algebra_vector_MaximumValue(Vector3D *ps_InputVector);
+
+/**
+ * Function that calculates the minimum of a vector.
+ * @param[in]  ps_InputVector  Vector to calculate max of.
+ * @param[out] float           Minimum value.
+ */
+float f_algebra_vector_MinimumValue(Vector3D *ps_InputVector);
+
+/**
+ * Function that calculates the maximum of a vector.
+ * @param[in]  ps_InputVector  Vector to calculate max of.
+ * @param[out] short int       Maximum value.
+ */;
+short int i16_algebra_vector_MaximumValue(ts_Vector3DInt *ps_InputVector);
+
+/**
+ * Function that calculates the minimum of a vector.
+ * @param[in]  ps_InputVector  Vector to calculate max of.
+ * @param[out] short int       Minimum value.
+ */
+short int  i16_algebra_vector_MinimumValue(ts_Vector3DInt *ps_InputVector);
+
+/**
+ * Function that rotates a vector around the X a axis with a certain angle
+ * @param[in]  ps_Vector       Vector to calculate max of.
+ * @param[in]  f_angle         Angle of rotation.
+ * @param[out] Vectro          Rotated Vector.
+ */
+Vector3D ts_algebra_vector_Rotation_around_X_Axis (Vector3D *ps_Vector, float f_angle);
+
+/**
+ * Function that rotates a vector around the Y a axis with a certain angle
+ * @param[in]  ps_Vector       Vector to calculate max of.
+ * @param[in]  f_angle         Angle of rotation.
+ * @param[out] Vectro          Rotated Vector.
+ */
+Vector3D ts_algebra_vector_Rotation_around_Y_Axis (Vector3D *ps_Vector, float f_angle);
+
+/**
+ * Function that rotates a vector around the Z a axis with a certain angle
+ * @param[in]  ps_Vector       Vector to calculate max of.
+ * @param[in]  f_angle         Angle of rotation.
+ * @param[out] Vectro          Rotated Vector.
+ */
+Vector3D ts_algebra_vector_Rotation_around_Z_Axis (Vector3D *ps_Vector, float f_angle);
+
+
+
+/**
+ * Function that convert a quaternion to a translation matrix.
  * @param[in]  ps_Source            Quaternion that should be converted.
  * @param[in]  ps_SourceOffset      Offset of quaternion in [i,j,k,w].
- * @param[in]  ps_pixel_dimension   Physical dimensions of [i,j,k].
  * @param[in]  d_Qfac               Factor which defines stride Z-axis.
  * @param[out] matrix               A rotation matrix according to quaternion
  */
-td_Matrix4x4 tda_memory_quaternion_to_matrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, double d_Qfac);
-
-ts_Quaternion ts_memory_matrix_to_quaternion(td_Matrix4x4 *pt_Matrix, double * pd_Qfac);
+td_Matrix4x4 tda_algebra_matrix_QuaternionToMatrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, double d_Qfac);
 
 /**
  * Function that calculates a inverse of a 4x4 matrix.
  * @param[in]  ps_Matrix  Input matrix.
  * @param[out] matrix     Output matrix.
  */
- td_Matrix4x4 tda_memory_quaternion_inverse_matrix(td_Matrix4x4 *ps_Matrix);
-
-
-/**
- * Function that transforms a vector according to a rotation Matrix.
- * @param[in]  ps_Matrix  Input matrix.
- * @param[in]  ps_Vector  Vector to transform.
- * @param[out] vector     Transformed vector.
- */
-Vector3D ts_memory_matrix_multiply4x4(td_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector);
+td_Matrix4x4 tda_algebra_matrix_inverse(td_Matrix4x4 *ps_Matrix);
 
 /**
- *   @}
- * @}
+ * Function that convert a matrix to a quaternion
+ * @param[in]  pt_Matrix            Quaternion that should be converted.
+ * @param[in]  d_Qfac               Factor which defines stride Z-axis.
+ * @param[out] quaternion        A rotation matrix according to quaternion
  */
+ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(td_Matrix4x4 *pt_Matrix, double *pd_Qfac);
 
 
 #ifdef __cplusplus

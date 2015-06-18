@@ -631,50 +631,50 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
 
       serie->i16_StandardSpaceCode = ps_Header->sform_code;
 
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0]=ps_Header->srow_x[0];// / t_Maximum.x;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1]=ps_Header->srow_x[1];// / t_Maximum.x;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2]=ps_Header->srow_x[2];// / t_Maximum.x;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3]=ps_Header->srow_x[3];
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][0]=ps_Header->srow_x[0];// / t_Maximum.x;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][1]=ps_Header->srow_x[1];// / t_Maximum.x;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][2]=ps_Header->srow_x[2];// / t_Maximum.x;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][3]=ps_Header->srow_x[3];
 
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0]=ps_Header->srow_y[0];// / t_Maximum.y;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1]=ps_Header->srow_y[1];// / t_Maximum.y;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2]=ps_Header->srow_y[2];// / t_Maximum.y;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3]=ps_Header->srow_y[3];
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][0]=ps_Header->srow_y[0];// / t_Maximum.y;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][1]=ps_Header->srow_y[1];// / t_Maximum.y;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][2]=ps_Header->srow_y[2];// / t_Maximum.y;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][3]=ps_Header->srow_y[3];
 
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0]=ps_Header->srow_z[0];// / t_Maximum.z;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1]=ps_Header->srow_z[1];// / t_Maximum.z;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2]=ps_Header->srow_z[2];// / t_Maximum.z;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3]=ps_Header->srow_z[3];
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][0]=ps_Header->srow_z[0];// / t_Maximum.z;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][1]=ps_Header->srow_z[1];// / t_Maximum.z;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][2]=ps_Header->srow_z[2];// / t_Maximum.z;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][3]=ps_Header->srow_z[3];
 
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][0]=0;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][1]=0;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][2]=0;
-      serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][3]=1;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][0]=0;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][1]=0;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][2]=0;
+      serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][3]=1;
 
       if((serie->i16_StandardSpaceCode == NIFTI_XFORM_UNKNOWN) &&
          (serie->i16_QuaternionCode == NIFTI_XFORM_UNKNOWN))
       {
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0]=1;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1]=0;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2]=0;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][0]=1;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][1]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][2]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][3]=0;
 
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0]=0;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1]=1;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2]=0;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][0]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][1]=1;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][2]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][3]=0;
 
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0]=0;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1]=0;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2]=1;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][0]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][1]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][2]=1;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][3]=0;
 
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][0]=0;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][1]=0;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][2]=0;
-        serie->t_StandardSpaceIJKtoXYZ.d_Matrix[3][3]=1;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][0]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][1]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][2]=0;
+        serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][3]=1;
 
-        serie->t_StandardSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&serie->t_StandardSpaceIJKtoXYZ);
+        serie->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_inverse(&serie->t_StandardSpaceIJKtoXYZ);
 
         serie->pt_RotationMatrix = &serie->t_StandardSpaceIJKtoXYZ;
         serie->pt_InverseMatrix = &serie->t_StandardSpaceXYZtoIJK;
@@ -683,7 +683,7 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
               (serie->i16_StandardSpaceCode == NIFTI_XFORM_TALAIRACH) ||
               (serie->i16_StandardSpaceCode == NIFTI_XFORM_MNI_152))
       {
-        serie->t_StandardSpaceXYZtoIJK = tda_memory_quaternion_inverse_matrix(&serie->t_StandardSpaceIJKtoXYZ);
+        serie->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_inverse(&serie->t_StandardSpaceIJKtoXYZ);
         serie->pt_RotationMatrix = &serie->t_StandardSpaceIJKtoXYZ;
         serie->pt_InverseMatrix = &serie->t_StandardSpaceXYZtoIJK;
       }
@@ -693,10 +693,10 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
 
   Serie *ps_serie = serie;
   printf("Translation matrix in scannerspace:\n");
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][0], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][0], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][0], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][0]);
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][1], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][1], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][1], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][1]);
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][2], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][2], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][2], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][2]);
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[0][3], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[1][3], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[2][3], ps_serie->t_ScannerSpaceIJKtoXYZ.d_Matrix[3][3]);
+  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][0], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][0], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][0], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][0]);
+  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][1], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][1], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][1], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][1]);
+  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][2], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][2], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][2], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][2]);
+  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][3], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][3], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][3], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][3]);
   printf("\n");
 
 
@@ -783,20 +783,20 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
 
   ps_Header->sform_code = serie->i16_StandardSpaceCode;
 
-  ps_Header->srow_x[0] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][0];
-  ps_Header->srow_x[1] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][1];
-  ps_Header->srow_x[2] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][2];
-  ps_Header->srow_x[3] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[0][3];
+  ps_Header->srow_x[0] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][0];
+  ps_Header->srow_x[1] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][1];
+  ps_Header->srow_x[2] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][2];
+  ps_Header->srow_x[3] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][3];
 
-  ps_Header->srow_y[0] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][0];
-  ps_Header->srow_y[1] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][1];
-  ps_Header->srow_y[2] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][2];
-  ps_Header->srow_y[3] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[1][3];
+  ps_Header->srow_y[0] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][0];
+  ps_Header->srow_y[1] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][1];
+  ps_Header->srow_y[2] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][2];
+  ps_Header->srow_y[3] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][3];
 
-  ps_Header->srow_z[0] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][0];
-  ps_Header->srow_z[1] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][1];
-  ps_Header->srow_z[2] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][2];
-  ps_Header->srow_z[3] = serie->t_StandardSpaceIJKtoXYZ.d_Matrix[2][3];
+  ps_Header->srow_z[0] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][0];
+  ps_Header->srow_z[1] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][1];
+  ps_Header->srow_z[2] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][2];
+  ps_Header->srow_z[3] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][3];
 
 
   ps_Header->datatype = i16_NIFTII_ConvertMemoryDataTypeToNIFTII(serie->data_type);
