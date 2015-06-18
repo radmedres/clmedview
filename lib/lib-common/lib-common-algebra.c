@@ -34,26 +34,26 @@ td_Matrix3x3 nifti_mat33_inverse( td_Matrix3x3 R )   /* inverse of 3x3 matrix */
    double r11,r12,r13,r21,r22,r23,r31,r32,r33 , deti ;
    td_Matrix3x3 Q ;
                                                        /*  INPUT MATRIX:  */
-   r11 = R.d_Matrix[0][0]; r12 = R.d_Matrix[0][1]; r13 = R.d_Matrix[0][2];  /* [ r11 r12 r13 ] */
-   r21 = R.d_Matrix[1][0]; r22 = R.d_Matrix[1][1]; r23 = R.d_Matrix[1][2];  /* [ r21 r22 r23 ] */
-   r31 = R.d_Matrix[2][0]; r32 = R.d_Matrix[2][1]; r33 = R.d_Matrix[2][2];  /* [ r31 r32 r33 ] */
+   r11 = R.af_Matrix[0][0]; r12 = R.af_Matrix[0][1]; r13 = R.af_Matrix[0][2];  /* [ r11 r12 r13 ] */
+   r21 = R.af_Matrix[1][0]; r22 = R.af_Matrix[1][1]; r23 = R.af_Matrix[1][2];  /* [ r21 r22 r23 ] */
+   r31 = R.af_Matrix[2][0]; r32 = R.af_Matrix[2][1]; r33 = R.af_Matrix[2][2];  /* [ r31 r32 r33 ] */
 
    deti = r11*r22*r33-r11*r32*r23-r21*r12*r33
          +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
 
    if( deti != 0.0l ) deti = 1.0l / deti ;
 
-   Q.d_Matrix[0][0] = deti*( r22*r33-r32*r23) ;
-   Q.d_Matrix[0][1] = deti*(-r12*r33+r32*r13) ;
-   Q.d_Matrix[0][2] = deti*( r12*r23-r22*r13) ;
+   Q.af_Matrix[0][0] = deti*( r22*r33-r32*r23) ;
+   Q.af_Matrix[0][1] = deti*(-r12*r33+r32*r13) ;
+   Q.af_Matrix[0][2] = deti*( r12*r23-r22*r13) ;
 
-   Q.d_Matrix[1][0] = deti*(-r21*r33+r31*r23) ;
-   Q.d_Matrix[1][1] = deti*( r11*r33-r31*r13) ;
-   Q.d_Matrix[1][2] = deti*(-r11*r23+r21*r13) ;
+   Q.af_Matrix[1][0] = deti*(-r21*r33+r31*r23) ;
+   Q.af_Matrix[1][1] = deti*( r11*r33-r31*r13) ;
+   Q.af_Matrix[1][2] = deti*(-r11*r23+r21*r13) ;
 
-   Q.d_Matrix[2][0] = deti*( r21*r32-r31*r22) ;
-   Q.d_Matrix[2][1] = deti*(-r11*r32+r31*r12) ;
-   Q.d_Matrix[2][2] = deti*( r11*r22-r21*r12) ;
+   Q.af_Matrix[2][0] = deti*( r21*r32-r31*r22) ;
+   Q.af_Matrix[2][1] = deti*(-r11*r32+r31*r12) ;
+   Q.af_Matrix[2][2] = deti*( r11*r22-r21*r12) ;
 
    return Q ;
 }
@@ -65,9 +65,9 @@ float nifti_mat33_determ( td_Matrix3x3 R )   /* determinant of 3x3 matrix */
 {
    double r11,r12,r13,r21,r22,r23,r31,r32,r33 ;
                                                        /*  INPUT MATRIX:  */
-   r11 = R.d_Matrix[0][0]; r12 = R.d_Matrix[0][1]; r13 = R.d_Matrix[0][2];  /* [ r11 r12 r13 ] */
-   r21 = R.d_Matrix[1][0]; r22 = R.d_Matrix[1][1]; r23 = R.d_Matrix[1][2];  /* [ r21 r22 r23 ] */
-   r31 = R.d_Matrix[2][0]; r32 = R.d_Matrix[2][1]; r33 = R.d_Matrix[2][2];  /* [ r31 r32 r33 ] */
+   r11 = R.af_Matrix[0][0]; r12 = R.af_Matrix[0][1]; r13 = R.af_Matrix[0][2];  /* [ r11 r12 r13 ] */
+   r21 = R.af_Matrix[1][0]; r22 = R.af_Matrix[1][1]; r23 = R.af_Matrix[1][2];  /* [ r21 r22 r23 ] */
+   r31 = R.af_Matrix[2][0]; r32 = R.af_Matrix[2][1]; r33 = R.af_Matrix[2][2];  /* [ r31 r32 r33 ] */
 
    return r11*r22*r33-r11*r32*r23-r21*r12*r33
          +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
@@ -80,9 +80,9 @@ float nifti_mat33_rownorm( td_Matrix3x3 A )  /* max row norm of 3x3 matrix */
 {
    float r1,r2,r3 ;
 
-   r1 = fabs(A.d_Matrix[0][0])+fabs(A.d_Matrix[0][1])+fabs(A.d_Matrix[0][2]) ;
-   r2 = fabs(A.d_Matrix[1][0])+fabs(A.d_Matrix[1][1])+fabs(A.d_Matrix[1][2]) ;
-   r3 = fabs(A.d_Matrix[2][0])+fabs(A.d_Matrix[2][1])+fabs(A.d_Matrix[2][2]) ;
+   r1 = fabs(A.af_Matrix[0][0])+fabs(A.af_Matrix[0][1])+fabs(A.af_Matrix[0][2]) ;
+   r2 = fabs(A.af_Matrix[1][0])+fabs(A.af_Matrix[1][1])+fabs(A.af_Matrix[1][2]) ;
+   r3 = fabs(A.af_Matrix[2][0])+fabs(A.af_Matrix[2][1])+fabs(A.af_Matrix[2][2]) ;
    if( r1 < r2 ) r1 = r2 ;
    if( r1 < r3 ) r1 = r3 ;
    return r1 ;
@@ -95,9 +95,9 @@ float nifti_mat33_colnorm( td_Matrix3x3 A )  /* max column norm of 3x3 matrix */
 {
    float r1,r2,r3 ;
 
-   r1 = fabs(A.d_Matrix[0][0])+fabs(A.d_Matrix[1][0])+fabs(A.d_Matrix[2][0]) ;
-   r2 = fabs(A.d_Matrix[0][1])+fabs(A.d_Matrix[1][1])+fabs(A.d_Matrix[2][1]) ;
-   r3 = fabs(A.d_Matrix[0][2])+fabs(A.d_Matrix[1][2])+fabs(A.d_Matrix[2][2]) ;
+   r1 = fabs(A.af_Matrix[0][0])+fabs(A.af_Matrix[1][0])+fabs(A.af_Matrix[2][0]) ;
+   r2 = fabs(A.af_Matrix[0][1])+fabs(A.af_Matrix[1][1])+fabs(A.af_Matrix[2][1]) ;
+   r3 = fabs(A.af_Matrix[0][2])+fabs(A.af_Matrix[1][2])+fabs(A.af_Matrix[2][2]) ;
    if( r1 < r2 ) r1 = r2 ;
    if( r1 < r3 ) r1 = r3 ;
    return r1 ;
@@ -124,7 +124,7 @@ td_Matrix3x3 nifti_mat33_polar( td_Matrix3x3 A )
    gam = nifti_mat33_determ(X) ;
    while( gam == 0.0 ){        /* perturb matrix */
      gam = 0.00001 * ( 0.001 + nifti_mat33_rownorm(X) ) ;
-     X.d_Matrix[0][0] += gam ; X.d_Matrix[1][1] += gam ; X.d_Matrix[2][2] += gam ;
+     X.af_Matrix[0][0] += gam ; X.af_Matrix[1][1] += gam ; X.af_Matrix[2][2] += gam ;
      gam = nifti_mat33_determ(X) ;
    }
 
@@ -138,21 +138,21 @@ td_Matrix3x3 nifti_mat33_polar( td_Matrix3x3 A )
      } else {
        gam = gmi = 1.0 ;  /* close to convergence */
      }
-     Z.d_Matrix[0][0] = 0.5 * ( gam*X.d_Matrix[0][0] + gmi*Y.d_Matrix[0][0] ) ;
-     Z.d_Matrix[0][1] = 0.5 * ( gam*X.d_Matrix[0][1] + gmi*Y.d_Matrix[1][0] ) ;
-     Z.d_Matrix[0][2] = 0.5 * ( gam*X.d_Matrix[0][2] + gmi*Y.d_Matrix[2][0] ) ;
-     Z.d_Matrix[1][0] = 0.5 * ( gam*X.d_Matrix[1][0] + gmi*Y.d_Matrix[0][1] ) ;
-     Z.d_Matrix[1][1] = 0.5 * ( gam*X.d_Matrix[1][1] + gmi*Y.d_Matrix[1][1] ) ;
-     Z.d_Matrix[1][2] = 0.5 * ( gam*X.d_Matrix[1][2] + gmi*Y.d_Matrix[2][1] ) ;
-     Z.d_Matrix[2][0] = 0.5 * ( gam*X.d_Matrix[2][0] + gmi*Y.d_Matrix[0][2] ) ;
-     Z.d_Matrix[2][1] = 0.5 * ( gam*X.d_Matrix[2][1] + gmi*Y.d_Matrix[1][2] ) ;
-     Z.d_Matrix[2][2] = 0.5 * ( gam*X.d_Matrix[2][2] + gmi*Y.d_Matrix[2][2] ) ;
+     Z.af_Matrix[0][0] = 0.5 * ( gam*X.af_Matrix[0][0] + gmi*Y.af_Matrix[0][0] ) ;
+     Z.af_Matrix[0][1] = 0.5 * ( gam*X.af_Matrix[0][1] + gmi*Y.af_Matrix[1][0] ) ;
+     Z.af_Matrix[0][2] = 0.5 * ( gam*X.af_Matrix[0][2] + gmi*Y.af_Matrix[2][0] ) ;
+     Z.af_Matrix[1][0] = 0.5 * ( gam*X.af_Matrix[1][0] + gmi*Y.af_Matrix[0][1] ) ;
+     Z.af_Matrix[1][1] = 0.5 * ( gam*X.af_Matrix[1][1] + gmi*Y.af_Matrix[1][1] ) ;
+     Z.af_Matrix[1][2] = 0.5 * ( gam*X.af_Matrix[1][2] + gmi*Y.af_Matrix[2][1] ) ;
+     Z.af_Matrix[2][0] = 0.5 * ( gam*X.af_Matrix[2][0] + gmi*Y.af_Matrix[0][2] ) ;
+     Z.af_Matrix[2][1] = 0.5 * ( gam*X.af_Matrix[2][1] + gmi*Y.af_Matrix[1][2] ) ;
+     Z.af_Matrix[2][2] = 0.5 * ( gam*X.af_Matrix[2][2] + gmi*Y.af_Matrix[2][2] ) ;
 
-     dif = fabs(Z.d_Matrix[0][0]-X.d_Matrix[0][0])+fabs(Z.d_Matrix[0][1]-X.d_Matrix[0][1])
-          +fabs(Z.d_Matrix[0][2]-X.d_Matrix[0][2])+fabs(Z.d_Matrix[1][0]-X.d_Matrix[1][0])
-          +fabs(Z.d_Matrix[1][1]-X.d_Matrix[1][1])+fabs(Z.d_Matrix[1][2]-X.d_Matrix[1][2])
-          +fabs(Z.d_Matrix[2][0]-X.d_Matrix[2][0])+fabs(Z.d_Matrix[2][1]-X.d_Matrix[2][1])
-          +fabs(Z.d_Matrix[2][2]-X.d_Matrix[2][2])                          ;
+     dif = fabs(Z.af_Matrix[0][0]-X.af_Matrix[0][0])+fabs(Z.af_Matrix[0][1]-X.af_Matrix[0][1])
+          +fabs(Z.af_Matrix[0][2]-X.af_Matrix[0][2])+fabs(Z.af_Matrix[1][0]-X.af_Matrix[1][0])
+          +fabs(Z.af_Matrix[1][1]-X.af_Matrix[1][1])+fabs(Z.af_Matrix[1][2]-X.af_Matrix[1][2])
+          +fabs(Z.af_Matrix[2][0]-X.af_Matrix[2][0])+fabs(Z.af_Matrix[2][1]-X.af_Matrix[2][1])
+          +fabs(Z.af_Matrix[2][2]-X.af_Matrix[2][2])                          ;
 
      k = k+1 ;
      if( k > 100 || dif < 3.e-6 ) break ;  /* convergence or exhaustion */
@@ -166,9 +166,249 @@ td_Matrix3x3 nifti_mat33_polar( td_Matrix3x3 A )
 /*                                                                                                    */
 /*                                                                                                    */
 /* GLOBAL FUNCTIONS                                                                                   */
+/* Functions are ordered in Vector-, Matrix, Quaternion related functionality                         */
 /*                                                                                                    */
 /*                                                                                                    */
-td_Matrix4x4 tda_memory_quaternion_to_matrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, double d_Qfac)
+Vector3D s_algebra_vector_normalize(Vector3D *ps_InputVector)
+{
+  debug_functions ();
+
+  float f_magnitude=0;
+  Vector3D s_NormalizeVector;
+
+  f_magnitude = sqrt(ps_InputVector->x*ps_InputVector->x+ps_InputVector->y*ps_InputVector->y+ps_InputVector->z*ps_InputVector->z);
+
+  s_NormalizeVector.x=ps_InputVector->x / f_magnitude;
+  s_NormalizeVector.y=ps_InputVector->y / f_magnitude;
+  s_NormalizeVector.z=ps_InputVector->z / f_magnitude;
+
+  return s_NormalizeVector;
+}
+
+Vector3D s_algebra_vector_perpendicular(Vector3D *ps_InputVector, Vector3D *ps_UpVector)
+{
+  debug_functions ();
+
+  Vector3D ts_perpendicularVector;
+
+  ts_perpendicularVector.x = 0;
+  ts_perpendicularVector.y = 0;
+  ts_perpendicularVector.z = 0;
+
+  float f_UpProjection;
+  float f_UpMagnitude;
+
+  f_UpProjection = ps_InputVector->x * ps_UpVector->x + ps_InputVector->y * ps_UpVector->y + ps_InputVector->z * ps_UpVector->z;
+
+  // first try at making a View Up vector: use World Up
+  ts_perpendicularVector.x = ps_UpVector->x - f_UpProjection * ps_InputVector->x;
+  ts_perpendicularVector.y = ps_UpVector->y - f_UpProjection * ps_InputVector->y;
+  ts_perpendicularVector.z = ps_UpVector->z - f_UpProjection * ps_InputVector->z;
+
+  // Check for validity:
+  f_UpMagnitude = ts_perpendicularVector.x * ts_perpendicularVector.x + ts_perpendicularVector.y * ts_perpendicularVector.y + ts_perpendicularVector.z * ts_perpendicularVector.z;
+
+  if (f_UpMagnitude < 0.0000001)
+  {
+    //Second try at making a View Up vector: Use Y axis default  (0,1,0)
+    ts_perpendicularVector.x = -ps_InputVector->y * ps_InputVector->x;
+    ts_perpendicularVector.y = 1-ps_InputVector->y * ps_InputVector->y;
+    ts_perpendicularVector.z = -ps_InputVector->y * ps_InputVector->z;
+
+    // Check for validity:
+    f_UpMagnitude = ts_perpendicularVector.x * ts_perpendicularVector.x + ts_perpendicularVector.y * ts_perpendicularVector.y + ts_perpendicularVector.z * ts_perpendicularVector.z;
+
+    if (f_UpMagnitude < 0.0000001)
+    {
+          //Final try at making a View Up vector: Use Z axis default  (0,0,1)
+      ts_perpendicularVector.x = -ps_InputVector->z * ps_InputVector->x;
+      ts_perpendicularVector.y = -ps_InputVector->z * ps_InputVector->y;
+      ts_perpendicularVector.z = 1-ps_InputVector->z * ps_InputVector->z;
+
+      // Check for validity:
+      f_UpMagnitude = ts_perpendicularVector.x * ts_perpendicularVector.x + ts_perpendicularVector.y * ts_perpendicularVector.y + ts_perpendicularVector.z * ts_perpendicularVector.z;
+      if (f_UpMagnitude < 0.0000001)
+      {
+        assert(f_UpMagnitude < 0.0000001);
+      }
+
+    }
+  }
+
+  // normalize the Up Vector
+  ts_perpendicularVector = s_algebra_vector_normalize(&ts_perpendicularVector);
+
+  return ts_perpendicularVector;
+}
+
+Vector3D s_algebra_vector_crossproduct(Vector3D *ps_InputVector,Vector3D *pts_perpendicularVector)
+{
+  debug_functions ();
+
+  Vector3D s_OutputVector;
+
+  s_OutputVector.x = ps_InputVector->y * pts_perpendicularVector->z - ps_InputVector->z * pts_perpendicularVector->y;
+  s_OutputVector.y = ps_InputVector->z * pts_perpendicularVector->x - ps_InputVector->x * pts_perpendicularVector->z;
+  s_OutputVector.z = ps_InputVector->x * pts_perpendicularVector->y - ps_InputVector->y * pts_perpendicularVector->x;
+
+  s_OutputVector = s_algebra_vector_normalize(&s_OutputVector);
+
+  return s_OutputVector;
+}
+
+Vector3D ts_algebra_vector_translate(td_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector)
+{
+  Vector3D ts_MultiplyVector;
+
+  ts_MultiplyVector.x = ps_Vector->x  * ps_Matrix->af_Matrix[0][0] +
+                        ps_Vector->y  * ps_Matrix->af_Matrix[0][1] +
+                        ps_Vector->z  * ps_Matrix->af_Matrix[0][2] +
+                        ps_Matrix->af_Matrix[0][3];
+
+  ts_MultiplyVector.y = ps_Vector->x  * ps_Matrix->af_Matrix[1][0] +
+                        ps_Vector->y  * ps_Matrix->af_Matrix[1][1] +
+                        ps_Vector->z  * ps_Matrix->af_Matrix[1][2] +
+                        ps_Matrix->af_Matrix[1][3];
+
+  ts_MultiplyVector.z = ps_Vector->x  * ps_Matrix->af_Matrix[2][0] +
+                        ps_Vector->y  * ps_Matrix->af_Matrix[2][1] +
+                        ps_Vector->z  * ps_Matrix->af_Matrix[2][2] +
+                        ps_Matrix->af_Matrix[2][3];
+
+  return ts_MultiplyVector;
+}
+
+Vector3D ts_algebra_vector_Rotation_around_X_Axis (Vector3D *ps_Vector, float f_angle)
+{
+  /* Rotation vector around x-axis (http://en.wikipedia.org/wiki/Rotation_matrix)
+          | 1  0    0  |   | x |
+      R = | 0 cos -sin | * | y |
+          | 0 sin  cos |   | z |
+  */
+
+  Vector3D ts_rotatedVector;
+
+  ts_rotatedVector.x = 1 * ps_Vector->x -      0        * ps_Vector->y +     0         * ps_Vector->z;
+  ts_rotatedVector.y = 0 * ps_Vector->x + cos (f_angle) * ps_Vector->y - sin (f_angle) * ps_Vector->z;
+  ts_rotatedVector.z = 0 * ps_Vector->x + sin (f_angle) * ps_Vector->y + cos (f_angle) * ps_Vector->z;
+
+  return ts_rotatedVector;
+}
+
+Vector3D ts_algebra_vector_Rotation_around_Y_Axis (Vector3D *ps_Vector, float f_angle)
+{
+  /* Rotation vector around y-axis (http://en.wikipedia.org/wiki/Rotation_matrix)
+          |  cos  0  sin |   | x |
+      R = |   0   1   0  | * | y |
+          | -sin  0  cos |   | z |
+  */
+  Vector3D ts_rotatedVector;
+
+  ts_rotatedVector.x =  cos (f_angle) * ps_Vector->x + 0 * ps_Vector->y + sin (f_angle) * ps_Vector->z;
+  ts_rotatedVector.y =      0         * ps_Vector->x + 1 * ps_Vector->y + 0             * ps_Vector->z;
+  ts_rotatedVector.z = -sin (f_angle) * ps_Vector->x + 0 * ps_Vector->y + cos (f_angle) * ps_Vector->z;
+
+  return ts_rotatedVector;
+}
+
+Vector3D ts_algebra_vector_Rotation_around_Z_Axis (Vector3D *ps_Vector, float f_angle)
+{
+  /* Rotation vector around z-axis (http://en.wikipedia.org/wiki/Rotation_matrix)
+          | cos -sin 0  |   | x |
+      R = | sin  cos 0  | * | y |
+          |  0    0  1  |   | z |
+  */
+  Vector3D ts_rotatedVector;
+
+  ts_rotatedVector.x = cos (f_angle) * ps_Vector->x - sin (f_angle) * ps_Vector->y + 0 * ps_Vector->z;
+  ts_rotatedVector.y = sin (f_angle) * ps_Vector->x + cos (f_angle) * ps_Vector->y + 0 * ps_Vector->z;
+  ts_rotatedVector.z =     0                        -     0                        + 1 * ps_Vector->z;
+
+  return ts_rotatedVector;
+}
+
+
+
+
+
+float f_algebra_vector_MaximumValue(Vector3D *ps_InputVector)
+{
+  debug_functions ();
+
+  if ((ps_InputVector->x >= ps_InputVector->y) && (ps_InputVector->x >= ps_InputVector->z))
+  {
+    return ps_InputVector->x;
+  }
+  else if ((ps_InputVector->y >= ps_InputVector->x) && (ps_InputVector->y >= ps_InputVector->z))
+  {
+    return ps_InputVector->y;
+  }
+  else
+  {
+    return ps_InputVector->z;
+  }
+}
+
+float f_algebra_vector_MinimumValue(Vector3D *ps_InputVector)
+{
+  debug_functions ();
+
+  if ((ps_InputVector->x < ps_InputVector->y) && (ps_InputVector->x < ps_InputVector->z))
+  {
+    return ps_InputVector->x;
+  }
+  else if ((ps_InputVector->y < ps_InputVector->x) && (ps_InputVector->y < ps_InputVector->z))
+  {
+    return ps_InputVector->y;
+  }
+  else
+  {
+    return ps_InputVector->z;
+  }
+}
+
+short int i16_algebra_vector_MaximumValue(ts_Vector3DInt *ps_InputVector)
+{
+  debug_functions ();
+
+  if ((ps_InputVector->i16_x >= ps_InputVector->i16_y) && (ps_InputVector->i16_x >= ps_InputVector->i16_z))
+  {
+    return ps_InputVector->i16_x;
+  }
+  else if ((ps_InputVector->i16_y >= ps_InputVector->i16_x) && (ps_InputVector->i16_y >= ps_InputVector->i16_z))
+  {
+    return ps_InputVector->i16_y;
+  }
+  else
+  {
+    return ps_InputVector->i16_z;
+  }
+}
+
+short int  i16_algebra_vector_MinimumValue(ts_Vector3DInt *ps_InputVector)
+{
+  debug_functions ();
+
+  if ((ps_InputVector->i16_x < ps_InputVector->i16_y) && (ps_InputVector->i16_x < ps_InputVector->i16_z))
+  {
+    return ps_InputVector->i16_x;
+  }
+  else if ((ps_InputVector->i16_y < ps_InputVector->i16_x) && (ps_InputVector->i16_y < ps_InputVector->i16_z))
+  {
+    return ps_InputVector->i16_y;
+  }
+  else
+  {
+    return ps_InputVector->i16_z;
+  }
+}
+
+
+
+
+
+
+td_Matrix4x4 tda_algebra_matrix_QuaternionToMatrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, double d_Qfac)
 {
   td_Matrix4x4 td_Rotation;
   double d_Rotation;
@@ -190,46 +430,85 @@ td_Matrix4x4 tda_memory_quaternion_to_matrix(ts_Quaternion *ps_Source, ts_Quater
     ps_Source->W = sqrt(d_Rotation);
   }
 
-  td_Rotation.d_Matrix[0][0] =     (ps_Source->W * ps_Source->W + ps_Source->I * ps_Source->I - ps_Source->J * ps_Source->J - ps_Source->K * ps_Source->K);
-  td_Rotation.d_Matrix[0][1] = 2 * (ps_Source->I * ps_Source->J + ps_Source->W * ps_Source->K);
-  td_Rotation.d_Matrix[0][2] = 2 * (ps_Source->I * ps_Source->K - ps_Source->W * ps_Source->J) * d_Qfac;
+  td_Rotation.af_Matrix[0][0] =     (ps_Source->W * ps_Source->W + ps_Source->I * ps_Source->I - ps_Source->J * ps_Source->J - ps_Source->K * ps_Source->K);
+  td_Rotation.af_Matrix[0][1] = 2 * (ps_Source->I * ps_Source->J + ps_Source->W * ps_Source->K);
+  td_Rotation.af_Matrix[0][2] = 2 * (ps_Source->I * ps_Source->K - ps_Source->W * ps_Source->J) * d_Qfac;
 
-  td_Rotation.d_Matrix[1][0] = 2 * (ps_Source->I * ps_Source->J - ps_Source->W * ps_Source->K);
-  td_Rotation.d_Matrix[1][1] =     (ps_Source->W * ps_Source->W - ps_Source->I * ps_Source->I + ps_Source->J * ps_Source->J - ps_Source->K * ps_Source->K);
-  td_Rotation.d_Matrix[1][2] = 2 * (ps_Source->J * ps_Source->K + ps_Source->W * ps_Source->I)* d_Qfac;
+  td_Rotation.af_Matrix[1][0] = 2 * (ps_Source->I * ps_Source->J - ps_Source->W * ps_Source->K);
+  td_Rotation.af_Matrix[1][1] =     (ps_Source->W * ps_Source->W - ps_Source->I * ps_Source->I + ps_Source->J * ps_Source->J - ps_Source->K * ps_Source->K);
+  td_Rotation.af_Matrix[1][2] = 2 * (ps_Source->J * ps_Source->K + ps_Source->W * ps_Source->I)* d_Qfac;
 
-  td_Rotation.d_Matrix[2][0] = 2 * (ps_Source->I * ps_Source->K + ps_Source->W * ps_Source->J);
-  td_Rotation.d_Matrix[2][1] = 2 * (ps_Source->J * ps_Source->K - ps_Source->W * ps_Source->I);
-  td_Rotation.d_Matrix[2][2] =     (ps_Source->W * ps_Source->W - ps_Source->I * ps_Source->I - ps_Source->J * ps_Source->J + ps_Source->K * ps_Source->K) * d_Qfac;
+  td_Rotation.af_Matrix[2][0] = 2 * (ps_Source->I * ps_Source->K + ps_Source->W * ps_Source->J);
+  td_Rotation.af_Matrix[2][1] = 2 * (ps_Source->J * ps_Source->K - ps_Source->W * ps_Source->I);
+  td_Rotation.af_Matrix[2][2] =     (ps_Source->W * ps_Source->W - ps_Source->I * ps_Source->I - ps_Source->J * ps_Source->J + ps_Source->K * ps_Source->K) * d_Qfac;
 
+  td_Rotation.af_Matrix[3][0] = ps_SourceOffset->I;
+  td_Rotation.af_Matrix[3][1] = ps_SourceOffset->J;
+  td_Rotation.af_Matrix[3][2] = ps_SourceOffset->K;
 
-/*
-  td_Rotation.d_Matrix[0][0] =     (ps_Source->W * ps_Source->W + ps_Source->I * ps_Source->I - ps_Source->J * ps_Source->J - ps_Source->K * ps_Source->K);
-  td_Rotation.d_Matrix[0][1] = 2 * (ps_Source->I * ps_Source->J - ps_Source->W * ps_Source->K);
-  td_Rotation.d_Matrix[0][2] = 2 * (ps_Source->I * ps_Source->K + ps_Source->W * ps_Source->J);
-
-  td_Rotation.d_Matrix[1][0] = 2 * (ps_Source->I * ps_Source->J + ps_Source->W * ps_Source->K);
-  td_Rotation.d_Matrix[1][1] =     (ps_Source->W * ps_Source->W - ps_Source->I * ps_Source->I + ps_Source->J * ps_Source->J - ps_Source->K * ps_Source->K);
-  td_Rotation.d_Matrix[1][2] = 2 * (ps_Source->J * ps_Source->K - ps_Source->W * ps_Source->I);
-
-  td_Rotation.d_Matrix[2][0] = 2 * (ps_Source->I * ps_Source->K - ps_Source->W * ps_Source->J) * d_Qfac;
-  td_Rotation.d_Matrix[2][1] = 2 * (ps_Source->J * ps_Source->K + ps_Source->W * ps_Source->I)* d_Qfac;
-  td_Rotation.d_Matrix[2][2] =     (ps_Source->W * ps_Source->W - ps_Source->I * ps_Source->I - ps_Source->J * ps_Source->J + ps_Source->K * ps_Source->K) * d_Qfac;
-*/
-  td_Rotation.d_Matrix[3][0] = ps_SourceOffset->I;
-  td_Rotation.d_Matrix[3][1] = ps_SourceOffset->J;
-  td_Rotation.d_Matrix[3][2] = ps_SourceOffset->K;
-
-  td_Rotation.d_Matrix[0][3] = 0;
-  td_Rotation.d_Matrix[1][3] = 0;
-  td_Rotation.d_Matrix[2][3] = 0;
-  td_Rotation.d_Matrix[3][3] = 1;
+  td_Rotation.af_Matrix[0][3] = 0;
+  td_Rotation.af_Matrix[1][3] = 0;
+  td_Rotation.af_Matrix[2][3] = 0;
+  td_Rotation.af_Matrix[3][3] = 1;
 
 
   return td_Rotation;
 }
 
-ts_Quaternion ts_memory_matrix_to_quaternion(td_Matrix4x4 *pt_Matrix, double *pd_Qfac)
+td_Matrix4x4 tda_algebra_matrix_inverse(td_Matrix4x4 *ps_Matrix)
+{
+  double d_Determinant;
+  double r11,r12,r13,r21,r22,r23,r31,r32,r33,v1,v2,v3;
+  td_Matrix4x4 td_Inverse;
+
+  /* [ r11 r12 r13 v1 ] */
+  /* [ r21 r22 r23 v2 ] */
+  /* [ r31 r32 r33 v3 ] */
+  /* [  0   0   0   1 ] */
+
+  r11 = ps_Matrix->af_Matrix[0][0];
+  r12 = ps_Matrix->af_Matrix[1][0];
+  r13 = ps_Matrix->af_Matrix[2][0];
+  v1  = ps_Matrix->af_Matrix[3][0];
+
+  r21 = ps_Matrix->af_Matrix[0][1];
+  r22 = ps_Matrix->af_Matrix[1][1];
+  r23 = ps_Matrix->af_Matrix[2][1];
+  v2  = ps_Matrix->af_Matrix[3][1];
+
+  r31 = ps_Matrix->af_Matrix[0][2];
+  r32 = ps_Matrix->af_Matrix[1][2];
+  r33 = ps_Matrix->af_Matrix[2][2];
+  v3  = ps_Matrix->af_Matrix[3][2];
+
+  d_Determinant = r11*r22*r33 - r11*r32*r23 - r21*r12*r33 + r21*r32*r13 + r31*r12*r23 - r31*r22*r13 ;
+  d_Determinant = (d_Determinant == 0 ) ? d_Determinant : 1 / d_Determinant;
+
+
+  td_Inverse.af_Matrix[0][0] = d_Determinant * ( r22*r33-r32*r23);
+  td_Inverse.af_Matrix[1][0] = d_Determinant * (-r12*r33+r32*r13);
+  td_Inverse.af_Matrix[2][0] = d_Determinant * ( r12*r23-r22*r13);
+  td_Inverse.af_Matrix[3][0] = d_Determinant * (-r12*r23*v3 + r12*v2*r33 + r22*r13*v3 - r22*v1*r33 - r32*r13*v2 + r32*v1*r23);
+
+  td_Inverse.af_Matrix[0][1] = d_Determinant * (-r21*r33+r31*r23);
+  td_Inverse.af_Matrix[1][1] = d_Determinant * ( r11*r33-r31*r13);
+  td_Inverse.af_Matrix[2][1] = d_Determinant * (-r11*r23+r21*r13);
+  td_Inverse.af_Matrix[3][1] = d_Determinant * ( r11*r23*v3 - r11*v2*r33 - r21*r13*v3 + r21*v1*r33 + r31*r13*v2 - r31*v1*r23);
+
+  td_Inverse.af_Matrix[0][2] = d_Determinant * ( r21*r32-r31*r22);
+  td_Inverse.af_Matrix[1][2] = d_Determinant * (-r11*r32+r31*r12);
+  td_Inverse.af_Matrix[2][2] = d_Determinant * ( r11*r22-r21*r12);
+  td_Inverse.af_Matrix[3][2] = d_Determinant * (-r11*r22*v3 + r11*r32*v2 + r21*r12*v3 - r21*r32*v1 - r31*r12*v2 + r31*r22*v1);
+
+  td_Inverse.af_Matrix[0][3] = 0;
+  td_Inverse.af_Matrix[1][3] = 0;
+  td_Inverse.af_Matrix[2][3] = 0;
+  td_Inverse.af_Matrix[3][3] = (d_Determinant == 0) ? 0 : 1 ;
+
+  return td_Inverse;
+}
+
+ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(td_Matrix4x4 *pt_Matrix, double *pd_Qfac)
 {
   ts_Quaternion ts_Quat;
   double r11,r12,r13 , r21,r22,r23 , r31,r32,r33 ;
@@ -245,9 +524,9 @@ ts_Quaternion ts_memory_matrix_to_quaternion(td_Matrix4x4 *pt_Matrix, double *pd
 
   /* load 3x3 matrix into local variables */
 
-  r11 = pt_Matrix->d_Matrix[0][0] ; r12 = pt_Matrix->d_Matrix[1][0] ; r13 = pt_Matrix->d_Matrix[2][0] ;
-  r21 = pt_Matrix->d_Matrix[0][1] ; r22 = pt_Matrix->d_Matrix[1][1] ; r23 = pt_Matrix->d_Matrix[2][1] ;
-  r31 = pt_Matrix->d_Matrix[0][2] ; r32 = pt_Matrix->d_Matrix[1][2] ; r33 = pt_Matrix->d_Matrix[2][2] ;
+  r11 = pt_Matrix->af_Matrix[0][0] ; r12 = pt_Matrix->af_Matrix[1][0] ; r13 = pt_Matrix->af_Matrix[2][0] ;
+  r21 = pt_Matrix->af_Matrix[0][1] ; r22 = pt_Matrix->af_Matrix[1][1] ; r23 = pt_Matrix->af_Matrix[2][1] ;
+  r31 = pt_Matrix->af_Matrix[0][2] ; r32 = pt_Matrix->af_Matrix[1][2] ; r33 = pt_Matrix->af_Matrix[2][2] ;
 
   /* compute lengths of each column; these determine grid spacings  */
 
@@ -279,15 +558,15 @@ ts_Quaternion ts_memory_matrix_to_quaternion(td_Matrix4x4 *pt_Matrix, double *pd
       will result in the inverse orthogonal matrix at this point.
       If we just orthogonalized the columns, this wouldn't necessarily hold. */
 
-//   Q.d_Matrix[0][0] = r11 ; Q.d_Matrix[1][0] = r12 ; Q.d_Matrix[2][0] = r13 ; /* load Q */
-//   Q.d_Matrix[0][1] = r21 ; Q.d_Matrix[1][1] = r22 ; Q.d_Matrix[2][1] = r23 ;
-//   Q.d_Matrix[0][2] = r31 ; Q.d_Matrix[1][2] = r32 ; Q.d_Matrix[2][2] = r33 ;
+//   Q.af_Matrix[0][0] = r11 ; Q.af_Matrix[1][0] = r12 ; Q.af_Matrix[2][0] = r13 ; /* load Q */
+//   Q.af_Matrix[0][1] = r21 ; Q.af_Matrix[1][1] = r22 ; Q.af_Matrix[2][1] = r23 ;
+//   Q.af_Matrix[0][2] = r31 ; Q.af_Matrix[1][2] = r32 ; Q.af_Matrix[2][2] = r33 ;
 
 //   P = nifti_mat33_polar(Q) ;  /* P is orthog matrix closest to Q */
 
-//   r11 = P.d_Matrix[0][0] ; r12 = P.d_Matrix[1][0] ; r13 = P.d_Matrix[2][0] ; /* unload */
-//   r21 = P.d_Matrix[0][1] ; r22 = P.d_Matrix[1][1] ; r23 = P.d_Matrix[2][1] ;
-//   r31 = P.d_Matrix[0][2] ; r32 = P.d_Matrix[1][2] ; r33 = P.d_Matrix[2][2] ;
+//   r11 = P.af_Matrix[0][0] ; r12 = P.af_Matrix[1][0] ; r13 = P.af_Matrix[2][0] ; /* unload */
+//   r21 = P.af_Matrix[0][1] ; r22 = P.af_Matrix[1][1] ; r23 = P.af_Matrix[2][1] ;
+//   r31 = P.af_Matrix[0][2] ; r32 = P.af_Matrix[1][2] ; r33 = P.af_Matrix[2][2] ;
 
    /*                            [ r11 r12 r13 ]               */
    /* at this point, the matrix  [ r21 r22 r23 ] is orthogonal */
@@ -366,81 +645,6 @@ ts_Quaternion ts_memory_matrix_to_quaternion(td_Matrix4x4 *pt_Matrix, double *pd
   return ts_Quat;
 }
 
-
-td_Matrix4x4 tda_memory_quaternion_inverse_matrix(td_Matrix4x4 *ps_Matrix)
-{
-  double d_Determinant;
-  double r11,r12,r13,r21,r22,r23,r31,r32,r33,v1,v2,v3;
-  td_Matrix4x4 td_Inverse;
-
-  /* [ r11 r12 r13 v1 ] */
-  /* [ r21 r22 r23 v2 ] */
-  /* [ r31 r32 r33 v3 ] */
-  /* [  0   0   0   1 ] */
-
-  r11 = ps_Matrix->d_Matrix[0][0];
-  r12 = ps_Matrix->d_Matrix[1][0];
-  r13 = ps_Matrix->d_Matrix[2][0];
-  v1  = ps_Matrix->d_Matrix[3][0];
-
-  r21 = ps_Matrix->d_Matrix[0][1];
-  r22 = ps_Matrix->d_Matrix[1][1];
-  r23 = ps_Matrix->d_Matrix[2][1];
-  v2  = ps_Matrix->d_Matrix[3][1];
-
-  r31 = ps_Matrix->d_Matrix[0][2];
-  r32 = ps_Matrix->d_Matrix[1][2];
-  r33 = ps_Matrix->d_Matrix[2][2];
-  v3  = ps_Matrix->d_Matrix[3][2];
-
-  d_Determinant = r11*r22*r33 - r11*r32*r23 - r21*r12*r33 + r21*r32*r13 + r31*r12*r23 - r31*r22*r13 ;
-  d_Determinant = (d_Determinant == 0 ) ? d_Determinant : 1 / d_Determinant;
-
-
-  td_Inverse.d_Matrix[0][0] = d_Determinant * ( r22*r33-r32*r23);
-  td_Inverse.d_Matrix[1][0] = d_Determinant * (-r12*r33+r32*r13);
-  td_Inverse.d_Matrix[2][0] = d_Determinant * ( r12*r23-r22*r13);
-  td_Inverse.d_Matrix[3][0] = d_Determinant * (-r12*r23*v3 + r12*v2*r33 + r22*r13*v3 - r22*v1*r33 - r32*r13*v2 + r32*v1*r23);
-
-  td_Inverse.d_Matrix[0][1] = d_Determinant * (-r21*r33+r31*r23);
-  td_Inverse.d_Matrix[1][1] = d_Determinant * ( r11*r33-r31*r13);
-  td_Inverse.d_Matrix[2][1] = d_Determinant * (-r11*r23+r21*r13);
-  td_Inverse.d_Matrix[3][1] = d_Determinant * ( r11*r23*v3 - r11*v2*r33 - r21*r13*v3 + r21*v1*r33 + r31*r13*v2 - r31*v1*r23);
-
-  td_Inverse.d_Matrix[0][2] = d_Determinant * ( r21*r32-r31*r22);
-  td_Inverse.d_Matrix[1][2] = d_Determinant * (-r11*r32+r31*r12);
-  td_Inverse.d_Matrix[2][2] = d_Determinant * ( r11*r22-r21*r12);
-  td_Inverse.d_Matrix[3][2] = d_Determinant * (-r11*r22*v3 + r11*r32*v2 + r21*r12*v3 - r21*r32*v1 - r31*r12*v2 + r31*r22*v1);
-
-  td_Inverse.d_Matrix[0][3] = 0;
-  td_Inverse.d_Matrix[1][3] = 0;
-  td_Inverse.d_Matrix[2][3] = 0;
-  td_Inverse.d_Matrix[3][3] = (d_Determinant == 0) ? 0 : 1 ;
-
-  return td_Inverse;
-}
-
-Vector3D ts_memory_matrix_multiply4x4(td_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector)
-{
-  Vector3D ts_MultiplyVector;
-
-  ts_MultiplyVector.x = ps_Vector->x  * ps_Matrix->d_Matrix[0][0] +
-                        ps_Vector->y  * ps_Matrix->d_Matrix[0][1] +
-                        ps_Vector->z  * ps_Matrix->d_Matrix[0][2] +
-                        ps_Matrix->d_Matrix[0][3];
-
-  ts_MultiplyVector.y = ps_Vector->x  * ps_Matrix->d_Matrix[1][0] +
-                        ps_Vector->y  * ps_Matrix->d_Matrix[1][1] +
-                        ps_Vector->z  * ps_Matrix->d_Matrix[1][2] +
-                        ps_Matrix->d_Matrix[1][3];
-
-  ts_MultiplyVector.z = ps_Vector->x  * ps_Matrix->d_Matrix[2][0] +
-                        ps_Vector->y  * ps_Matrix->d_Matrix[2][1] +
-                        ps_Vector->z  * ps_Matrix->d_Matrix[2][2] +
-                        ps_Matrix->d_Matrix[2][3];
-
-  return ts_MultiplyVector;
-}
 
 
 

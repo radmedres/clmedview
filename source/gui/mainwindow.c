@@ -162,12 +162,6 @@ GtkWidget* gui_mainwindow_toolbar_new ();
 char* gui_mainwindow_file_dialog (GtkWidget* parent, GtkFileChooserAction action);
 void gui_mainwindow_clear_viewers ();
 
-// Matrix rotation
-Vector3D ts_Rotation_around_X_Axis (Vector3D *ps_Vector, double f_angle);
-Vector3D ts_Rotation_around_Y_Axis (Vector3D *ps_Vector, double f_angle);
-Vector3D ts_Rotation_around_Z_Axis (Vector3D *ps_Vector, double f_angle);
-
-
 /******************************************************************************
  * OBJECT INTERNAL VARIABLES
  ******************************************************************************/
@@ -1241,54 +1235,6 @@ gui_mainwindow_update_viewer_wwwl (Viewer *viewer, void *data)
 }
 
 
-/* Rotation vector around x-axis (http://en.wikipedia.org/wiki/Rotation_matrix)
-          | 1  0    0  |   | x |
-      R = | 0 cos -sin | * | y |
-          | 0 sin  cos |   | z |
-*/
-Vector3D ts_Rotation_around_X_Axis (Vector3D *ps_Vector, double f_angle)
-{
-  Vector3D ts_rotatedVector;
-
-  ts_rotatedVector.x = 1 * ps_Vector->x -      0        * ps_Vector->y +     0         * ps_Vector->z;
-  ts_rotatedVector.y = 0 * ps_Vector->x + cos (f_angle) * ps_Vector->y - sin (f_angle) * ps_Vector->z;
-  ts_rotatedVector.z = 0 * ps_Vector->x + sin (f_angle) * ps_Vector->y + cos (f_angle) * ps_Vector->z;
-
-  return ts_rotatedVector;
-}
-
-/* Rotation vector around y-axis (http://en.wikipedia.org/wiki/Rotation_matrix)
-          |  cos  0  sin |   | x |
-      R = |   0   1   0  | * | y |
-          | -sin  0  cos |   | z |
-*/
-Vector3D ts_Rotation_around_Y_Axis (Vector3D *ps_Vector, double f_angle)
-{
-  Vector3D ts_rotatedVector;
-
-  ts_rotatedVector.x =  cos (f_angle) * ps_Vector->x + 0 * ps_Vector->y + sin (f_angle) * ps_Vector->z;
-  ts_rotatedVector.y =      0         * ps_Vector->x + 1 * ps_Vector->y + 0             * ps_Vector->z;
-  ts_rotatedVector.z = -sin (f_angle) * ps_Vector->x + 0 * ps_Vector->y + cos (f_angle) * ps_Vector->z;
-
-  return ts_rotatedVector;
-}
-
-/* Rotation vector around z-axis (http://en.wikipedia.org/wiki/Rotation_matrix)
-          | cos -sin 0  |   | x |
-      R = | sin  cos 0  | * | y |
-          |  0    0  1  |   | z |
-*/
-Vector3D ts_Rotation_around_Z_Axis (Vector3D *ps_Vector, double f_angle)
-{
-  Vector3D ts_rotatedVector;
-
-  ts_rotatedVector.x = cos (f_angle) * ps_Vector->x - sin (f_angle) * ps_Vector->y + 0 * ps_Vector->z;
-  ts_rotatedVector.y = sin (f_angle) * ps_Vector->x + cos (f_angle) * ps_Vector->y + 0 * ps_Vector->z;
-  ts_rotatedVector.z =     0                        -     0                        + 1 * ps_Vector->z;
-
-  return ts_rotatedVector;
-}
-
 
 
 void
@@ -1341,8 +1287,8 @@ gui_mainwindow_update_handle_position (Viewer *viewer, void *data)
   {
     case ORIENTATION_AXIAL:
     {
-      ts_NormalVector=ts_Rotation_around_Y_Axis(&viewer->ts_NormalVector,M_PI_2);
-      ts_rotationVector=ts_Rotation_around_Z_Axis(&ts_NormalVector,f_angle);
+      ts_NormalVector=ts_algebra_vector_Rotation_around_X_Axis(&viewer->ts_NormalVector,M_PI_2);
+      ts_rotationVector=ts_algebra_vector_Rotation_around_Z_Axis(&ts_NormalVector,f_angle);
 
       sagital->ts_NormalVector.x = ts_rotationVector.x;
       sagital->ts_NormalVector.y = ts_rotationVector.y;
@@ -1351,8 +1297,8 @@ gui_mainwindow_update_handle_position (Viewer *viewer, void *data)
       viewer_refresh_data(sagital);
       viewer_redraw (sagital, REDRAW_MINIMAL);
 
-      ts_NormalVector=ts_Rotation_around_X_Axis(&viewer->ts_NormalVector,-M_PI_2);
-      ts_rotationVector=ts_Rotation_around_Z_Axis(&ts_NormalVector,f_angle);
+      ts_NormalVector=ts_algebra_vector_Rotation_around_X_Axis(&viewer->ts_NormalVector,-M_PI_2);
+      ts_rotationVector=ts_algebra_vector_Rotation_around_Z_Axis(&ts_NormalVector,f_angle);
 
       coronal->ts_NormalVector.x = ts_rotationVector.x;
       coronal->ts_NormalVector.y = ts_rotationVector.y;
@@ -1364,8 +1310,8 @@ gui_mainwindow_update_handle_position (Viewer *viewer, void *data)
     break;
   case ORIENTATION_SAGITAL:
     {
-      ts_NormalVector=ts_Rotation_around_Y_Axis(&viewer->ts_NormalVector,-M_PI_2);
-      ts_rotationVector=ts_Rotation_around_X_Axis(&ts_NormalVector,f_angle);
+      ts_NormalVector=ts_algebra_vector_Rotation_around_X_Axis(&viewer->ts_NormalVector,-M_PI_2);
+      ts_rotationVector=ts_algebra_vector_Rotation_around_X_Axis(&ts_NormalVector,f_angle);
 
       axial->ts_NormalVector.x = ts_rotationVector.x;
       axial->ts_NormalVector.y = ts_rotationVector.y;
@@ -1374,8 +1320,8 @@ gui_mainwindow_update_handle_position (Viewer *viewer, void *data)
       viewer_refresh_data(axial);
       viewer_redraw (axial, REDRAW_MINIMAL);
 
-      ts_NormalVector=ts_Rotation_around_Z_Axis(&viewer->ts_NormalVector,M_PI_2);
-      ts_rotationVector=ts_Rotation_around_X_Axis(&ts_NormalVector,f_angle);
+      ts_NormalVector=ts_algebra_vector_Rotation_around_Z_Axis(&viewer->ts_NormalVector,M_PI_2);
+      ts_rotationVector=ts_algebra_vector_Rotation_around_X_Axis(&ts_NormalVector,f_angle);
 
       coronal->ts_NormalVector.x = ts_rotationVector.x;
       coronal->ts_NormalVector.y = ts_rotationVector.y;
@@ -1387,8 +1333,8 @@ gui_mainwindow_update_handle_position (Viewer *viewer, void *data)
     break;
   case ORIENTATION_CORONAL:
     {
-      ts_NormalVector=ts_Rotation_around_X_Axis(&viewer->ts_NormalVector,M_PI_2);
-      ts_rotationVector=ts_Rotation_around_Y_Axis(&ts_NormalVector,f_angle);
+      ts_NormalVector=ts_algebra_vector_Rotation_around_X_Axis(&viewer->ts_NormalVector,M_PI_2);
+      ts_rotationVector=ts_algebra_vector_Rotation_around_X_Axis(&ts_NormalVector,f_angle);
 
       axial->ts_NormalVector.x=ts_rotationVector.x;
       axial->ts_NormalVector.y=ts_rotationVector.y;
@@ -1397,8 +1343,8 @@ gui_mainwindow_update_handle_position (Viewer *viewer, void *data)
       viewer_refresh_data(axial);
       viewer_redraw (axial, REDRAW_MINIMAL);
 
-      ts_NormalVector=ts_Rotation_around_Z_Axis(&viewer->ts_NormalVector,M_PI_2);
-      ts_rotationVector=ts_Rotation_around_Y_Axis(&ts_NormalVector,f_angle);
+      ts_NormalVector=ts_algebra_vector_Rotation_around_Z_Axis(&viewer->ts_NormalVector,M_PI_2);
+      ts_rotationVector=ts_algebra_vector_Rotation_around_X_Axis(&ts_NormalVector,f_angle);
 
       sagital->ts_NormalVector.x=ts_rotationVector.x;
       sagital->ts_NormalVector.y=ts_rotationVector.y;
