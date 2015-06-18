@@ -60,7 +60,10 @@ short int i16_memory_io_load_file_dicom (Tree **patient_tree, char *path);
 typedef struct s_dicom_FileProperties
 {
   char                          *pc_Filename;
-  Coordinate3D                  ts_Position;
+  Coordinate3D                  ts_ZPosition;
+  Vector3D                      ts_XVector;
+  Vector3D                      ts_YVector;
+
   short int                     i16_relativeOrderNumber;
   short int                     i16_TemporalPositionIdentifier;
   short int                     i16_StackPositionIdentifier;
@@ -68,6 +71,17 @@ typedef struct s_dicom_FileProperties
   te_DCM_ComplexImageComponent  e_DCM_CIC;
 
 } ts_dicom_FileProperties;
+
+
+void v_print_Matrix(ts_Matrix4x4 *pt_Matrix)
+{
+  printf("%10.4f, %10.4f, %10.4f, %10.4f \n", pt_Matrix->af_Matrix[0][0], pt_Matrix->af_Matrix[1][0], pt_Matrix->af_Matrix[2][0], pt_Matrix->af_Matrix[3][0]);
+  printf("%10.4f, %10.4f, %10.4f, %10.4f \n", pt_Matrix->af_Matrix[0][1], pt_Matrix->af_Matrix[1][1], pt_Matrix->af_Matrix[2][1], pt_Matrix->af_Matrix[3][1]);
+  printf("%10.4f, %10.4f, %10.4f, %10.4f \n", pt_Matrix->af_Matrix[0][2], pt_Matrix->af_Matrix[1][2], pt_Matrix->af_Matrix[2][2], pt_Matrix->af_Matrix[3][2]);
+  printf("%10.4f, %10.4f, %10.4f, %10.4f \n", pt_Matrix->af_Matrix[0][3], pt_Matrix->af_Matrix[1][3], pt_Matrix->af_Matrix[2][3], pt_Matrix->af_Matrix[3][3]);
+  printf("\n");
+}
+
 
 
 
@@ -204,6 +218,11 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
   short int i16_Cnt=0;
   short int i16_timeFrameCnt=0;
 
+  Coordinate3D ts_slicePosition;
+  Vector3D     ts_XVector;
+  Vector3D     ts_YVector;
+  Vector3D     ts_ZVector;
+
   te_DCM_ComplexImageComponent e_DCM_CIC;
 
   // Build list of all files
@@ -233,9 +252,9 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
     strcpy(&pc_fullPath[strlen(pc_fullPath)],"/");
     strcpy(&pc_fullPath[strlen(pc_fullPath)],p_dirEntry->d_name);
 
-    Coordinate3D ts_slicePosition;
 
-    if (i16_memory_io_dicom_loadMetaData(ps_patient,ps_study,ps_serie, &ts_slicePosition, &i16_TemporalPositionIdentifier, &i16_StackPositionIdentifier, &e_DCM_CIC,  pc_fullPath))
+
+    if (i16_memory_io_dicom_loadMetaData(ps_patient,ps_study,ps_serie, &ts_slicePosition, &ts_XVector, &ts_YVector, &i16_TemporalPositionIdentifier, &i16_StackPositionIdentifier, &e_DCM_CIC,  pc_fullPath))
     {
       ts_dicom_FileProperties *ps_dicomFile=calloc(1,sizeof(ts_dicom_FileProperties));
 
@@ -246,20 +265,19 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
       }
 
       ps_dicomFile->pc_Filename = pc_fullPath;
-      ps_dicomFile->ts_Position=ts_slicePosition;
-      ps_dicomFile->i16_relativeOrderNumber = i16_memory_io_dicom_relativePosition(&ps_ReferenceFileProps->ts_Position,
-                                                                                   &ps_dicomFile->ts_Position,
-                                                                                   &ps_serie->t_ScannerSpaceIJKtoXYZ,
+      ps_dicomFile->ts_ZPosition = ts_slicePosition;
+      ps_dicomFile->ts_XVector = s_algebra_vector_normalize(&ts_XVector);
+      ps_dicomFile->ts_YVector = s_algebra_vector_normalize(&ts_YVector);
+      ts_ZVector = s_algebra_vector_crossproduct(&ps_dicomFile->ts_XVector,&ps_dicomFile->ts_YVector);
+
+      ps_dicomFile->i16_relativeOrderNumber = i16_memory_io_dicom_relativePosition(&ps_ReferenceFileProps->ts_ZPosition,
+                                                                                   &ps_dicomFile->ts_ZPosition,
+                                                                                   &ts_ZVector,
                                                                                    &ps_serie->pixel_dimension);
 
-      ps_dicomFile->i16_TemporalPositionIdentifier = i16_TemporalPositionIdentifier;
+      ps_dicomFile->i16_TemporalPositionIdentifier = (i16_TemporalPositionIdentifier==0)?1:i16_TemporalPositionIdentifier;
       ps_dicomFile->i16_StackPositionIdentifier = i16_StackPositionIdentifier;
       ps_dicomFile->e_DCM_CIC = e_DCM_CIC;
-
-
-
-
-
 
       if (ps_dicomFile->i16_relativeOrderNumber < i16_MinimumReferenceOrderValue)
       {
@@ -279,9 +297,6 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
   }
 
   closedir (p_dicomDirectory);
-
-
-
 
   //Check if patient exists
   patientTreeIterator=tree_nth(*patient_tree,1);
@@ -404,11 +419,50 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
         {
           ps_dicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesIter->data);
 
+
+
           if ((ps_dicomFile->i16_relativeOrderNumber == i16_Cnt) &&
               (ps_dicomFile->i16_TemporalPositionIdentifier == i16_timeFrameCnt) &&
               ((ps_dicomFile->e_DCM_CIC == e_DCM_CIC) || b_RecoDoesntMatter))
           {
             i16_memory_io_dicom_loadSingleSlice(ps_serie, ps_dicomFile->pc_Filename, i16_NumberOfSlices, i16_timeFrameCnt-1 + i16_RecoCnt * ps_serie->num_time_series/i16_NumberOfReconstructions);
+
+            if (i16_Cnt==i16_MinimumReferenceOrderValue)
+            {
+              // first slice, calculate Orientation;
+
+              ps_dicomFile->ts_XVector = s_algebra_vector_normalize(&ps_dicomFile->ts_XVector);
+              ps_dicomFile->ts_YVector = s_algebra_vector_normalize(&ps_dicomFile->ts_YVector);
+              ts_ZVector = s_algebra_vector_crossproduct(&ps_dicomFile->ts_XVector,&ps_dicomFile->ts_YVector);
+
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][0] = ps_dicomFile->ts_XVector.x;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][1] = ps_dicomFile->ts_XVector.y;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][2] = ps_dicomFile->ts_XVector.z;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][3] = 0;
+
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][0] = ps_dicomFile->ts_YVector.x;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][1] = ps_dicomFile->ts_YVector.y;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][2] = ps_dicomFile->ts_YVector.z;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][3] = 0;
+
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][0] = ts_ZVector.x;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][1] = ts_ZVector.y;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][2] = ts_ZVector.z;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][3] = 0;
+
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][0] = ps_dicomFile->ts_ZPosition.x;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][1] = ps_dicomFile->ts_ZPosition.y;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][2] = ps_dicomFile->ts_ZPosition.z;
+              ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][3] = 1;
+
+              // Convert Left handiness to Right handiness
+              ts_Matrix4x4 ts_LPS_RAS;
+              LOAD_MAT44(ts_LPS_RAS, -1, 0, 0, 0,  0, -1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1);
+
+              ps_serie->t_ScannerSpaceIJKtoXYZ = tda_algebra_matrix_4x4_multiply(&ts_LPS_RAS,&ps_serie->t_ScannerSpaceIJKtoXYZ);
+            }
+
+
             i16_NumberOfSlices++;
 
             if (pll_dicomFilesIter != pll_dicomFiles)
@@ -424,9 +478,8 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
     }
   }
 
-  ps_serie->d_Qfac=1;
   ps_serie->i16_QuaternionCode=1; //NIFTI_XFORM_SCANNER_ANAT
-  ps_serie->t_ScannerSpaceXYZtoIJK = tda_algebra_matrix_inverse(&ps_serie->t_ScannerSpaceIJKtoXYZ);
+  ps_serie->t_ScannerSpaceXYZtoIJK = tda_algebra_matrix_4x4_inverse(&ps_serie->t_ScannerSpaceIJKtoXYZ);
 
   ps_serie->pt_RotationMatrix = &ps_serie->t_ScannerSpaceIJKtoXYZ;
   ps_serie->pt_InverseMatrix = &ps_serie->t_ScannerSpaceXYZtoIJK;
@@ -435,46 +488,16 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
   ps_serie->raw_data_type=MEMORY_TYPE_UINT16;
   ps_serie->u8_AxisUnits=0;
 
+
   ps_serie->ps_Quaternion = calloc (1, sizeof (ts_Quaternion));
-
-  td_Matrix4x4 td_Temp;
-  td_Temp.af_Matrix[0][0] = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][0] * ps_serie->pixel_dimension.x;
-  td_Temp.af_Matrix[0][1] = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][1] * ps_serie->pixel_dimension.x;
-  td_Temp.af_Matrix[0][2] = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][2] * ps_serie->pixel_dimension.x;
-
-  td_Temp.af_Matrix[1][0] = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][0] * ps_serie->pixel_dimension.y;
-  td_Temp.af_Matrix[1][1] = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][1] * ps_serie->pixel_dimension.y;
-  td_Temp.af_Matrix[1][2] = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][2] * ps_serie->pixel_dimension.y;
-
-  td_Temp.af_Matrix[2][0] = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][0] * ps_serie->pixel_dimension.z;
-  td_Temp.af_Matrix[2][1] = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][1] * ps_serie->pixel_dimension.z;
-  td_Temp.af_Matrix[2][2] = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][2] * ps_serie->pixel_dimension.z;
-
-  *ps_serie->ps_Quaternion = ts_algebra_quaternion_MatrixToQuaternion(&td_Temp, &ps_serie->d_Qfac);
+  *ps_serie->ps_Quaternion = ts_algebra_quaternion_MatrixToQuaternion(&ps_serie->t_ScannerSpaceIJKtoXYZ, &ps_serie->d_Qfac);
 
   ps_serie->ps_QuaternationOffset = calloc (1, sizeof (ts_Quaternion));
+
+
   ps_serie->ps_QuaternationOffset->I = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][0];
   ps_serie->ps_QuaternationOffset->J = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][1];
   ps_serie->ps_QuaternationOffset->K = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][2];
-
-
-  td_Matrix4x4 ts_Recalculated;
-
-  ts_Recalculated = tda_algebra_matrix_QuaternionToMatrix(ps_serie->ps_Quaternion,ps_serie->ps_QuaternationOffset,ps_serie->d_Qfac);
-
-  printf("Translation matrix in scannerspace:\n");
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][0], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][0], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][0], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][0]);
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][1], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][1], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][1], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][1]);
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][2], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][2], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][2], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][2]);
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[0][3], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[1][3], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[2][3], ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][3]);
-  printf("\n");
-
-  printf("Recalculated translation matrix in scannerspace:\n");
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ts_Recalculated.af_Matrix[0][0], ts_Recalculated.af_Matrix[1][0], ts_Recalculated.af_Matrix[2][0], ts_Recalculated.af_Matrix[3][0]);
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ts_Recalculated.af_Matrix[0][1], ts_Recalculated.af_Matrix[1][1], ts_Recalculated.af_Matrix[2][1], ts_Recalculated.af_Matrix[3][1]);
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ts_Recalculated.af_Matrix[0][2], ts_Recalculated.af_Matrix[1][2], ts_Recalculated.af_Matrix[2][2], ts_Recalculated.af_Matrix[3][2]);
-  printf("%10.2f, %10.2f, %10.2f, %10.2f \n", ts_Recalculated.af_Matrix[0][3], ts_Recalculated.af_Matrix[1][3], ts_Recalculated.af_Matrix[2][3], ts_Recalculated.af_Matrix[3][3]);
-  printf("\n");
 
   // clear everything
   pll_dicomFilesIter = list_nth(pll_dicomFiles,1);

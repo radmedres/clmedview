@@ -674,7 +674,7 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
         serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][2]=0;
         serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][3]=1;
 
-        serie->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_inverse(&serie->t_StandardSpaceIJKtoXYZ);
+        serie->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_4x4_inverse(&serie->t_StandardSpaceIJKtoXYZ);
 
         serie->pt_RotationMatrix = &serie->t_StandardSpaceIJKtoXYZ;
         serie->pt_InverseMatrix = &serie->t_StandardSpaceXYZtoIJK;
@@ -683,7 +683,7 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
               (serie->i16_StandardSpaceCode == NIFTI_XFORM_TALAIRACH) ||
               (serie->i16_StandardSpaceCode == NIFTI_XFORM_MNI_152))
       {
-        serie->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_inverse(&serie->t_StandardSpaceIJKtoXYZ);
+        serie->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_4x4_inverse(&serie->t_StandardSpaceIJKtoXYZ);
         serie->pt_RotationMatrix = &serie->t_StandardSpaceIJKtoXYZ;
         serie->pt_InverseMatrix = &serie->t_StandardSpaceXYZtoIJK;
       }

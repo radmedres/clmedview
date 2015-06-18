@@ -37,26 +37,26 @@
 /*                                                                                                    */
 short int i16_memory_io_dicom_relativePosition(Coordinate3D *ps_referencePosition,
                                                Coordinate3D *ps_position,
-                                               td_Matrix4x4 *pt_rotationMatrix,
+                                               Vector3D     *ps_Zvector,
                                                Coordinate3D *ps_pixel_dimension)
 {
   Coordinate3D s_Delta;
-  Vector3D z_Vector;
   Vector3D relativeVector;
 
   s_Delta.z = ps_position->z - ps_referencePosition->z;
 
-  z_Vector.z = pt_rotationMatrix->af_Matrix[2][2];
-
-  relativeVector.z = s_Delta.z / (z_Vector.z * ps_pixel_dimension->z);
+  relativeVector.z = s_Delta.z / (ps_Zvector->z * ps_pixel_dimension->z);
 
   return round(relativeVector.z);
 }
+
 
 short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
                                            Study *ps_study,
                                            Serie *ps_serie,
                                            Coordinate3D *ps_SlicePosition,
+                                           Vector3D  *ps_XVector,
+                                           Vector3D  *ps_YVector,
                                            short int *pi16_TemporalPositionIdentifier,
                                            short int *pi16_StackPositionIdentifier,
                                            te_DCM_ComplexImageComponent *pe_DCM_CIC,
@@ -179,6 +179,12 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
           break;
         case DCM_ImageOrientationPatient:	// DS, 6 values
           zzrDS(zz, 6, imageorientation);
+          ps_XVector->x = imageorientation[0];
+          ps_XVector->y = imageorientation[1];
+          ps_XVector->z = imageorientation[2];
+          ps_YVector->x = imageorientation[3];
+          ps_YVector->y = imageorientation[4];
+          ps_YVector->z = imageorientation[5];
           break;
         case DCM_RescaleIntercept:	// DS, the b in m*SV + b
           zzgetstring(zz, value, sizeof(value) - 1);

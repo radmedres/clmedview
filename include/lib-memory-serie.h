@@ -190,13 +190,13 @@ typedef struct
   * Rotation matrix of scanner space.
   * It defines the translation from IJK space to XYZ
   */
-  td_Matrix4x4 t_ScannerSpaceIJKtoXYZ;
+  ts_Matrix4x4 t_ScannerSpaceIJKtoXYZ;
 
   /**
   * Inverse rotation matrix of scanner space.
   * It defines the translation from XYZ space to IJK
   */
-  td_Matrix4x4 t_ScannerSpaceXYZtoIJK;
+  ts_Matrix4x4 t_ScannerSpaceXYZtoIJK;
 
   /**
   * Standard space code which defined the type of space
@@ -207,24 +207,24 @@ typedef struct
   * Rotation matrix of scanner space.
   * It defines the translation from IJK space to XYZ
   */
-  td_Matrix4x4 t_StandardSpaceIJKtoXYZ;
+  ts_Matrix4x4 t_StandardSpaceIJKtoXYZ;
 
   /**
   * Inverse rotation matrix of scanner space.
   * It defines the translation from XYZ space to IJK
   */
-  td_Matrix4x4 t_StandardSpaceXYZtoIJK;
+  ts_Matrix4x4 t_StandardSpaceXYZtoIJK;
 
 
   /**
   * Pointer to selected rotation matrices
   */
-  td_Matrix4x4 *pt_RotationMatrix;
+  ts_Matrix4x4 *pt_RotationMatrix;
 
   /**
   * Pointer to selected inverse rotation matrices
   */
-  td_Matrix4x4 *pt_InverseMatrix;
+  ts_Matrix4x4 *pt_InverseMatrix;
 
   /**
   * Minimum value in serie.

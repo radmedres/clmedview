@@ -336,7 +336,7 @@ memory_serie_create_mask_from_serie (Serie *serie)
     mask->t_StandardSpaceIJKtoXYZ.af_Matrix[2][3]=0;
     mask->t_StandardSpaceIJKtoXYZ.af_Matrix[3][3]=1;
 
-    mask->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_inverse(&mask->t_StandardSpaceIJKtoXYZ);
+    mask->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_4x4_inverse(&mask->t_StandardSpaceIJKtoXYZ);
 
     mask->pt_RotationMatrix = &mask->t_StandardSpaceIJKtoXYZ;
     mask->pt_InverseMatrix = &mask->t_StandardSpaceXYZtoIJK;
@@ -345,7 +345,7 @@ memory_serie_create_mask_from_serie (Serie *serie)
           (mask->i16_StandardSpaceCode == NIFTI_XFORM_TALAIRACH) ||
           (mask->i16_StandardSpaceCode == NIFTI_XFORM_MNI_152))
   {
-    mask->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_inverse(&mask->t_StandardSpaceIJKtoXYZ);
+    mask->t_StandardSpaceXYZtoIJK = tda_algebra_matrix_4x4_inverse(&mask->t_StandardSpaceIJKtoXYZ);
     mask->pt_RotationMatrix = &mask->t_StandardSpaceIJKtoXYZ;
     mask->pt_InverseMatrix = &mask->t_StandardSpaceXYZtoIJK;
   }
@@ -450,12 +450,12 @@ v_memory_io_handleSpace (Serie *serie)
     serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][2] = 0;
     serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][3] = 1;
 
-    serie->t_ScannerSpaceXYZtoIJK = tda_algebra_matrix_inverse(&serie->t_ScannerSpaceIJKtoXYZ);
+    serie->t_ScannerSpaceXYZtoIJK = tda_algebra_matrix_4x4_inverse(&serie->t_ScannerSpaceIJKtoXYZ);
   }
   else if (serie->i16_QuaternionCode == NIFTI_XFORM_SCANNER_ANAT)
   {
-    serie->t_ScannerSpaceIJKtoXYZ = tda_algebra_matrix_QuaternionToMatrix(serie->ps_Quaternion, serie->ps_QuaternationOffset, serie->d_Qfac);
-    serie->t_ScannerSpaceXYZtoIJK = tda_algebra_matrix_inverse(&serie->t_ScannerSpaceIJKtoXYZ);
+    serie->t_ScannerSpaceIJKtoXYZ = tda_algebra_matrix_4x4_QuaternionToMatrix(serie->ps_Quaternion, serie->ps_QuaternationOffset, serie->d_Qfac);
+    serie->t_ScannerSpaceXYZtoIJK = tda_algebra_matrix_4x4_inverse(&serie->t_ScannerSpaceIJKtoXYZ);
   }
 
 }
