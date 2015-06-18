@@ -21,9 +21,9 @@ SUBDIRS                 = . plugin
 ACLOCAL_AMFLAGS         = -I m4
 AUTOMAKE_OPTIONS 	= subdir-objects
 AM_CFLAGS 		= $(gtk_CFLAGS) $(glib_CFLAGS) $(zlib_CFLAGS) \
-                $(clutter_CFLAGS) \
-                $(cluttergtk_CFLAGS) $(uuid_CFLAGS) -Iinclude/ \
-                -Ilib/lib-common/include/ -Iplugin/
+                          $(clutter_CFLAGS) \
+                          $(cluttergtk_CFLAGS) $(uuid_CFLAGS) -Iinclude/ \
+                         -Ilib/lib-common/include/ -Iplugin/
 
 bin_PROGRAMS 		= clmedview
 
@@ -40,12 +40,12 @@ INCLUDE_SOURCES 	= include/lib-pixeldata.h \
 			  include/lib-memory-study.h \
 			  include/lib-memory-serie.h \
 			  include/lib-memory-slice.h \
-			  include/lib-memory-quaternion.h \
 			  include/lib-memory-tree.h \
 			  include/lib-common-list.h \
 			  include/lib-common-tree.h \
 			  include/lib-common-debug.h \
 			  include/lib-common-unused.h \
+			  include/lib-common-algebra.h \
 			  include/lib-configuration.h
 
 PLUGIN_FILES		= plugin/Makefile.am \
@@ -77,19 +77,19 @@ LIB_IO_DICOM_SOURCES    = lib/lib-io-dicom/lib-io-dicom.c \
 
 
 
-LIB_IO_NIFTI_SOURCES = lib/lib-io-nifti/lib-io-nifti.c
+LIB_IO_NIFTI_SOURCES    = lib/lib-io-nifti/lib-io-nifti.c
 
 LIB_MEMORY_SOURCES	= lib/lib-memory/lib-memory-tree.c \
 			  lib/lib-memory/lib-memory-patient.c \
 			  lib/lib-memory/lib-memory-study.c \
 			  lib/lib-memory/lib-memory-serie.c \
 			  lib/lib-memory/lib-memory-slice.c \
-			  lib/lib-memory/lib-memory-quaternion.c \
 			  lib/lib-memory/lib-memory-io.c
 
 LIB_COMMON_SOURCES	= lib/lib-common/lib-common-list.c \
 			  lib/lib-common/lib-common-tree.c \
 			  lib/lib-common/lib-common-history.c \
+			  lib/lib-common/lib-common-algebra.c \
 			  lib/lib-common/lib-common-debug.c
 
 LIB_PIXELDATA_SOURCES	= lib/lib-pixeldata/lib-pixeldata.c \

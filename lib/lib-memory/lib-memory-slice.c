@@ -20,7 +20,7 @@
 #include "lib-memory-slice.h"
 #include "lib-memory-serie.h"
 #include "lib-common-debug.h"
-#include "lib-memory-quaternion.h"
+#include "lib-common-algebra.h"
 
 #include <stdio.h>
 #include <stdlib.h>

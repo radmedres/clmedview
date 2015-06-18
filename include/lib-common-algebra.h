@@ -17,8 +17,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MEMORY_QUATERNION_H
-#define MEMORY_QUATERNION_H
+#ifndef COMMON_ALGEBRA_H
+#define COMMON_ALGEBRA_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -111,4 +111,4 @@ Vector3D ts_memory_matrix_multiply4x4(td_Matrix4x4 *ps_Matrix, Vector3D *ps_Vect
 }
 #endif
 
-#endif//MEMORY_QUATERNION_H
+#endif//COMMON_ALGEBRA_H
