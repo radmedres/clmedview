@@ -28,7 +28,7 @@ extern "C" {
 #include "lib-common.h"
 #include "lib-common-list.h"
 #include "lib-memory.h"
-#include "lib-memory-quaternion.h"
+#include "lib-common-algebra.h"
 
 #define COORDINATES_UNKNOWN      0  /*! Arbitrary coordinates (Method 1). */
 #define COORDINATES_SCANNER_ANAT 1  /*! Scanner-based anatomical coordinates */

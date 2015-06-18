@@ -26,7 +26,7 @@
 #include "lib/lib-io-nifti/include/nifti1.h"
 #include "lib-memory.h"
 #include "lib-memory-serie.h"
-#include "lib-memory-quaternion.h"
+#include "lib-common-algebra.h"
 
 
 #define MIN_HEADER_SIZE 348

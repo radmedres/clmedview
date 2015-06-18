@@ -17,7 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "lib-memory-quaternion.h"
+#include "lib-common-algebra.h"
 #include "lib-common-debug.h"
 
 #include <stdlib.h>
