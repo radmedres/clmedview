@@ -29,139 +29,6 @@
 /*                                                                                                    */
 /*                                                                                                    */
 
-td_Matrix3x3 nifti_mat33_inverse( td_Matrix3x3 R )   /* inverse of 3x3 matrix */
-{
-   double r11,r12,r13,r21,r22,r23,r31,r32,r33 , deti ;
-   td_Matrix3x3 Q ;
-                                                       /*  INPUT MATRIX:  */
-   r11 = R.af_Matrix[0][0]; r12 = R.af_Matrix[0][1]; r13 = R.af_Matrix[0][2];  /* [ r11 r12 r13 ] */
-   r21 = R.af_Matrix[1][0]; r22 = R.af_Matrix[1][1]; r23 = R.af_Matrix[1][2];  /* [ r21 r22 r23 ] */
-   r31 = R.af_Matrix[2][0]; r32 = R.af_Matrix[2][1]; r33 = R.af_Matrix[2][2];  /* [ r31 r32 r33 ] */
-
-   deti = r11*r22*r33-r11*r32*r23-r21*r12*r33
-         +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
-
-   if( deti != 0.0l ) deti = 1.0l / deti ;
-
-   Q.af_Matrix[0][0] = deti*( r22*r33-r32*r23) ;
-   Q.af_Matrix[0][1] = deti*(-r12*r33+r32*r13) ;
-   Q.af_Matrix[0][2] = deti*( r12*r23-r22*r13) ;
-
-   Q.af_Matrix[1][0] = deti*(-r21*r33+r31*r23) ;
-   Q.af_Matrix[1][1] = deti*( r11*r33-r31*r13) ;
-   Q.af_Matrix[1][2] = deti*(-r11*r23+r21*r13) ;
-
-   Q.af_Matrix[2][0] = deti*( r21*r32-r31*r22) ;
-   Q.af_Matrix[2][1] = deti*(-r11*r32+r31*r12) ;
-   Q.af_Matrix[2][2] = deti*( r11*r22-r21*r12) ;
-
-   return Q ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! compute the determinant of a 3x3 matrix
-*//*--------------------------------------------------------------------*/
-float nifti_mat33_determ( td_Matrix3x3 R )   /* determinant of 3x3 matrix */
-{
-   double r11,r12,r13,r21,r22,r23,r31,r32,r33 ;
-                                                       /*  INPUT MATRIX:  */
-   r11 = R.af_Matrix[0][0]; r12 = R.af_Matrix[0][1]; r13 = R.af_Matrix[0][2];  /* [ r11 r12 r13 ] */
-   r21 = R.af_Matrix[1][0]; r22 = R.af_Matrix[1][1]; r23 = R.af_Matrix[1][2];  /* [ r21 r22 r23 ] */
-   r31 = R.af_Matrix[2][0]; r32 = R.af_Matrix[2][1]; r33 = R.af_Matrix[2][2];  /* [ r31 r32 r33 ] */
-
-   return r11*r22*r33-r11*r32*r23-r21*r12*r33
-         +r21*r32*r13+r31*r12*r23-r31*r22*r13 ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! compute the max row norm of a 3x3 matrix
-*//*--------------------------------------------------------------------*/
-float nifti_mat33_rownorm( td_Matrix3x3 A )  /* max row norm of 3x3 matrix */
-{
-   float r1,r2,r3 ;
-
-   r1 = fabs(A.af_Matrix[0][0])+fabs(A.af_Matrix[0][1])+fabs(A.af_Matrix[0][2]) ;
-   r2 = fabs(A.af_Matrix[1][0])+fabs(A.af_Matrix[1][1])+fabs(A.af_Matrix[1][2]) ;
-   r3 = fabs(A.af_Matrix[2][0])+fabs(A.af_Matrix[2][1])+fabs(A.af_Matrix[2][2]) ;
-   if( r1 < r2 ) r1 = r2 ;
-   if( r1 < r3 ) r1 = r3 ;
-   return r1 ;
-}
-
-/*----------------------------------------------------------------------*/
-/*! compute the max column norm of a 3x3 matrix
-*//*--------------------------------------------------------------------*/
-float nifti_mat33_colnorm( td_Matrix3x3 A )  /* max column norm of 3x3 matrix */
-{
-   float r1,r2,r3 ;
-
-   r1 = fabs(A.af_Matrix[0][0])+fabs(A.af_Matrix[1][0])+fabs(A.af_Matrix[2][0]) ;
-   r2 = fabs(A.af_Matrix[0][1])+fabs(A.af_Matrix[1][1])+fabs(A.af_Matrix[2][1]) ;
-   r3 = fabs(A.af_Matrix[0][2])+fabs(A.af_Matrix[1][2])+fabs(A.af_Matrix[2][2]) ;
-   if( r1 < r2 ) r1 = r2 ;
-   if( r1 < r3 ) r1 = r3 ;
-   return r1 ;
-}
-
-/*---------------------------------------------------------------------------*/
-/*! polar decomposition of a 3x3 matrix
-
-   This finds the closest orthogonal matrix to input A
-   (in both the Frobenius and L2 norms).
-
-   Algorithm is that from NJ Higham, SIAM J Sci Stat Comput, 7:1160-1174.
-*//*-------------------------------------------------------------------------*/
-td_Matrix3x3 nifti_mat33_polar( td_Matrix3x3 A )
-{
-   td_Matrix3x3 X , Y , Z ;
-   float alp,bet,gam,gmi , dif=1.0 ;
-   int k=0 ;
-
-   X = A ;
-
-   /* force matrix to be nonsingular */
-
-   gam = nifti_mat33_determ(X) ;
-   while( gam == 0.0 ){        /* perturb matrix */
-     gam = 0.00001 * ( 0.001 + nifti_mat33_rownorm(X) ) ;
-     X.af_Matrix[0][0] += gam ; X.af_Matrix[1][1] += gam ; X.af_Matrix[2][2] += gam ;
-     gam = nifti_mat33_determ(X) ;
-   }
-
-   while(1){
-     Y = nifti_mat33_inverse(X) ;
-     if( dif > 0.3 ){     /* far from convergence */
-       alp = sqrt( nifti_mat33_rownorm(X) * nifti_mat33_colnorm(X) ) ;
-       bet = sqrt( nifti_mat33_rownorm(Y) * nifti_mat33_colnorm(Y) ) ;
-       gam = sqrt( bet / alp ) ;
-       gmi = 1.0 / gam ;
-     } else {
-       gam = gmi = 1.0 ;  /* close to convergence */
-     }
-     Z.af_Matrix[0][0] = 0.5 * ( gam*X.af_Matrix[0][0] + gmi*Y.af_Matrix[0][0] ) ;
-     Z.af_Matrix[0][1] = 0.5 * ( gam*X.af_Matrix[0][1] + gmi*Y.af_Matrix[1][0] ) ;
-     Z.af_Matrix[0][2] = 0.5 * ( gam*X.af_Matrix[0][2] + gmi*Y.af_Matrix[2][0] ) ;
-     Z.af_Matrix[1][0] = 0.5 * ( gam*X.af_Matrix[1][0] + gmi*Y.af_Matrix[0][1] ) ;
-     Z.af_Matrix[1][1] = 0.5 * ( gam*X.af_Matrix[1][1] + gmi*Y.af_Matrix[1][1] ) ;
-     Z.af_Matrix[1][2] = 0.5 * ( gam*X.af_Matrix[1][2] + gmi*Y.af_Matrix[2][1] ) ;
-     Z.af_Matrix[2][0] = 0.5 * ( gam*X.af_Matrix[2][0] + gmi*Y.af_Matrix[0][2] ) ;
-     Z.af_Matrix[2][1] = 0.5 * ( gam*X.af_Matrix[2][1] + gmi*Y.af_Matrix[1][2] ) ;
-     Z.af_Matrix[2][2] = 0.5 * ( gam*X.af_Matrix[2][2] + gmi*Y.af_Matrix[2][2] ) ;
-
-     dif = fabs(Z.af_Matrix[0][0]-X.af_Matrix[0][0])+fabs(Z.af_Matrix[0][1]-X.af_Matrix[0][1])
-          +fabs(Z.af_Matrix[0][2]-X.af_Matrix[0][2])+fabs(Z.af_Matrix[1][0]-X.af_Matrix[1][0])
-          +fabs(Z.af_Matrix[1][1]-X.af_Matrix[1][1])+fabs(Z.af_Matrix[1][2]-X.af_Matrix[1][2])
-          +fabs(Z.af_Matrix[2][0]-X.af_Matrix[2][0])+fabs(Z.af_Matrix[2][1]-X.af_Matrix[2][1])
-          +fabs(Z.af_Matrix[2][2]-X.af_Matrix[2][2])                          ;
-
-     k = k+1 ;
-     if( k > 100 || dif < 3.e-6 ) break ;  /* convergence or exhaustion */
-     X = Z ;
-   }
-
-   return Z ;
-}
-
 
 /*                                                                                                    */
 /*                                                                                                    */
@@ -256,7 +123,7 @@ Vector3D s_algebra_vector_crossproduct(Vector3D *ps_InputVector,Vector3D *pts_pe
   return s_OutputVector;
 }
 
-Vector3D ts_algebra_vector_translate(td_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector)
+Vector3D ts_algebra_vector_translate(ts_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector)
 {
   Vector3D ts_MultiplyVector;
 
@@ -326,10 +193,6 @@ Vector3D ts_algebra_vector_Rotation_around_Z_Axis (Vector3D *ps_Vector, float f_
 
   return ts_rotatedVector;
 }
-
-
-
-
 
 float f_algebra_vector_MaximumValue(Vector3D *ps_InputVector)
 {
@@ -406,11 +269,9 @@ short int  i16_algebra_vector_MinimumValue(ts_Vector3DInt *ps_InputVector)
 
 
 
-
-
-td_Matrix4x4 tda_algebra_matrix_QuaternionToMatrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, double d_Qfac)
+ts_Matrix4x4 tda_algebra_matrix_4x4_QuaternionToMatrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, double d_Qfac)
 {
-  td_Matrix4x4 td_Rotation;
+  ts_Matrix4x4 td_Rotation;
   double d_Rotation;
 
   d_Rotation = 1.0 - (ps_Source->I * ps_Source->I + ps_Source->J * ps_Source->J + ps_Source->K * ps_Source->K);
@@ -455,11 +316,11 @@ td_Matrix4x4 tda_algebra_matrix_QuaternionToMatrix(ts_Quaternion *ps_Source, ts_
   return td_Rotation;
 }
 
-td_Matrix4x4 tda_algebra_matrix_inverse(td_Matrix4x4 *ps_Matrix)
+ts_Matrix4x4 tda_algebra_matrix_4x4_inverse(ts_Matrix4x4 *ps_Matrix)
 {
   double d_Determinant;
   double r11,r12,r13,r21,r22,r23,r31,r32,r33,v1,v2,v3;
-  td_Matrix4x4 td_Inverse;
+  ts_Matrix4x4 td_Inverse;
 
   /* [ r11 r12 r13 v1 ] */
   /* [ r21 r22 r23 v2 ] */
@@ -508,14 +369,36 @@ td_Matrix4x4 tda_algebra_matrix_inverse(td_Matrix4x4 *ps_Matrix)
   return td_Inverse;
 }
 
-ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(td_Matrix4x4 *pt_Matrix, double *pd_Qfac)
+ts_Matrix4x4 tda_algebra_matrix_4x4_multiply(ts_Matrix4x4 *ps_MatrixA , ts_Matrix4x4 *ps_MatrixB)
+{
+    ts_Matrix4x4 t_Result;
+    short int i16_ColumnCnt;
+    short int i16_RowCnt;
+    short int i16_SumCnt;
+
+    for( i16_ColumnCnt=0; i16_ColumnCnt < 4; i16_ColumnCnt++)
+    {
+      for( i16_RowCnt=0; i16_RowCnt < 4; i16_RowCnt++)
+      {
+        t_Result.af_Matrix[i16_ColumnCnt][i16_RowCnt] = 0;
+        for (i16_SumCnt=0; i16_SumCnt < 4; i16_SumCnt++)
+        {
+          t_Result.af_Matrix[i16_ColumnCnt][i16_RowCnt] += ps_MatrixA->af_Matrix[i16_SumCnt][i16_RowCnt] * ps_MatrixB->af_Matrix[i16_ColumnCnt][i16_SumCnt];
+        }
+      }
+    }
+    return t_Result;
+}
+
+
+ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(ts_Matrix4x4 *pt_Matrix, double *pd_Qfac)
 {
   ts_Quaternion ts_Quat;
   double r11,r12,r13 , r21,r22,r23 , r31,r32,r33 ;
 
   double xd,yd,zd , a,b,c,d ;
 
-  td_Matrix3x3 P,Q ;
+  ts_Matrix3x3 P,Q ;
 
   /* [ r11 r12 r13 v1 ] */
   /* [ r21 r22 r23 v2 ] */

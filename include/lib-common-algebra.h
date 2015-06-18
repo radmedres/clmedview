@@ -47,6 +47,15 @@ extern "C" {
 
 
 /**
+ * Macro to load a 4x4 matrix
+ */
+#define LOAD_MAT44(AA,a11,a12,a13,a14 ,a21,a22,a23,a24 ,a31,a32,a33,a34, a41,a42,a43,a44)    \
+( AA.af_Matrix[0][0]=a11, AA.af_Matrix[1][0]=a12, AA.af_Matrix[2][0]=a13, AA.af_Matrix[3][0]=a14 ,   \
+  AA.af_Matrix[0][1]=a21, AA.af_Matrix[1][1]=a22, AA.af_Matrix[2][1]=a23, AA.af_Matrix[3][1]=a24  ,   \
+  AA.af_Matrix[0][2]=a31, AA.af_Matrix[1][2]=a32, AA.af_Matrix[2][2]=a33, AA.af_Matrix[3][2]=a34 , \
+  AA.af_Matrix[0][3]=a41, AA.af_Matrix[1][3]=a42, AA.af_Matrix[2][3]=a43, AA.af_Matrix[3][3]=a44 )
+
+/**
  * Quaternion definition.
  */
 typedef struct
@@ -63,7 +72,7 @@ typedef struct
 typedef struct
 {
   float af_Matrix[4][4];
-} td_Matrix4x4;
+} ts_Matrix4x4;
 
 /**
  * Matrix definition (3x3).
@@ -71,7 +80,8 @@ typedef struct
 typedef struct
 {
   double af_Matrix[3][3];
-} td_Matrix3x3;
+} ts_Matrix3x3;
+
 
 
 
@@ -104,7 +114,7 @@ Vector3D s_algebra_vector_crossproduct(Vector3D *ps_InputVector,Vector3D *pts_pe
  * @param[in]  ps_Vector  Vector to transform.
  * @param[out] vector     Transformed vector.
  */
-Vector3D ts_algebra_vector_translate(td_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector);
+Vector3D ts_algebra_vector_translate(ts_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector);
 
 /**
  * Function that calculates the maximum of a vector.
@@ -167,14 +177,22 @@ Vector3D ts_algebra_vector_Rotation_around_Z_Axis (Vector3D *ps_Vector, float f_
  * @param[in]  d_Qfac               Factor which defines stride Z-axis.
  * @param[out] matrix               A rotation matrix according to quaternion
  */
-td_Matrix4x4 tda_algebra_matrix_QuaternionToMatrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, double d_Qfac);
+ts_Matrix4x4 tda_algebra_matrix_4x4_QuaternionToMatrix(ts_Quaternion *ps_Source, ts_Quaternion *ps_SourceOffset, double d_Qfac);
 
 /**
  * Function that calculates a inverse of a 4x4 matrix.
  * @param[in]  ps_Matrix  Input matrix.
  * @param[out] matrix     Output matrix.
  */
-td_Matrix4x4 tda_algebra_matrix_inverse(td_Matrix4x4 *ps_Matrix);
+ts_Matrix4x4 tda_algebra_matrix_4x4_inverse(ts_Matrix4x4 *ps_Matrix);
+
+/**
+ * Function that multiplys a 4x4 matrix.
+ * @param[in]  ps_MatrixA  Input matrix.
+ * @param[in]  ps_MatrixB  Input matrix.
+ * @param[out] matrix      Output matrix.
+ */
+ts_Matrix4x4 tda_algebra_matrix_4x4_multiply(ts_Matrix4x4 *ps_MatrixA , ts_Matrix4x4 *ps_MatrixB);
 
 /**
  * Function that convert a matrix to a quaternion
@@ -182,7 +200,7 @@ td_Matrix4x4 tda_algebra_matrix_inverse(td_Matrix4x4 *ps_Matrix);
  * @param[in]  d_Qfac               Factor which defines stride Z-axis.
  * @param[out] quaternion        A rotation matrix according to quaternion
  */
-ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(td_Matrix4x4 *pt_Matrix, double *pd_Qfac);
+ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(ts_Matrix4x4 *pt_Matrix, double *pd_Qfac);
 
 
 #ifdef __cplusplus

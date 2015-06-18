@@ -55,7 +55,7 @@ typedef enum
  */
 short int i16_memory_io_dicom_relativePosition(Coordinate3D *ps_referencePosition,
                                                Coordinate3D *ps_position,
-                                               td_Matrix4x4 *pt_rotationMatrix,
+                                               Vector3D     *ps_Zvector,
                                                Coordinate3D *ps_pixel_dimension);
 
 /**
@@ -72,6 +72,8 @@ short int i16_memory_io_dicom_loadMetaData(Patient *ps_patient,
                                            Study *ps_study,
                                            Serie *ps_serie,
                                            Coordinate3D *ps_SlicePosition,
+                                           Vector3D  *ps_XVector,
+                                           Vector3D  *ps_YVector,
                                            short int *pi16_TemporalPositionIdentifier,
                                            short int *pi16_StackPositionIdentifier,
                                            te_DCM_ComplexImageComponent *pe_DCM_CIC,
