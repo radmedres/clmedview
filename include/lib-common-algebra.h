@@ -202,7 +202,6 @@ ts_Matrix4x4 tda_algebra_matrix_4x4_multiply(ts_Matrix4x4 *ps_MatrixA , ts_Matri
  */
 ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(ts_Matrix4x4 *pt_Matrix, double *pd_Qfac);
 
-
 #ifdef __cplusplus
 }
 #endif

@@ -128,19 +128,19 @@ Vector3D ts_algebra_vector_translate(ts_Matrix4x4 *ps_Matrix, Vector3D *ps_Vecto
   Vector3D ts_MultiplyVector;
 
   ts_MultiplyVector.x = ps_Vector->x  * ps_Matrix->af_Matrix[0][0] +
-                        ps_Vector->y  * ps_Matrix->af_Matrix[0][1] +
-                        ps_Vector->z  * ps_Matrix->af_Matrix[0][2] +
-                        ps_Matrix->af_Matrix[0][3];
+                        ps_Vector->y  * ps_Matrix->af_Matrix[1][0] +
+                        ps_Vector->z  * ps_Matrix->af_Matrix[2][0] +
+                        ps_Matrix->af_Matrix[3][0];
 
-  ts_MultiplyVector.y = ps_Vector->x  * ps_Matrix->af_Matrix[1][0] +
+  ts_MultiplyVector.y = ps_Vector->x  * ps_Matrix->af_Matrix[0][1] +
                         ps_Vector->y  * ps_Matrix->af_Matrix[1][1] +
-                        ps_Vector->z  * ps_Matrix->af_Matrix[1][2] +
-                        ps_Matrix->af_Matrix[1][3];
+                        ps_Vector->z  * ps_Matrix->af_Matrix[2][1] +
+                        ps_Matrix->af_Matrix[3][1];
 
-  ts_MultiplyVector.z = ps_Vector->x  * ps_Matrix->af_Matrix[2][0] +
-                        ps_Vector->y  * ps_Matrix->af_Matrix[2][1] +
+  ts_MultiplyVector.z = ps_Vector->x  * ps_Matrix->af_Matrix[0][2] +
+                        ps_Vector->y  * ps_Matrix->af_Matrix[1][2] +
                         ps_Vector->z  * ps_Matrix->af_Matrix[2][2] +
-                        ps_Matrix->af_Matrix[2][3];
+                        ps_Matrix->af_Matrix[3][2];
 
   return ts_MultiplyVector;
 }
@@ -527,9 +527,4 @@ ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(ts_Matrix4x4 *pt_Matrix, 
 
   return ts_Quat;
 }
-
-
-
-
-
 

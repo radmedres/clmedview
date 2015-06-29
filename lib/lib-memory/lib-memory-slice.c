@@ -134,9 +134,9 @@ memory_slice_get_data (Slice *slice)
 
     ts_EndPoint = ts_algebra_vector_translate(serie->pt_RotationMatrix, &ts_floatingPointInPlane);
 
-    ts_Delta.x = ts_Startpoint.x - ts_EndPoint.x;
-    ts_Delta.y = ts_Startpoint.y - ts_EndPoint.y;
-    ts_Delta.z = ts_Startpoint.z - ts_EndPoint.z;
+    ts_Delta.x = ts_EndPoint.x - ts_Startpoint.x;
+    ts_Delta.y = ts_EndPoint.y - ts_Startpoint.y;
+    ts_Delta.z = ts_EndPoint.z - ts_Startpoint.z;
 
     p_ViewportProps->i16_StrideHeight = (f_algebra_vector_MinimumValue(&ts_Delta) < 0) ? -1 : 1;
 
@@ -146,9 +146,9 @@ memory_slice_get_data (Slice *slice)
 
     ts_EndPoint = ts_algebra_vector_translate(serie->pt_RotationMatrix, &ts_floatingPointInPlane);
 
-    ts_Delta.x = ts_Startpoint.x - ts_EndPoint.x;
-    ts_Delta.y = ts_Startpoint.y - ts_EndPoint.y;
-    ts_Delta.z = ts_Startpoint.z - ts_EndPoint.z;
+    ts_Delta.x = ts_EndPoint.x - ts_Startpoint.x;
+    ts_Delta.y = ts_EndPoint.y - ts_Startpoint.y;
+    ts_Delta.z = ts_EndPoint.z - ts_Startpoint.z;
 
     p_ViewportProps->i16_StrideWidth = (f_algebra_vector_MinimumValue(&ts_Delta) < 0) ? -1 : 1;
 
@@ -163,6 +163,7 @@ memory_slice_get_data (Slice *slice)
     ts_Delta.z = ts_Startpoint.z - ts_EndPoint.z;
 
     p_ViewportProps->i16_StrideDepth = (f_algebra_vector_MinimumValue(&ts_Delta) < 0) ? -1 : 1;
+
     /*------------------------------------------------------------------------------+
     | STEP 3 Translate viewport vectors to a plane, get actual width and height     |
     |        of the image                                                           |
@@ -182,6 +183,15 @@ memory_slice_get_data (Slice *slice)
     /*------------------------------------------------------------------------------+
     | STEP 4 Calculate the starting and ending point of the width and height        |
     +-------------------------------------------------------------------------------*/
+
+    //if the strides are negative, the vector should change direction
+    p_ViewportProps->ts_perpendicularVector.x *= p_ViewportProps->i16_StrideHeight;
+    p_ViewportProps->ts_perpendicularVector.y *= p_ViewportProps->i16_StrideHeight;
+    p_ViewportProps->ts_perpendicularVector.z *= p_ViewportProps->i16_StrideHeight;
+
+    p_ViewportProps->ts_crossproductVector.x *= p_ViewportProps->i16_StrideWidth;
+    p_ViewportProps->ts_crossproductVector.y *= p_ViewportProps->i16_StrideWidth;
+    p_ViewportProps->ts_crossproductVector.z *= p_ViewportProps->i16_StrideWidth;
 
     ts_PivotVectorInBlob = ts_algebra_vector_translate(serie->pt_InverseMatrix, slice->ps_PivotPoint);
     ts_PositionVector = s_memory_slice_GetCurrentPosition(slice->matrix.i16_z,&p_ViewportProps->ts_normalVector, &ts_PivotVectorInBlob);
@@ -204,26 +214,11 @@ memory_slice_get_data (Slice *slice)
 
       if ((ts_PositionVector.x < 0) || (ts_PositionVector.y < 0) || (ts_PositionVector.z < 0))
       {
-        p_ViewportProps->i16_StartHeight = -i16_heightCnt;
-        p_ViewportProps->i16_StopHeight = p_ViewportProps->i16_StartHeight + slice->matrix.i16_y;
+        p_ViewportProps->i16_StartHeight = i16_heightCnt;
+        p_ViewportProps->i16_StopHeight = p_ViewportProps->i16_StartHeight- slice->matrix.i16_y;
         break;
       }
     }
-
-    if  ((p_ViewportProps->i16_StartHeight == 0 ) && (p_ViewportProps->i16_StopHeight == 0))
-    {
-      if (f_algebra_vector_MaximumValue(&p_ViewportProps->ts_perpendicularVector) > 0)
-      {
-        p_ViewportProps->i16_StartHeight = 0;
-        p_ViewportProps->i16_StopHeight = slice->matrix.i16_y;
-      }
-      else
-      {
-        p_ViewportProps->i16_StartHeight = -slice->matrix.i16_y;
-        p_ViewportProps->i16_StopHeight = 0;
-      }
-    }
-
 
     ts_PivotVectorInBlob = ts_algebra_vector_translate(serie->pt_InverseMatrix, slice->ps_PivotPoint);
     ts_PositionVector = s_memory_slice_GetCurrentPosition(slice->matrix.i16_z,&p_ViewportProps->ts_normalVector, &ts_PivotVectorInBlob);
@@ -247,41 +242,11 @@ memory_slice_get_data (Slice *slice)
 
       if ((ts_PositionVector.x < 0) || (ts_PositionVector.y < 0) || (ts_PositionVector.z < 0))
       {
-        p_ViewportProps->i16_StartWidth = -i16_widthCnt;
-        p_ViewportProps->i16_StopWidth = p_ViewportProps->i16_StartWidth + slice->matrix.i16_x;
+        p_ViewportProps->i16_StartWidth = i16_widthCnt;
+        p_ViewportProps->i16_StopWidth = p_ViewportProps->i16_StartWidth - slice->matrix.i16_x;
         break;
       }
     }
-
-    if  ((p_ViewportProps->i16_StartWidth == 0 ) && (p_ViewportProps->i16_StopWidth == 0))
-    {
-      if (f_algebra_vector_MaximumValue(&p_ViewportProps->ts_crossproductVector) > 0)
-      {
-        p_ViewportProps->i16_StartWidth = 0;
-        p_ViewportProps->i16_StopWidth = slice->matrix.i16_x;
-      }
-      else
-      {
-        p_ViewportProps->i16_StartWidth = -slice->matrix.i16_x;
-        p_ViewportProps->i16_StopWidth = 0;
-      }
-    }
-
-    short int i16_tmp;
-    if (p_ViewportProps->i16_StrideHeight == -1)
-    {
-      i16_tmp = p_ViewportProps->i16_StartHeight;
-      p_ViewportProps->i16_StartHeight = p_ViewportProps->i16_StopHeight-1;
-      p_ViewportProps->i16_StopHeight = i16_tmp-1;
-    }
-
-    if (p_ViewportProps->i16_StrideWidth == -1)
-    {
-      i16_tmp = p_ViewportProps->i16_StartWidth;
-      p_ViewportProps->i16_StartWidth = p_ViewportProps->i16_StopWidth-1;
-      p_ViewportProps->i16_StopWidth = i16_tmp-1;
-    }
-
 
     /*------------------------------------------------------------------------------+
     | STEP 5 Calculate the scaling parameters                                       |
@@ -318,7 +283,7 @@ memory_slice_get_data (Slice *slice)
 
   ts_PivotVectorInBlob = ts_algebra_vector_translate(serie->pt_InverseMatrix, slice->ps_PivotPoint);
   ts_PositionVector = s_memory_slice_GetCurrentPosition(slice->matrix.i16_z,&p_ViewportProps->ts_normalVector, &ts_PivotVectorInBlob);
-//  printf("blob position [x,y,z]: [%10.4f, %10.4f, %10.4f]\n",ts_PositionVector.x, ts_PositionVector.y, ts_PositionVector.z);
+
 
 
   i16_BytesToRead = memory_serie_get_memory_space (serie);
@@ -346,6 +311,9 @@ memory_slice_get_data (Slice *slice)
   begin = clock();
   */
 
+  short int i16_strideY = ((p_ViewportProps->i16_StopHeight - p_ViewportProps->i16_StartHeight) < 0) ? -1 : 1;
+  short int i16_strideX = ((p_ViewportProps->i16_StopWidth - p_ViewportProps->i16_StartWidth) < 0) ? -1 : 1;
+
   i16_heightCnt = p_ViewportProps->i16_StartHeight;
   while (i16_heightCnt != p_ViewportProps->i16_StopHeight)
   {
@@ -356,11 +324,11 @@ memory_slice_get_data (Slice *slice)
     i16_widthCnt=p_ViewportProps->i16_StartWidth;
     while (i16_widthCnt != p_ViewportProps->i16_StopWidth)
     {
-
-
       i16_positionX=(short int)(floor(ts_TmpPosition.x));
       i16_positionY=(short int)(floor(ts_TmpPosition.y));
       i16_positionZ=(short int)(floor(ts_TmpPosition.z));
+
+      ts_PivotVectorInBlob = ts_algebra_vector_translate(serie->pt_RotationMatrix, &ts_TmpPosition);
 
       if ((i16_positionX > serie->matrix.i16_x) ||
           (i16_positionY > serie->matrix.i16_y) ||
@@ -373,10 +341,20 @@ memory_slice_get_data (Slice *slice)
       }
       else
       {
+        // Flip Y
+        if (i16_strideY == 1)
+        {
+          i16_positionY = serie->matrix.i16_y - i16_positionY;
+        }
+
+        if (i16_strideX == 1)
+        {
+          i16_positionX = serie->matrix.i16_x - i16_positionX;
+        }
+
         i32_MemoryOffset  = ((int)(i16_positionZ * serie->matrix.i16_x * serie->matrix.i16_y) +
                              (int)(i16_positionY * serie->matrix.i16_x) +
                              (int)(i16_positionX)) * i16_BytesToRead;
-
 
         if ((i32_MemoryOffset < 0 ) || (i32_MemoryOffset >= i32_MemoryInBlob))
         {
@@ -393,7 +371,9 @@ memory_slice_get_data (Slice *slice)
       *ppv_CntData=MEMORY_CAST(serie->data_type,pv_OrigData);
       ppv_CntData++;
 
-      if (p_ViewportProps->i16_StrideWidth > 0)
+
+
+      if (i16_strideX > 0)
       {
         ts_TmpPosition.x +=  p_ViewportProps->ts_crossproductVector.x;
         ts_TmpPosition.y +=  p_ViewportProps->ts_crossproductVector.y;
@@ -406,10 +386,9 @@ memory_slice_get_data (Slice *slice)
         ts_TmpPosition.z -=  p_ViewportProps->ts_crossproductVector.z;
       }
 
-
-      i16_widthCnt += p_ViewportProps->i16_StrideWidth;
+      i16_widthCnt += i16_strideX;//p_ViewportProps->i16_StrideWidth;
     }
-    i16_heightCnt += p_ViewportProps->i16_StrideHeight;
+    i16_heightCnt += i16_strideY;//p_ViewportProps->i16_StrideHeight;
   }
 
 

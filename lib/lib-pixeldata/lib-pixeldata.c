@@ -356,6 +356,10 @@ short int
 pixeldata_calculate_window_width_level (PixelData *pixeldata, int i32_deltaWidth, int i32_deltaLevel)
 {
   debug_functions ();
+  if (pixeldata == NULL)
+  {
+    return 0;
+  }
 
   pixeldata->ts_WWWL.i32_windowWidth += i32_deltaWidth;
   if (pixeldata->ts_WWWL.i32_windowWidth > pixeldata->serie->i32_MaximumValue)
@@ -519,7 +523,7 @@ pixeldata_get_pixel_value_as_string (PixelData *pixeldata, Coordinate ts_Point)
   short int i16_Y  = (short int)ts_Point.y;
 
   source += (unsigned int)(i16_Y * slice->matrix.i16_x + i16_X);
-
+/*
   switch (pixeldata->serie->data_type)
   {
     case MEMORY_TYPE_INT8       : sprintf (output, "%c", *((char*)*source)); break;
@@ -532,6 +536,8 @@ pixeldata_get_pixel_value_as_string (PixelData *pixeldata, Coordinate ts_Point)
     case MEMORY_TYPE_FLOAT64    : sprintf (output, "%.2f", *((double*)*source)); break;
     default                     : sprintf (output, "Unknown"); break;
   }
+  */
+sprintf (output, "Unknown");
 
   return output;
 }

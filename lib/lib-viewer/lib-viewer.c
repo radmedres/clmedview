@@ -1230,9 +1230,11 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
   Serie *ps_serie=slice->serie;
   PixelDataLookupTable *default_lut;
 
-  if (ps_serie->i32_MaximumValue < 255)
+  if (ps_serie->i32_MaximumValue < 16)
   {
     default_lut = pixeldata_lookup_table_get_default_mask();
+    i32_windowWidth = 15;
+    i32_windowLevel = 8;
   }
   else
   {
@@ -1337,9 +1339,11 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
 
   PixelDataLookupTable *default_lut;
 
-  if (ts_Original->i32_MaximumValue < 255)
+  if (ts_Original->i32_MaximumValue < 16)
   {
     default_lut = pixeldata_lookup_table_get_default_mask();
+    i32_windowWidth = 15;
+    i32_windowLevel = 8;
   }
   else
   {
@@ -1706,10 +1710,35 @@ viewer_add_overlay_serie (Viewer *resources, Serie *serie)
   if (serie->i32_MaximumValue == 0)
     serie->i32_MaximumValue = 255;
 
-  PixelDataLookupTable *overlay_lut = pixeldata_lookup_table_get_default_overlay ();
+  PixelDataLookupTable *overlay_lut;
+
+  int i32_windowWidth, i32_windowLevel;
+
+  i32_windowWidth = serie->i32_MaximumValue - serie->i32_MinimumValue;
+  i32_windowLevel = serie->i32_MaximumValue/2;
+
+  if (i32_windowLevel == 0)
+  {
+    i32_windowLevel = 1;
+  }
+
+  if (serie->i32_MaximumValue < 16)
+  {
+    overlay_lut = pixeldata_lookup_table_get_default_mask();
+  }
+  else if (serie->i32_MaximumValue < 255)
+  {
+    overlay_lut = pixeldata_lookup_table_get_default_overlay ();
+  }
+  else
+  {
+    overlay_lut = pixeldata_lookup_table_get_default();
+  }
+
+
   overlay = pixeldata_new_with_lookup_table (overlay_lut,
-					     serie->i32_MaximumValue - serie->i32_MinimumValue,
-					     serie->i32_MaximumValue/2,
+					     i32_windowWidth,
+					     i32_windowLevel,
 					     overlay_slice,
 					     serie);
   assert (overlay != NULL);

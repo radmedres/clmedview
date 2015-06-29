@@ -795,7 +795,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
 
     ts_Normal.x = 0;
     ts_Normal.y = 0;
-    ts_Normal.z = 1;
+    ts_Normal.z = -1;
 
     ts_Up.x = 0;
     ts_Up.y = 1;
@@ -962,7 +962,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
 
           ts_Normal.x = 0;
           ts_Normal.y = 0;
-          ts_Normal.z = 1;
+          ts_Normal.z = -1;
           break;
         case ORIENTATION_SAGITAL:
           ts_Up.x = 0;

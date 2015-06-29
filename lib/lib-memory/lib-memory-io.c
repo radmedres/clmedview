@@ -524,6 +524,8 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
 /*                                                                                                    */
 Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
 {
+  Tree *pt_SerieTree=NULL;
+  Serie *ps_Serie;
   Tree *pt_patient=NULL
   debug_functions ();
 
@@ -535,15 +537,35 @@ Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
   // check wheater it is a niftii
   if (memory_io_niftii_file_type(pc_path) != MUMC_FILETYPE_NOT_KNOWN)
   {
-    return pt_memory_io_load_file_nifti(&(*ppt_study),pc_path);
+    pt_SerieTree = pt_memory_io_load_file_nifti(&(*ppt_study),pc_path);
   }
   else
   {
     // maybe a dicom?
     pt_patient=((*ppt_study) == NULL)?NULL:(*ppt_study)->parent;
-    return pt_memory_io_load_file_dicom(&pt_patient, pc_path);
+    pt_SerieTree = pt_memory_io_load_file_dicom(&pt_patient, pc_path);
   }
-  return NULL;
+
+  if (pt_SerieTree != NULL)
+  {
+    ps_Serie = pt_SerieTree->data;
+
+
+/*
+    mat44 testje;
+
+    testje = nifti_make_orthog_mat44(ps_Serie ->pt_RotationMatrix->af_Matrix[0][0],ps_Serie ->pt_RotationMatrix->af_Matrix[1][0],ps_Serie ->pt_RotationMatrix->af_Matrix[2][0],
+                                     ps_Serie ->pt_RotationMatrix->af_Matrix[0][1],ps_Serie ->pt_RotationMatrix->af_Matrix[1][1],ps_Serie ->pt_RotationMatrix->af_Matrix[2][1],
+                                     ps_Serie ->pt_RotationMatrix->af_Matrix[0][2],ps_Serie ->pt_RotationMatrix->af_Matrix[1][2],ps_Serie ->pt_RotationMatrix->af_Matrix[2][2]);
+
+*/
+//    v_print_Matrix(ps_Serie->pt_RotationMatrix);
+//    v_print_Matrix(&testje);
+  }
+
+
+
+  return pt_SerieTree;
 }
 
 short int memory_io_save_file (Serie *serie, const char *path)
