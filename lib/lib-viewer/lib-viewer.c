@@ -1227,7 +1227,18 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
   memory_slice_set_UpVector(slice,&resources->ts_UpVector);
 
   // Set the default window and level.
-  PixelDataLookupTable *default_lut = pixeldata_lookup_table_get_default ();
+  Serie *ps_serie=slice->serie;
+  PixelDataLookupTable *default_lut;
+
+  if (ps_serie->i32_MaximumValue < 255)
+  {
+    default_lut = pixeldata_lookup_table_get_default_mask();
+  }
+  else
+  {
+    default_lut = pixeldata_lookup_table_get_default ();
+  }
+
   resources->ps_Original = pixeldata_new_with_lookup_table (default_lut, i32_windowWidth ,
                                                             i32_windowLevel, slice, ts_Original);
 
@@ -1323,7 +1334,18 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
   memory_slice_set_UpVector(slice,&resources->ts_UpVector);
 
   // Set the default window and level.
-  PixelDataLookupTable *default_lut = pixeldata_lookup_table_get_default ();
+
+  PixelDataLookupTable *default_lut;
+
+  if (ts_Original->i32_MaximumValue < 255)
+  {
+    default_lut = pixeldata_lookup_table_get_default_mask();
+  }
+  else
+  {
+    default_lut = pixeldata_lookup_table_get_default ();
+  }
+
   resources->ps_Original = pixeldata_new_with_lookup_table (default_lut, i32_windowWidth ,
                                                             i32_windowLevel, slice, ts_Original);
 
