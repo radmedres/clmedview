@@ -516,7 +516,6 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
   return pt_serie;
 }
 
-
 /*                                                                                                    */
 /*                                                                                                    */
 /* GLOBAL FUNCTIONS                                                                                   */
@@ -546,23 +545,21 @@ Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
     pt_SerieTree = pt_memory_io_load_file_dicom(&pt_patient, pc_path);
   }
 
-  if (pt_SerieTree != NULL)
+/*  if (pt_SerieTree != NULL)
   {
     ps_Serie = pt_SerieTree->data;
 
+    MemoryImageOrientation e_Orientation;
 
-/*
-    mat44 testje;
+    v_memory_serie_MatrixToOrientation(ps_Serie->pt_RotationMatrix, &ps_Serie->e_ImageDirection_I, &ps_Serie->e_ImageDirection_J, &ps_Serie->e_ImageDirection_K);
+    e_Orientation = e_memory_serie_ConvertImageDirectionToOrientation(ps_Serie->e_ImageDirection_I, ps_Serie->e_ImageDirection_J, ps_Serie->e_ImageDirection_K);
 
-    testje = nifti_make_orthog_mat44(ps_Serie ->pt_RotationMatrix->af_Matrix[0][0],ps_Serie ->pt_RotationMatrix->af_Matrix[1][0],ps_Serie ->pt_RotationMatrix->af_Matrix[2][0],
-                                     ps_Serie ->pt_RotationMatrix->af_Matrix[0][1],ps_Serie ->pt_RotationMatrix->af_Matrix[1][1],ps_Serie ->pt_RotationMatrix->af_Matrix[2][1],
-                                     ps_Serie ->pt_RotationMatrix->af_Matrix[0][2],ps_Serie ->pt_RotationMatrix->af_Matrix[1][2],ps_Serie ->pt_RotationMatrix->af_Matrix[2][2]);
+    printf("%s\n",pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I));
+    printf("%s\n",pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J));
+    printf("%s\n",pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K));
 
-*/
-//    v_print_Matrix(ps_Serie->pt_RotationMatrix);
-//    v_print_Matrix(&testje);
   }
-
+*/
 
 
   return pt_SerieTree;

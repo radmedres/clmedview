@@ -283,35 +283,22 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
   PixelDataLookupTable *lut = pixeldata->color_lookup_table_ptr;
   assert (lut != NULL);
 
-  int minimumWWWL;
-  int maximumWWWL;
-
-  minimumWWWL = pixeldata->ts_WWWL.i32_windowLevel - pixeldata->ts_WWWL.i32_windowWidth/2;
-  maximumWWWL = pixeldata->ts_WWWL.i32_windowLevel + pixeldata->ts_WWWL.i32_windowWidth/2;
-
-  minimumWWWL = (minimumWWWL < serie->i32_MinimumValue) ? 0 : minimumWWWL;
-  maximumWWWL = (maximumWWWL > serie->i32_MaximumValue) ? serie->i32_MaximumValue : maximumWWWL;
-
-
-  // Move the range to a range of positive values.
-  if (minimumWWWL < 0)
-  {
-    maximumWWWL += abs(minimumWWWL);
-    minimumWWWL = 0;
-  }
-
   // Determine the range of the values in the Serie.
   int range = serie->i32_MaximumValue - serie->i32_MinimumValue;
 
   // Make sure the display lookup table is allocated.
-
-  free (pixeldata->display_lookup_table);
+  if (pixeldata->display_lookup_table != NULL)
+  {
+    free (pixeldata->display_lookup_table);
+  }
 
   pixeldata->display_lookup_table = calloc (sizeof (unsigned int), range + 1);
 
   assert (pixeldata->display_lookup_table != NULL);
 
-  float f_Slope = 255.0 / (float)(maximumWWWL - minimumWWWL);
+  float f_Slope = 255.0 / (float)(pixeldata->ts_WWWL.i32_windowWidth);
+  float f_Offset = 128.0 - ((float)(pixeldata->ts_WWWL.i32_windowLevel)*f_Slope);
+
 
   unsigned int *display_lookup_table = pixeldata->display_lookup_table;
   unsigned int *color_lookup_table = lut->table;
@@ -322,33 +309,26 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
   /*--------------------------------------------------------------------------.
    | TRANSLATE LUT TO MINIMUM AND MAXIMUM VALUES.                             |
    '--------------------------------------------------------------------------*/
-
-  // A counter to loop.
   int counter;
-
-  // Zero to minimum value.
-  for (counter = 0; counter < minimumWWWL; counter++)
-  {
-    display_lookup_table[counter] = 0;
-  }
-
-  // Minimum value to maximum value.
-  unsigned int translated_value;
+  int translated_value;
   unsigned int array_items = lut->table_len / sizeof (unsigned int);
 
-  for (counter = minimumWWWL; counter < maximumWWWL; counter++)
+  for (counter = 0; counter < range; counter++)
   {
-    translated_value = (counter - minimumWWWL) * f_Slope;
+    translated_value = counter * f_Slope + f_Offset;
 
-    display_lookup_table[counter] = (translated_value >= array_items)
-      ? color_lookup_table[array_items - 1]
-      : color_lookup_table[translated_value];
-  }
-
-  // Above maximum value.
-  for (counter = maximumWWWL; counter <= range; counter++)
-  {
-    display_lookup_table[counter] = color_lookup_table[array_items - 1];
+    if (translated_value < 0)
+    {
+      display_lookup_table[counter] = 0;
+    }
+    else if (translated_value >= array_items)
+    {
+      display_lookup_table[counter] = color_lookup_table[array_items - 1];
+    }
+    else
+    {
+      display_lookup_table[counter] = color_lookup_table[translated_value];
+    }
   }
 }
 
@@ -362,27 +342,13 @@ pixeldata_calculate_window_width_level (PixelData *pixeldata, int i32_deltaWidth
   }
 
   pixeldata->ts_WWWL.i32_windowWidth += i32_deltaWidth;
-  if (pixeldata->ts_WWWL.i32_windowWidth > pixeldata->serie->i32_MaximumValue)
-  {
-    pixeldata->ts_WWWL.i32_windowWidth = pixeldata->serie->i32_MaximumValue;
-  }
 
-  if (pixeldata->ts_WWWL.i32_windowWidth < pixeldata->serie->i32_MinimumValue)
+  if (pixeldata->ts_WWWL.i32_windowWidth < 1)
   {
-    pixeldata->ts_WWWL.i32_windowWidth = pixeldata->serie->i32_MinimumValue;
+    pixeldata->ts_WWWL.i32_windowWidth = 1;
   }
 
   pixeldata->ts_WWWL.i32_windowLevel += i32_deltaLevel;
-  if (pixeldata->ts_WWWL.i32_windowLevel > pixeldata->serie->i32_MaximumValue)
-  {
-    pixeldata->ts_WWWL.i32_windowLevel = pixeldata->serie->i32_MaximumValue;
-  }
-
-  if (pixeldata->ts_WWWL.i32_windowLevel < pixeldata->serie->i32_MinimumValue)
-  {
-    pixeldata->ts_WWWL.i32_windowLevel = pixeldata->serie->i32_MinimumValue;
-  }
-
   pixeldata_apply_lookup_table (pixeldata);
 
   return 1;

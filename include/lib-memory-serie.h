@@ -235,6 +235,14 @@ typedef struct
   * Maximum value in serie
   */
   int i32_MaximumValue;
+
+  /**
+  * Image Directions of image loaded
+  */
+  te_MemoryImageDirection e_ImageDirection_I;
+  te_MemoryImageDirection e_ImageDirection_J;
+  te_MemoryImageDirection e_ImageDirection_K;
+
 } Serie;
 
 
@@ -318,6 +326,49 @@ Coordinate3D memory_serie_GetPivotpoint(Serie *serie);
  * @return A [x,y,z] coordinate to the pivot point
  */
 void v_memory_io_handleSpace(Serie *serie);
+
+
+/**
+ * This function converts a rotation matrix to a orientation
+ *
+ * @param pt_Rotation       Pointer to rotation matrix
+ * @param pe_I              Pointer to I direction variable
+ * @param pe_J              Pointer to J direction variable
+ * @param pe_K              Pointer to K direction variable
+ *
+ */
+void v_memory_serie_MatrixToOrientation(ts_Matrix4x4 *pt_R , te_MemoryImageDirection *pe_I, te_MemoryImageDirection *pe_J, te_MemoryImageDirection *pe_K);
+
+/**
+ * This function converts a image orientation, specified from the coded params to a plane
+ *
+ * @param ps_serie The serie to calculate orientation from
+ *
+ * @return A plane definition
+ */
+MemoryImageOrientation e_memory_serie_ConvertImageDirectionToOrientation(te_MemoryImageDirection e_ImageDirection_I, te_MemoryImageDirection e_ImageDirection_J, te_MemoryImageDirection e_ImageDirection_K);
+
+/**
+ * This function converts a image orientation to a string
+ *
+ * @param e_ImageOrientation    The defined orientation
+ *
+ * @return A string that describes the orientation
+ */
+char *pc_memory_serie_orientation_string( MemoryImageOrientation e_ImageOrientation);
+
+/**
+ * This function converts a image orientation to a string
+ *
+ * @param e_ImageOrientation    The defined orientation
+ *
+ * @return A string that describes the orientation
+ */
+char *pc_memory_serie_direction_string(te_MemoryImageDirection e_ImageDirection, te_MemoryImageDirectionPart e_IDP);
+
+
+
+
 
 /**
  *   @}

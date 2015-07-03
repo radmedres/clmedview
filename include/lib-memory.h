@@ -31,7 +31,7 @@
  * @defgroup memory Memory
  * @{
  *
- * This module provides an internal image format that allows other layers 
+ * This module provides an internal image format that allows other layers
  * to interact with all supported image formats in a standardized way.
  *
  * The module has been separated into several submodules which all-together
@@ -50,6 +50,27 @@ typedef enum
   ORIENTATION_CORONAL
 } MemoryImageOrientation;
 
+/**
+ * This enumeration contains all orientation directions
+ */
+typedef enum
+{
+  DIRECTION_ERROR,
+  DIRECTION_L2R,
+  DIRECTION_R2L,
+  DIRECTION_P2A,
+  DIRECTION_A2P,
+  DIRECTION_I2S,
+  DIRECTION_S2I
+} te_MemoryImageDirection;
+
+
+typedef enum
+{
+  DIRECTION_PART_ALL,
+  DIRECTION_PART_FIRST,
+  DIRECTION_PART_LAST
+} te_MemoryImageDirectionPart;
 
 /**
  * This enumeration contains all known memory types.

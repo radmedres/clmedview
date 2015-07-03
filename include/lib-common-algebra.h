@@ -26,6 +26,7 @@ extern "C" {
 
 #include <assert.h>
 #include "lib-common.h"
+#include "lib-memory.h"
 
 
 /**
@@ -45,6 +46,13 @@ extern "C" {
  * This module provides Quaternion-specific functionality.
  */
 
+/**
+ * Macro to load a 3x3 matrix
+ */
+#define LOAD_MAT33(AA,a11,a12,a13 ,a21,a22,a23 ,a31,a32,a33)    \
+( AA.af_Matrix[0][0]=a11, AA.af_Matrix[1][0]=a12, AA.af_Matrix[2][0]=a13, \
+  AA.af_Matrix[0][1]=a21, AA.af_Matrix[1][1]=a22, AA.af_Matrix[2][1]=a23, \
+  AA.af_Matrix[0][2]=a31, AA.af_Matrix[1][2]=a32, AA.af_Matrix[2][2]=a33)
 
 /**
  * Macro to load a 4x4 matrix
@@ -54,6 +62,10 @@ extern "C" {
   AA.af_Matrix[0][1]=a21, AA.af_Matrix[1][1]=a22, AA.af_Matrix[2][1]=a23, AA.af_Matrix[3][1]=a24  ,   \
   AA.af_Matrix[0][2]=a31, AA.af_Matrix[1][2]=a32, AA.af_Matrix[2][2]=a33, AA.af_Matrix[3][2]=a34 , \
   AA.af_Matrix[0][3]=a41, AA.af_Matrix[1][3]=a42, AA.af_Matrix[2][3]=a43, AA.af_Matrix[3][3]=a44 )
+
+
+
+
 
 /**
  * Quaternion definition.
@@ -79,7 +91,7 @@ typedef struct
  */
 typedef struct
 {
-  double af_Matrix[3][3];
+  float af_Matrix[3][3];
 } ts_Matrix3x3;
 
 
@@ -107,6 +119,14 @@ Vector3D s_algebra_vector_perpendicular(Vector3D *ps_InputVector, Vector3D *ps_U
  * @param[out] vector     Normalized vector.
  */
 Vector3D s_algebra_vector_crossproduct(Vector3D *ps_InputVector,Vector3D *pts_perpendicularVector);
+
+/**
+ * Function that normalize a vector
+ * @param[in]  ps_Vector  Vector A.
+ * @param[in]  ps_Vector  Vector B.
+ * @param[out] float      Dot product value.
+ */
+float f_algebra_vector_dotproduct(Vector3D *ps_VectorA,Vector3D *ps_VectorB);
 
 /**
  * Function that transforms a vector according to a rotation matrix.
@@ -193,6 +213,14 @@ ts_Matrix4x4 tda_algebra_matrix_4x4_inverse(ts_Matrix4x4 *ps_Matrix);
  * @param[out] matrix      Output matrix.
  */
 ts_Matrix4x4 tda_algebra_matrix_4x4_multiply(ts_Matrix4x4 *ps_MatrixA , ts_Matrix4x4 *ps_MatrixB);
+
+/**
+ * Function that multiplys a 3x3 matrix.
+ * @param[in]  ps_MatrixA  Input matrix.
+ * @param[in]  ps_MatrixB  Input matrix.
+ * @param[out] matrix      Output matrix.
+ */
+ts_Matrix3x3 tda_algebra_matrix_3x3_multiply(ts_Matrix3x3 *ps_MatrixA , ts_Matrix3x3 *ps_MatrixB);
 
 /**
  * Function that convert a matrix to a quaternion

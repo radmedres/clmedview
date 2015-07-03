@@ -30,7 +30,6 @@ CLM_Plugin_DrawPixelAtPoint (PixelData *ps_Mask, PixelData *ps_Selection,
   void **ppv_ImageDataCounter = PIXELDATA_ACTIVE_SLICE_DATA (ps_Mask);
   ppv_ImageDataCounter += (unsigned int)(ts_Point.y * mask_slice->matrix.i16_x + ts_Point.x);
 
-
   if (*ppv_ImageDataCounter == mask_slice->serie->pv_OutOfBlobValue)
   {
     return 0;

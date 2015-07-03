@@ -77,7 +77,7 @@ Vector3D s_algebra_vector_perpendicular(Vector3D *ps_InputVector, Vector3D *ps_U
 
   if (f_UpMagnitude < 0.0000001)
   {
-    //Second try at making a View Up vector: Use Y axis default  (0,1,0)
+    //Second try at making a View Up vector: Use Y ats_I.xs default  (0,1,0)
     ts_perpendicularVector.x = -ps_InputVector->y * ps_InputVector->x;
     ts_perpendicularVector.y = 1-ps_InputVector->y * ps_InputVector->y;
     ts_perpendicularVector.z = -ps_InputVector->y * ps_InputVector->z;
@@ -87,7 +87,7 @@ Vector3D s_algebra_vector_perpendicular(Vector3D *ps_InputVector, Vector3D *ps_U
 
     if (f_UpMagnitude < 0.0000001)
     {
-          //Final try at making a View Up vector: Use Z axis default  (0,0,1)
+          //Final try at making a View Up vector: Use Z ats_I.xs default  (0,0,1)
       ts_perpendicularVector.x = -ps_InputVector->z * ps_InputVector->x;
       ts_perpendicularVector.y = -ps_InputVector->z * ps_InputVector->y;
       ts_perpendicularVector.z = 1-ps_InputVector->z * ps_InputVector->z;
@@ -123,6 +123,19 @@ Vector3D s_algebra_vector_crossproduct(Vector3D *ps_InputVector,Vector3D *pts_pe
   return s_OutputVector;
 }
 
+float f_algebra_vector_dotproduct(Vector3D *ps_VectorA,Vector3D *ps_VectorB)
+{
+  debug_functions ();
+
+  float f_DotProduct;
+
+  f_DotProduct  = ps_VectorA->x * ps_VectorB->x;
+  f_DotProduct += ps_VectorA->y * ps_VectorB->y;
+  f_DotProduct += ps_VectorA->z * ps_VectorB->z;
+
+  return f_DotProduct;
+}
+
 Vector3D ts_algebra_vector_translate(ts_Matrix4x4 *ps_Matrix, Vector3D *ps_Vector)
 {
   Vector3D ts_MultiplyVector;
@@ -145,9 +158,9 @@ Vector3D ts_algebra_vector_translate(ts_Matrix4x4 *ps_Matrix, Vector3D *ps_Vecto
   return ts_MultiplyVector;
 }
 
-Vector3D ts_algebra_vector_Rotation_around_X_Axis (Vector3D *ps_Vector, float f_angle)
+Vector3D ts_algebra_vector_Rotation_around_X_Axis(Vector3D *ps_Vector, float f_angle)
 {
-  /* Rotation vector around x-axis (http://en.wikipedia.org/wiki/Rotation_matrix)
+  /* Rotation vector around x-ats_I.xs (http://en.wikipedia.org/wiki/Rotation_matrix)
           | 1  0    0  |   | x |
       R = | 0 cos -sin | * | y |
           | 0 sin  cos |   | z |
@@ -164,7 +177,7 @@ Vector3D ts_algebra_vector_Rotation_around_X_Axis (Vector3D *ps_Vector, float f_
 
 Vector3D ts_algebra_vector_Rotation_around_Y_Axis (Vector3D *ps_Vector, float f_angle)
 {
-  /* Rotation vector around y-axis (http://en.wikipedia.org/wiki/Rotation_matrix)
+  /* Rotation vector around y-ats_I.xs (http://en.wikipedia.org/wiki/Rotation_matrix)
           |  cos  0  sin |   | x |
       R = |   0   1   0  | * | y |
           | -sin  0  cos |   | z |
@@ -178,9 +191,9 @@ Vector3D ts_algebra_vector_Rotation_around_Y_Axis (Vector3D *ps_Vector, float f_
   return ts_rotatedVector;
 }
 
-Vector3D ts_algebra_vector_Rotation_around_Z_Axis (Vector3D *ps_Vector, float f_angle)
+Vector3D ts_algebra_vector_Rotation_around_Z_Axis(Vector3D *ps_Vector, float f_angle)
 {
-  /* Rotation vector around z-axis (http://en.wikipedia.org/wiki/Rotation_matrix)
+  /* Rotation vector around z-ats_I.xs (http://en.wikipedia.org/wiki/Rotation_matrix)
           | cos -sin 0  |   | x |
       R = | sin  cos 0  | * | y |
           |  0    0  1  |   | z |
@@ -390,6 +403,55 @@ ts_Matrix4x4 tda_algebra_matrix_4x4_multiply(ts_Matrix4x4 *ps_MatrixA , ts_Matri
     return t_Result;
 }
 
+ts_Matrix3x3 tda_algebra_matrix_3x3_multiply(ts_Matrix3x3 *ps_MatrixA , ts_Matrix3x3 *ps_MatrixB)
+{
+  ts_Matrix3x3 t_Result;
+  short int i16_ColumnCnt;
+  short int i16_RowCnt;
+  short int i16_SumCnt;
+
+  for( i16_ColumnCnt=0; i16_ColumnCnt < 3; i16_ColumnCnt++)
+  {
+    for( i16_RowCnt=0; i16_RowCnt < 3; i16_RowCnt++)
+    {
+      t_Result.af_Matrix[i16_ColumnCnt][i16_RowCnt] = 0;
+      for (i16_SumCnt=0; i16_SumCnt < 3; i16_SumCnt++)
+      {
+        t_Result.af_Matrix[i16_ColumnCnt][i16_RowCnt] += ps_MatrixA->af_Matrix[i16_SumCnt][i16_RowCnt] * ps_MatrixB->af_Matrix[i16_ColumnCnt][i16_SumCnt];
+      }
+    }
+  }
+  return t_Result;
+}
+
+
+float f_algebra_matrix_3x3_Determinant(ts_Matrix3x3 *ps_RotationsMatrix )   /* determinant of 3x3 matrix */
+{
+   float r11,r12,r13,r21,r22,r23,r31,r32,r33 ;
+   float f_Determinant;
+
+   /* [ r11 r12 r13 ] */
+   /* [ r21 r22 r23 ] */
+   /* [ r31 r32 r33 ] */
+                                                       /*  INPUT MATRIX:  */
+   r11 = ps_RotationsMatrix->af_Matrix[0][0];
+   r12 = ps_RotationsMatrix->af_Matrix[1][0];
+   r13 = ps_RotationsMatrix->af_Matrix[2][0];
+
+   r21 = ps_RotationsMatrix->af_Matrix[0][1];
+   r22 = ps_RotationsMatrix->af_Matrix[1][1];
+   r23 = ps_RotationsMatrix->af_Matrix[2][1];
+
+   r31 = ps_RotationsMatrix->af_Matrix[0][2];
+   r32 = ps_RotationsMatrix->af_Matrix[1][2];
+   r33 = ps_RotationsMatrix->af_Matrix[2][2];
+
+
+   f_Determinant = r11*r22*r33 - r11*r32*r23 - r21*r12*r33 +
+                   r21*r32*r13 + r31*r12*r23 - r31*r22*r13;
+
+   return f_Determinant;
+}
 
 ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(ts_Matrix4x4 *pt_Matrix, double *pd_Qfac)
 {
@@ -436,7 +498,7 @@ ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(ts_Matrix4x4 *pt_Matrix, 
       So, now find the orthogonal matrix closest to the current matrix.
 
       One reason for using the polar decomposition to get this
-      orthogonal matrix, rather than just directly orthogonalizing
+      orthogonal matrix, rather than just directly orthogonalits_I.zng
       the columns, is so that inputting the inverse matrix to R
       will result in the inverse orthogonal matrix at this point.
       If we just orthogonalized the columns, this wouldn't necessarily hold. */
@@ -527,4 +589,6 @@ ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(ts_Matrix4x4 *pt_Matrix, 
 
   return ts_Quat;
 }
+
+
 
