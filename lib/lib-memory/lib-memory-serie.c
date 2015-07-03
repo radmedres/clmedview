@@ -459,3 +459,313 @@ v_memory_io_handleSpace (Serie *serie)
   }
 
 }
+
+void v_memory_serie_MatrixToOrientation(ts_Matrix4x4 *pt_R , te_MemoryImageDirection *pe_I, te_MemoryImageDirection *pe_J, te_MemoryImageDirection *pe_K)
+{
+  Vector3D ts_I, ts_J, ts_K;
+  float    f_DotProduct;
+   float val,detQ,detP ;
+   ts_Matrix3x3 P , Q , M ;
+   int i,j,k=0,p,q,r , ibest,jbest,kbest,pbest,qbest,rbest ;
+   float vbest ;
+
+
+   if( pe_I == NULL || pe_J == NULL || pe_K == NULL )
+   {
+     return;
+   }
+
+   *pe_I = 0;
+   *pe_J = 0;
+   *pe_K = 0;
+
+   /* load column vectors for each (i,j,k) direction from matrix */
+  ts_I.x = pt_R->af_Matrix[0][0];
+  ts_I.y = pt_R->af_Matrix[0][1];
+  ts_I.z = pt_R->af_Matrix[0][2];
+
+  ts_J.x = pt_R->af_Matrix[1][0];
+  ts_J.y = pt_R->af_Matrix[1][1];
+  ts_J.z = pt_R->af_Matrix[1][2];
+
+  ts_K.x = pt_R->af_Matrix[2][0] ;
+  ts_K.y = pt_R->af_Matrix[2][1] ;
+  ts_K.z = pt_R->af_Matrix[2][2] ;
+
+   /* normalize i,j ats_I.xs */
+  ts_I = s_algebra_vector_normalize(&ts_I);
+  ts_J = s_algebra_vector_normalize(&ts_J);
+  ts_K = s_algebra_vector_normalize(&ts_K);
+
+
+  /* orthogonalize j ats_I.xs to i ats_I.xs, if needed */
+  f_DotProduct = f_algebra_vector_dotproduct(&ts_I, &ts_J);
+  if( fabs(f_DotProduct) > 1.e-4 )
+  {
+    ts_J.x -= f_DotProduct*ts_I.x ;
+    ts_J.y -= f_DotProduct*ts_I.y ;
+    ts_J.z -= f_DotProduct*ts_I.z ;
+
+    ts_J = s_algebra_vector_normalize(&ts_J);
+   }
+
+   /* orthogonalize k to i */
+  f_DotProduct = f_algebra_vector_dotproduct(&ts_I, &ts_K);
+  if( fabs(f_DotProduct) > 1.e-4 )
+  {
+   ts_K.x -= f_DotProduct*ts_I.x;
+   ts_K.y -= f_DotProduct*ts_I.y;
+   ts_K.z -= f_DotProduct*ts_I.z;
+
+   ts_K = s_algebra_vector_normalize(&ts_K);
+  }
+
+  /* orthogonalize k to j */
+  f_DotProduct = f_algebra_vector_dotproduct(&ts_J, &ts_K);
+  if( fabs(f_DotProduct) > 1.e-4 )
+  {
+   ts_K.x -= f_DotProduct*ts_J.x;
+   ts_K.y -= f_DotProduct*ts_J.y;
+   ts_K.z -= f_DotProduct*ts_J.z;
+
+   ts_K = s_algebra_vector_normalize(&ts_K);
+  }
+
+  Q.af_Matrix[0][0] = ts_I.x ; Q.af_Matrix[1][0] = ts_J.x ; Q.af_Matrix[2][0] = ts_K.x ;
+  Q.af_Matrix[0][1] = ts_I.y ; Q.af_Matrix[1][1] = ts_J.y ; Q.af_Matrix[2][1] = ts_K.y ;
+  Q.af_Matrix[0][2] = ts_I.z ; Q.af_Matrix[1][2] = ts_J.z ; Q.af_Matrix[2][2] = ts_K.z ;
+
+  /* at this point, Q is the rotation matrix from the (i,j,k) to (x,y,z) axes */
+
+  detQ = f_algebra_matrix_3x3_Determinant( &Q ) ;
+  if( detQ == 0.0 ) return ; /* shouldn't happen unless user is a DUFIS */
+
+  /* Build and test all possible +1/-1 coordinate permutation matrices P;
+    then find the P such that the rotation matrix M=PQ is closest to the
+    identity, in the sense of M having the smallest total rotation angle. */
+
+  /* Despite the formidable looking 6 nested loops, there are
+    only 3*3*3*2*2*2 = 216 passes, which will run very quickly. */
+
+  vbest = -666.0;
+  pbest=1;
+  qbest=1;
+  rbest=1;
+
+  ibest=1;
+  jbest=2;
+  kbest=3;
+
+  for( i=1 ; i <= 3 ; i++ ) /* i = column number to use for row #1 */
+  {
+    for( j=1 ; j <= 3 ; j++ ) /* j = column number to use for row #2 */
+    {
+      if( i == j )
+      {
+        continue;
+      }
+
+      for( k=1 ; k <= 3 ; k++ ) /* k = column number to use for row #3 */
+      {
+        if( i == k || j == k )
+        {
+          continue;
+        }
+
+        LOAD_MAT33(P, 0,0,0, 0,0,0, 0,0,0);
+
+        for( p=-1 ; p <= 1 ; p+=2 )  /* p,q,r are -1 or +1      */
+        {
+          for( q=-1 ; q <= 1 ; q+=2 ) /* and go into rows #1,2,3 */
+          {
+            for( r=-1 ; r <= 1 ; r+=2 )
+            {
+              P.af_Matrix[i-1][0] = p;
+              P.af_Matrix[j-1][1] = q;
+              P.af_Matrix[k-1][2] = r;
+
+              detP = f_algebra_matrix_3x3_Determinant(&P); /* sign of permutation */
+
+              if( detP * detQ <= 0.0 )
+              {
+                continue ;  /* doesn't match sign of Q */
+              }
+
+              M = tda_algebra_matrix_3x3_multiply(&P,&Q) ;
+
+              /* angle of M rotation = 2.0*acos(0.5*sqrt(1.0+trace(M)))       */
+              /* we want largest trace(M) == smallest angle == M nearest to I */
+
+              val = M.af_Matrix[0][0] + M.af_Matrix[1][1] + M.af_Matrix[2][2] ; /* trace */
+              if( val > vbest )
+              {
+                vbest = val ;
+                ibest = i;
+                jbest = j;
+                kbest = k;
+
+                pbest = p;
+                qbest = q;
+                rbest = r;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* At this point ibest is 1 or 2 or 3; pbest is -1 or +1; etc.
+
+    The matrix P that corresponds is the best permutation approts_I.xmation
+    to Q-inverse; that is, P (approts_I.xmately) takes (x,y,z) coordinates
+    to the (i,j,k) axes.
+
+    For example, the first row of P (which contains pbest in column ibest)
+    determines the way the i ats_I.xs points relative to the anatomical
+    (x,y,z) axes.  If ibest is 2, then the i ats_I.xs is along the y ats_I.xs,
+    which is direction P2A (if pbest > 0) or A2P (if pbest < 0).
+
+    So, using ibest and pbest, we can assign the output code for
+    the i ats_I.xs.  Mutatis mutandis for the j and k axes, of course.
+  */
+
+  switch( ibest*pbest )
+  {
+   case  1: *pe_I = DIRECTION_L2R ; break ;
+   case -1: *pe_I = DIRECTION_R2L ; break ;
+   case  2: *pe_I = DIRECTION_P2A ; break ;
+   case -2: *pe_I = DIRECTION_A2P ; break ;
+   case  3: *pe_I = DIRECTION_I2S ; break ;
+   case -3: *pe_I = DIRECTION_S2I ; break ;
+  }
+
+  switch( jbest*qbest )
+  {
+   case  1: *pe_J = DIRECTION_L2R ; break ;
+   case -1: *pe_J = DIRECTION_R2L ; break ;
+   case  2: *pe_J = DIRECTION_P2A ; break ;
+   case -2: *pe_J = DIRECTION_A2P ; break ;
+   case  3: *pe_J = DIRECTION_I2S ; break ;
+   case -3: *pe_J = DIRECTION_S2I ; break ;
+  }
+
+  switch( kbest*rbest )
+  {
+   case  1: *pe_K = DIRECTION_L2R ; break ;
+   case -1: *pe_K = DIRECTION_R2L ; break ;
+   case  2: *pe_K = DIRECTION_P2A ; break ;
+   case -2: *pe_K = DIRECTION_A2P ; break ;
+   case  3: *pe_K = DIRECTION_I2S ; break ;
+   case -3: *pe_K = DIRECTION_S2I ; break ;
+  }
+}
+
+MemoryImageOrientation e_memory_serie_ConvertImageDirectionToOrientation(te_MemoryImageDirection e_ImageDirection_I, te_MemoryImageDirection e_ImageDirection_J, te_MemoryImageDirection e_ImageDirection_K)
+{
+  if ((e_ImageDirection_I == DIRECTION_ERROR) || ( e_ImageDirection_J == DIRECTION_ERROR) || (e_ImageDirection_K == DIRECTION_ERROR))
+  {
+    return ORIENTATION_UNKNOWN;
+  }
+
+
+  if ((e_ImageDirection_I == DIRECTION_L2R) || (e_ImageDirection_I == DIRECTION_R2L))
+  {
+    if ((e_ImageDirection_J == DIRECTION_P2A) || (e_ImageDirection_J == DIRECTION_A2P))
+    {
+      return ORIENTATION_AXIAL;
+    }
+    else if ((e_ImageDirection_J == DIRECTION_I2S) || (e_ImageDirection_J == DIRECTION_S2I))
+    {
+      return ORIENTATION_CORONAL;
+    }
+    else
+    {
+      return ORIENTATION_UNKNOWN;
+    }
+  }
+  else if ((e_ImageDirection_I == DIRECTION_P2A) || (e_ImageDirection_I ==DIRECTION_A2P))
+  {
+    if ((e_ImageDirection_J == DIRECTION_I2S) || (e_ImageDirection_J == DIRECTION_S2I))
+    {
+      return ORIENTATION_SAGITAL;
+    }
+    else if ((e_ImageDirection_J == DIRECTION_L2R) || (e_ImageDirection_J == DIRECTION_R2L))
+    {
+      return ORIENTATION_AXIAL;
+    }
+    else
+    {
+      return ORIENTATION_UNKNOWN;
+    }
+  }
+  else if ((e_ImageDirection_I == DIRECTION_S2I) || (e_ImageDirection_I == DIRECTION_I2S))
+  {
+    if ((e_ImageDirection_J == DIRECTION_L2R) || (e_ImageDirection_J == DIRECTION_R2L))
+    {
+      return ORIENTATION_CORONAL;
+    }
+    else if ((e_ImageDirection_J == DIRECTION_A2P) || (e_ImageDirection_J == DIRECTION_P2A))
+    {
+      return ORIENTATION_SAGITAL;
+    }
+    else
+    {
+      return ORIENTATION_UNKNOWN;
+    }
+  }
+}
+
+char *pc_memory_serie_orientation_string( MemoryImageOrientation e_ImageOrientation)
+{
+  switch(e_ImageOrientation)
+  {
+   case ORIENTATION_AXIAL   : return "Axial" ;
+   case ORIENTATION_SAGITAL : return "Sagital";
+   case ORIENTATION_CORONAL : return "Coronal";
+   case ORIENTATION_UNKNOWN : return "Unknown";
+  }
+  return "Unknown";
+}
+
+char *pc_memory_serie_direction_string( te_MemoryImageDirection e_ImageDirection, te_MemoryImageDirectionPart e_IDP)
+{
+
+  switch (e_IDP)
+  {
+    case DIRECTION_PART_ALL   :
+      switch(e_ImageDirection)
+      {
+        case DIRECTION_L2R :  return "Left-to-Right";
+        case DIRECTION_R2L :  return "Right-to-Left";
+        case DIRECTION_P2A :  return "Posterior-to-Anterior";
+        case DIRECTION_A2P :  return "Anterior-to-Posterior";
+        case DIRECTION_I2S :  return "Inferior-to-Superior";
+        case DIRECTION_S2I :  return "Superior-to-Inferior";
+      }
+
+    case DIRECTION_PART_FIRST :
+      switch(e_ImageDirection)
+      {
+        case DIRECTION_L2R :  return "L";
+        case DIRECTION_R2L :  return "R";
+        case DIRECTION_P2A :  return "P";
+        case DIRECTION_A2P :  return "A";
+        case DIRECTION_I2S :  return "I";
+        case DIRECTION_S2I :  return "S";
+      }
+
+    case DIRECTION_PART_LAST  :
+      switch(e_ImageDirection)
+      {
+        case DIRECTION_L2R :  return "R";
+        case DIRECTION_R2L :  return "L";
+        case DIRECTION_P2A :  return "A";
+        case DIRECTION_A2P :  return "P";
+        case DIRECTION_I2S :  return "S";
+        case DIRECTION_S2I :  return "I";
+      }
+  }
+  return "Unknown";
+}
+

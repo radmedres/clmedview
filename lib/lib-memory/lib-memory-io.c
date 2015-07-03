@@ -516,7 +516,6 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
   return pt_serie;
 }
 
-
 /*                                                                                                    */
 /*                                                                                                    */
 /* GLOBAL FUNCTIONS                                                                                   */
@@ -524,6 +523,8 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
 /*                                                                                                    */
 Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
 {
+  Tree *pt_SerieTree=NULL;
+  Serie *ps_Serie;
   Tree *pt_patient=NULL
   debug_functions ();
 
@@ -535,15 +536,33 @@ Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
   // check wheater it is a niftii
   if (memory_io_niftii_file_type(pc_path) != MUMC_FILETYPE_NOT_KNOWN)
   {
-    return pt_memory_io_load_file_nifti(&(*ppt_study),pc_path);
+    pt_SerieTree = pt_memory_io_load_file_nifti(&(*ppt_study),pc_path);
   }
   else
   {
     // maybe a dicom?
     pt_patient=((*ppt_study) == NULL)?NULL:(*ppt_study)->parent;
-    return pt_memory_io_load_file_dicom(&pt_patient, pc_path);
+    pt_SerieTree = pt_memory_io_load_file_dicom(&pt_patient, pc_path);
   }
-  return NULL;
+
+/*  if (pt_SerieTree != NULL)
+  {
+    ps_Serie = pt_SerieTree->data;
+
+    MemoryImageOrientation e_Orientation;
+
+    v_memory_serie_MatrixToOrientation(ps_Serie->pt_RotationMatrix, &ps_Serie->e_ImageDirection_I, &ps_Serie->e_ImageDirection_J, &ps_Serie->e_ImageDirection_K);
+    e_Orientation = e_memory_serie_ConvertImageDirectionToOrientation(ps_Serie->e_ImageDirection_I, ps_Serie->e_ImageDirection_J, ps_Serie->e_ImageDirection_K);
+
+    printf("%s\n",pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I));
+    printf("%s\n",pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J));
+    printf("%s\n",pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K));
+
+  }
+*/
+
+
+  return pt_SerieTree;
 }
 
 short int memory_io_save_file (Serie *serie, const char *path)

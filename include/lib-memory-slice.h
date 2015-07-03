@@ -132,6 +132,14 @@ typedef struct
    */
   ViewportProperties viewportProperties;
 
+  /**
+  * Image Directions of image loaded
+  */
+  te_MemoryImageDirection e_ImageDirection_I;
+  te_MemoryImageDirection e_ImageDirection_J;
+  te_MemoryImageDirection e_ImageDirection_K;
+
+
 } Slice;
 
 /**
@@ -221,6 +229,7 @@ void memory_slice_set_PivotPoint (Slice *slice, Vector3D *ps_PivotPoint);
  * @param ps_NormalVector  Pointer to external up vector.
  */
 void memory_slice_set_UpVector (Slice *slice, Vector3D *ps_upVector);
+
 
 /**
  *    @}

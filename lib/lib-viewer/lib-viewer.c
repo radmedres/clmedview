@@ -398,18 +398,10 @@ viewer_on_mouse_scroll_scale (UNUSED ClutterActor *actor, ClutterEvent *event,
   ts_ViewportSize.width = gtk_widget_get_allocated_width (resources->c_Embed);
   ts_ViewportSize.height = gtk_widget_get_allocated_height (resources->c_Embed);
 
-  // Adjust minimal factor to the size of the viewport.
-  float f_MinimalZoomFactor = ((ts_ViewportSize.width > ts_ViewportSize.height)
-    ? ts_ViewportSize.height / resources->ts_OriginalPlane.height
-    : ts_ViewportSize.width / resources->ts_OriginalPlane.width) * 0.5;
-
-
   double deltaX, deltaY;
   clutter_event_get_scroll_delta(event, &deltaX, &deltaY);
 
-
-
-  if (((deltaX < 0 ) || (deltaY < 0 )) && (resources->f_ZoomFactor > f_MinimalZoomFactor))
+  if (((deltaX < 0 ) || (deltaY < 0 )) && (resources->f_ZoomFactor > 0.5))
   {
     resources->f_ZoomFactor *= 0.90;
   }
@@ -422,7 +414,6 @@ viewer_on_mouse_scroll_scale (UNUSED ClutterActor *actor, ClutterEvent *event,
   {
     resources->f_ZoomFactor *= 1.0;
   }
-
 
   Plane ts_NewActorSize;
   ts_NewActorSize.width = resources->ts_OriginalPlane.width * resources->f_ZoomFactor;
@@ -630,6 +621,14 @@ viewer_redraw (Viewer *resources, RedrawMode redraw_mode)
                                                       (redraw_mode == REDRAW_ALL));
 
     clutter_actor_add_child (resources->c_Actor, c_BaseImage);
+    /*------------------------------------------------------------------------.
+     | APPLY PARENT SETTINGS                                                  |
+     '------------------------------------------------------------------------*/
+    clutter_actor_set_width (resources->c_Actor, slice->matrix.i16_x);
+    clutter_actor_set_height (resources->c_Actor, slice->matrix.i16_y);
+    clutter_actor_set_scale (resources->c_Actor,
+                             slice->f_ScaleFactorX * resources->f_ZoomFactor,
+                             slice->f_ScaleFactorY * resources->f_ZoomFactor);
 
     /*------------------------------------------------------------------------.
      | DISPLAYING OVERLAYS                                                    |
@@ -643,14 +642,7 @@ viewer_redraw (Viewer *resources, RedrawMode redraw_mode)
     viewer_redraw_child_series (resources, resources->pll_MaskSeries,
     				i32_Width, i32_Height, redraw_mode);
 
-    /*------------------------------------------------------------------------.
-     | APPLY PARENT SETTINGS                                                  |
-     '------------------------------------------------------------------------*/
-    clutter_actor_set_width (resources->c_Actor, slice->matrix.i16_x);
-    clutter_actor_set_height (resources->c_Actor, slice->matrix.i16_y);
-    clutter_actor_set_scale (resources->c_Actor,
-                             slice->f_ScaleFactorX * resources->f_ZoomFactor,
-                             slice->f_ScaleFactorY * resources->f_ZoomFactor);
+
 
   }
 
@@ -765,9 +757,10 @@ viewer_get_image_pixel_position (Viewer *resources, Coordinate ts_MousePosition)
 
   Slice *slice = VIEWER_ACTIVE_SLICE (resources);
 
-  co_PixelPosition.x = f_WindowScale_Factor * (ts_MousePosition.x - ts_ActorPosition.x) / slice->f_ScaleFactorX;
-  co_PixelPosition.y = f_WindowScale_Factor * (ts_MousePosition.y - ts_ActorPosition.y) / slice->f_ScaleFactorY;
+  co_PixelPosition.x = f_WindowScale_Factor * (ts_MousePosition.x - ts_ActorPosition.x);// slice->f_ScaleFactorX;
+  f_WindowScale_Factor = resources->ts_OriginalPlane.height / ts_ActorSize.height;
 
+  co_PixelPosition.y = f_WindowScale_Factor * (ts_MousePosition.y - ts_ActorPosition.y);// slice->f_ScaleFactorY;
   return co_PixelPosition;
 }
 
@@ -1080,6 +1073,7 @@ viewer_on_mouse_move (UNUSED ClutterActor *actor, ClutterEvent *event, gpointer 
     ts_WWWL.i32_windowWidth = (int)(ts_Diff.x);
     ts_WWWL.i32_windowLevel = (int)(ts_Diff.y);
 
+
     pixeldata_calculate_window_width_level (pixeldata, ts_WWWL.i32_windowWidth, ts_WWWL.i32_windowLevel);
 
     // Trigger a full redraw.
@@ -1171,19 +1165,42 @@ viewer_set_optimal_fit (Viewer *resources)
   debug_functions ();
   assert (resources != NULL);
 
+  float f_Border = 50;
+
   double width = gtk_widget_get_allocated_width (resources->c_Embed);
   double height = gtk_widget_get_allocated_height (resources->c_Embed);
 
   if (width > 2 && height > 2)
   {
-    double f_ScaleFactorWidth = width / resources->ts_OriginalPlane.width;
-    double f_ScaleFactorHeight = height / resources->ts_OriginalPlane.height;
+
+    double f_ScaleFactorWidth = (width - 2 * f_Border) / resources->ts_ScaledPlane.width;
+    double f_ScaleFactorHeight = (height - 2 * f_Border) / resources->ts_ScaledPlane.height;
 
     resources->f_ZoomFactor = (f_ScaleFactorWidth > f_ScaleFactorHeight)
       ? f_ScaleFactorHeight
       : f_ScaleFactorWidth;
   }
 }
+
+void v_viewer_set_image_orientation_direction(Viewer *pt_Viewport, char *pc_Top, char *pc_Bottom, char *pc_Left, char *pc_Right)
+{
+  if (pt_Viewport == NULL)
+  {
+    return;
+  }
+
+  if ((pt_Viewport->c_SliceOrientationTop == NULL) || (pt_Viewport->c_SliceOrientationBottom == NULL) || (pt_Viewport->c_SliceOrientationLeft == NULL) || (pt_Viewport->c_SliceOrientationRight == NULL))
+  {
+    return;
+  }
+
+  clutter_text_set_text (CLUTTER_TEXT (pt_Viewport->c_SliceOrientationTop), pc_Top);
+  clutter_text_set_text (CLUTTER_TEXT (pt_Viewport->c_SliceOrientationBottom), pc_Bottom);
+  clutter_text_set_text (CLUTTER_TEXT (pt_Viewport->c_SliceOrientationLeft), pc_Left);
+  clutter_text_set_text (CLUTTER_TEXT (pt_Viewport->c_SliceOrientationRight), pc_Right);
+}
+
+
 
 void
 viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
@@ -1227,7 +1244,20 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
   memory_slice_set_UpVector(slice,&resources->ts_UpVector);
 
   // Set the default window and level.
-  PixelDataLookupTable *default_lut = pixeldata_lookup_table_get_default ();
+  Serie *ps_serie=slice->serie;
+  PixelDataLookupTable *default_lut;
+
+  if (ps_serie->i32_MaximumValue < 16)
+  {
+    default_lut = pixeldata_lookup_table_get_default_mask();
+    i32_windowWidth = 15;
+    i32_windowLevel = 8;
+  }
+  else
+  {
+    default_lut = pixeldata_lookup_table_get_default ();
+  }
+
   resources->ps_Original = pixeldata_new_with_lookup_table (default_lut, i32_windowWidth ,
                                                             i32_windowLevel, slice, ts_Original);
 
@@ -1239,6 +1269,10 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
 
   resources->ts_ScaledPlane.width = slice->matrix.i16_x * slice->f_ScaleFactorX;
   resources->ts_ScaledPlane.height = slice->matrix.i16_y * slice->f_ScaleFactorY;
+
+
+
+
 
   // Set up the display slice resources for the mask.
   viewer_add_mask_serie (resources, ts_Mask);
@@ -1267,12 +1301,33 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
   clutter_actor_set_height (resources->c_Actor, slice->matrix.i16_y);
   clutter_actor_set_content_scaling_filters (resources->c_Actor, SCALING_FILTER, SCALING_FILTER);
 
+  viewer_set_optimal_fit (resources);
+
+  float f_ActorWidth, f_ActorHeight;
+  f_ActorWidth = resources->ts_OriginalPlane.width * resources->f_ZoomFactor* slice->f_ScaleFactorX;
+  f_ActorHeight = resources->ts_OriginalPlane.height * resources->f_ZoomFactor* slice->f_ScaleFactorY;
+  clutter_actor_set_size (resources->c_Actor, f_ActorWidth, f_ActorHeight);
+
+  float f_StageWidth, f_StageHeight;
+  f_StageWidth = clutter_actor_get_width(resources->c_Stage);
+  f_StageHeight = clutter_actor_get_height(resources->c_Stage);
+
+
+  float f_StartPositionX, f_StartPositionY;
+
+  f_StartPositionX = (f_StageWidth - f_ActorWidth)  / 2;
+  f_StartPositionY = (f_StageHeight - f_ActorHeight) / 2;
+  clutter_actor_set_position(resources->c_Actor, f_StartPositionX, f_StartPositionY );
+
+
+
+
   /*--------------------------------------------------------------------------.
    | CLUTTER-GTK PARTS                                                        |
    '--------------------------------------------------------------------------*/
 
   viewer_set_slice (resources, 0);
-  viewer_set_optimal_fit (resources);
+
 
 }
 
@@ -1323,7 +1378,20 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
   memory_slice_set_UpVector(slice,&resources->ts_UpVector);
 
   // Set the default window and level.
-  PixelDataLookupTable *default_lut = pixeldata_lookup_table_get_default ();
+
+  PixelDataLookupTable *default_lut;
+
+  if (ts_Original->i32_MaximumValue < 16)
+  {
+    default_lut = pixeldata_lookup_table_get_default_mask();
+    i32_windowWidth = 15;
+    i32_windowLevel = 8;
+  }
+  else
+  {
+    default_lut = pixeldata_lookup_table_get_default ();
+  }
+
   resources->ps_Original = pixeldata_new_with_lookup_table (default_lut, i32_windowWidth ,
                                                             i32_windowLevel, slice, ts_Original);
 
@@ -1367,6 +1435,11 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
                                                   "Value:\n",
                                                   CLUTTER_COLOR_White);
 
+  resources->c_SliceOrientationTop    = clutter_text_new_full("Sans 12", "", CLUTTER_COLOR_Yellow);
+  resources->c_SliceOrientationBottom = clutter_text_new_full("Sans 12", "", CLUTTER_COLOR_Yellow);
+  resources->c_SliceOrientationLeft   = clutter_text_new_full("Sans 12", "", CLUTTER_COLOR_Yellow);
+  resources->c_SliceOrientationRight  = clutter_text_new_full("Sans 12", "", CLUTTER_COLOR_Yellow);
+
   assert (resources->c_SliceInfo != NULL);
 
   resources->c_Handles = clutter_actor_new ();
@@ -1388,26 +1461,60 @@ viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
   clutter_actor_add_child (resources->c_Stage, resources->c_Actor);
 
   clutter_actor_insert_child_above (resources->c_Stage, resources->c_SliceInfo, NULL);
+
+  clutter_actor_insert_child_above (resources->c_Stage, resources->c_SliceOrientationTop, NULL);
+  clutter_actor_insert_child_above (resources->c_Stage, resources->c_SliceOrientationBottom, NULL);
+  clutter_actor_insert_child_above (resources->c_Stage, resources->c_SliceOrientationLeft, NULL);
+  clutter_actor_insert_child_above (resources->c_Stage, resources->c_SliceOrientationRight, NULL);
+
   clutter_actor_insert_child_above (resources->c_Stage, resources->c_Handles, NULL);
 
   // Align the text widget to the bottom left corner.
   clutter_actor_set_pivot_point (resources->c_SliceInfo, 0.0, 1.0);
 
+  clutter_actor_set_pivot_point (resources->c_SliceOrientationTop, 0.5, 0.0);
+  clutter_actor_set_pivot_point (resources->c_SliceOrientationBottom, 0.5, 1.0);
+  clutter_actor_set_pivot_point (resources->c_SliceOrientationLeft, 0.0, 0.5);
+  clutter_actor_set_pivot_point (resources->c_SliceOrientationRight, 1.0, 0.5);
+
   ClutterConstraint *align_x_constraint;
-  align_x_constraint= clutter_align_constraint_new (resources->c_Stage,
-                                                    CLUTTER_ALIGN_Y_AXIS, 1.0);
-
-  clutter_actor_add_constraint (resources->c_SliceInfo, align_x_constraint);
-
   ClutterConstraint *align_y_constraint;
-  align_y_constraint = clutter_align_constraint_new (resources->c_Stage,
-                                                     CLUTTER_ALIGN_X_AXIS, 0.0);
 
+  align_x_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_X_AXIS, 0.0);
+  align_y_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_Y_AXIS, 1.0);
+  clutter_actor_add_constraint (resources->c_SliceInfo, align_x_constraint);
   clutter_actor_add_constraint (resources->c_SliceInfo, align_y_constraint);
+
+  align_x_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_X_AXIS, 0.5);
+  align_y_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_Y_AXIS, 0.0);
+  clutter_actor_add_constraint (resources->c_SliceOrientationTop, align_x_constraint);
+  clutter_actor_add_constraint (resources->c_SliceOrientationTop, align_y_constraint);
+
+  align_x_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_X_AXIS, 0.5);
+  align_y_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_Y_AXIS, 1.0);
+  clutter_actor_add_constraint (resources->c_SliceOrientationBottom, align_x_constraint);
+  clutter_actor_add_constraint (resources->c_SliceOrientationBottom, align_y_constraint);
+
+  align_x_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_X_AXIS, 0.0);
+  align_y_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_Y_AXIS, 0.5);
+  clutter_actor_add_constraint (resources->c_SliceOrientationLeft, align_x_constraint);
+  clutter_actor_add_constraint (resources->c_SliceOrientationLeft, align_y_constraint);
+
+  align_x_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_X_AXIS, 1.0);
+  align_y_constraint = clutter_align_constraint_new (resources->c_Stage, CLUTTER_ALIGN_Y_AXIS, 0.5);
+  clutter_actor_add_constraint (resources->c_SliceOrientationRight, align_x_constraint);
+  clutter_actor_add_constraint (resources->c_SliceOrientationRight, align_y_constraint);
+
 
   // Place it 10 pixels off the left and bottom.
   clutter_actor_set_margin_left (resources->c_SliceInfo, 10);
   clutter_actor_set_margin_bottom (resources->c_SliceInfo, 10);
+
+  clutter_actor_set_margin_top (resources->c_SliceOrientationTop, 10);
+  clutter_actor_set_margin_bottom (resources->c_SliceOrientationBottom, 10);
+  clutter_actor_set_margin_left (resources->c_SliceOrientationLeft, 10);
+  clutter_actor_set_margin_right (resources->c_SliceOrientationRight, 10);
+
 
   // TODO: Calculate what the middle slice is and set it.
   viewer_set_slice (resources, 0);
@@ -1684,10 +1791,35 @@ viewer_add_overlay_serie (Viewer *resources, Serie *serie)
   if (serie->i32_MaximumValue == 0)
     serie->i32_MaximumValue = 255;
 
-  PixelDataLookupTable *overlay_lut = pixeldata_lookup_table_get_default_overlay ();
+  PixelDataLookupTable *overlay_lut;
+
+  int i32_windowWidth, i32_windowLevel;
+
+  i32_windowWidth = serie->i32_MaximumValue - serie->i32_MinimumValue;
+  i32_windowLevel = serie->i32_MaximumValue/2;
+
+  if (i32_windowLevel == 0)
+  {
+    i32_windowLevel = 1;
+  }
+
+  if (serie->i32_MaximumValue < 16)
+  {
+    overlay_lut = pixeldata_lookup_table_get_default_mask();
+  }
+  else if (serie->i32_MaximumValue < 255)
+  {
+    overlay_lut = pixeldata_lookup_table_get_default_overlay ();
+  }
+  else
+  {
+    overlay_lut = pixeldata_lookup_table_get_default();
+  }
+
+
   overlay = pixeldata_new_with_lookup_table (overlay_lut,
-					     serie->i32_MaximumValue - serie->i32_MinimumValue,
-					     serie->i32_MaximumValue/2,
+					     i32_windowWidth,
+					     i32_windowLevel,
 					     overlay_slice,
 					     serie);
   assert (overlay != NULL);
@@ -1837,6 +1969,11 @@ viewer_destroy (void *data)
   resources->pll_Replay = NULL;
 
   clutter_actor_destroy (resources->c_SliceInfo);
+  clutter_actor_destroy (resources->c_SliceOrientationTop);
+  clutter_actor_destroy (resources->c_SliceOrientationBottom);
+  clutter_actor_destroy (resources->c_SliceOrientationLeft);
+  clutter_actor_destroy (resources->c_SliceOrientationRight);
+
   clutter_actor_destroy (resources->c_Handles);
   clutter_actor_destroy (resources->c_Actor);
 

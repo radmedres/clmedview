@@ -681,7 +681,7 @@ gui_mainwindow_file_load (void* data)
   debug_functions ();
 
   Tree *pt_Serie=NULL;
-  Serie *ps_serie = NULL;
+  Serie *ps_Serie = NULL;
   char* filename = NULL;
 
   // The filename can be passed by 'data'. Otherwise we need to show a
@@ -702,8 +702,8 @@ gui_mainwindow_file_load (void* data)
 
     if (pt_Serie != NULL)
     {
-      ps_serie = pt_Serie->data;
-      ps_serie->e_SerieType=SERIE_ORIGINAL;
+      ps_Serie = pt_Serie->data;
+      ps_Serie->e_SerieType=SERIE_ORIGINAL;
 
       gui_mainwindow_load_serie(pt_Serie);
 
@@ -775,10 +775,123 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   gui_mainwindow_sidebar_populate (root_tree);
   gui_mainwindow_layer_manager_refresh (CONFIGURATION_ACTIVE_SERIE(config));
 
-  Serie *serie = pt_Serie->data;
-  if (serie == NULL || ts_ActiveMask == NULL) return;
+  ps_Serie = pt_Serie->data;
+  if (ps_Serie == NULL || ts_ActiveMask == NULL) return;
 
-  gtk_range_set_range (GTK_RANGE (timeline), 1, serie->num_time_series);
+  gtk_range_set_range (GTK_RANGE (timeline), 1, ps_Serie->num_time_series);
+
+  MemoryImageOrientation e_Orientation;
+  v_memory_serie_MatrixToOrientation(ps_Serie->pt_RotationMatrix, &ps_Serie->e_ImageDirection_I, &ps_Serie->e_ImageDirection_J, &ps_Serie->e_ImageDirection_K);
+  e_Orientation = e_memory_serie_ConvertImageDirectionToOrientation(ps_Serie->e_ImageDirection_I, ps_Serie->e_ImageDirection_J, ps_Serie->e_ImageDirection_K);
+
+  char *pc_Axial_Top  , *pc_Axial_Bottom  , *pc_Axial_Left  , *pc_Axial_Right;
+  char *pc_Sagital_Top, *pc_Sagital_Bottom, *pc_Sagital_Left, *pc_Sagital_Right;
+  char *pc_Coronal_Top, *pc_Coronal_Bottom, *pc_Coronal_Left, *pc_Coronal_Right;
+
+  Serie *ps_RotatedSerie = memory_serie_new("test","test");
+  ts_Matrix4x4 ta_RotationAroundAxis, ta_TMP;
+
+  Vector3D ts_Normal_Axial;
+  Vector3D ts_Normal_Sagital;
+  Vector3D ts_Normal_Coronal;
+
+  Vector3D ts_Up_Axial;
+  Vector3D ts_Up_Sagital;
+  Vector3D ts_Up_Coronal;
+
+  Vector3D ts_Pivot;
+  ts_Pivot = memory_serie_GetPivotpoint(ps_Serie);
+
+
+  if (e_Orientation != ORIENTATION_UNKNOWN )
+  {
+    switch (e_Orientation)
+    {
+      case ORIENTATION_AXIAL :
+        pc_Axial_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Axial_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Axial_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Axial_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+
+        pc_Sagital_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Sagital_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Sagital_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Sagital_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+
+        pc_Coronal_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Coronal_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Coronal_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Coronal_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+
+        te_DisplayType = VIEWPORT_TYPE_AXIAL;
+        ts_Normal_Axial.x   = 0;  ts_Normal_Axial.y   = 0;  ts_Normal_Axial.z   = -1;
+        ts_Up_Axial.x       = 0;  ts_Up_Axial.y       = 1;  ts_Up_Axial.z       =  0;
+
+        ts_Normal_Sagital.x = 1;  ts_Normal_Sagital.y = 0;  ts_Normal_Sagital.z =  0;
+        ts_Up_Sagital.x     = 0;  ts_Up_Sagital.y     = 0;  ts_Up_Sagital.z     =  1;
+
+        ts_Normal_Coronal.x = 0;  ts_Normal_Coronal.y = 1;  ts_Normal_Coronal.z =  0;
+        ts_Up_Coronal.x     = 0;  ts_Up_Coronal.y     = 1;  ts_Up_Coronal.z     =  0;
+        break;
+
+      case ORIENTATION_SAGITAL :
+        pc_Sagital_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Sagital_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Sagital_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Sagital_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+
+        pc_Axial_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Axial_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+        pc_Axial_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Axial_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+
+        pc_Coronal_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Coronal_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Coronal_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Coronal_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+
+        te_DisplayType = VIEWPORT_TYPE_SAGITAL;
+        ts_Normal_Axial.x   = 0;  ts_Normal_Axial.y   = -1; ts_Normal_Axial.z   =  0;
+        ts_Up_Axial.x       = 1;  ts_Up_Axial.y       =  0; ts_Up_Axial.z       =  0;
+
+        ts_Normal_Sagital.x = 0;  ts_Normal_Sagital.y =  0; ts_Normal_Sagital.z = -1;
+        ts_Up_Sagital.x     = 0;  ts_Up_Sagital.y     =  1; ts_Up_Sagital.z     =  0;
+
+        ts_Normal_Coronal.x = 1;  ts_Normal_Coronal.y =  0; ts_Normal_Coronal.z =  0;
+        ts_Up_Coronal.x     = 0;  ts_Up_Coronal.y     =  1; ts_Up_Coronal.z     =  0;
+        break;
+
+      case ORIENTATION_CORONAL :
+        pc_Coronal_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Coronal_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Coronal_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+        pc_Coronal_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+
+
+        pc_Sagital_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Sagital_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Sagital_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Sagital_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+
+        pc_Axial_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Axial_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Axial_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Axial_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+
+        te_DisplayType = VIEWPORT_TYPE_CORONAL;
+        ts_Normal_Axial.x   = 0;  ts_Normal_Axial.y   =  1; ts_Normal_Axial.z   =  0;
+        ts_Up_Axial.x       = 0;  ts_Up_Axial.y       =  1; ts_Up_Axial.z       =  0;
+
+        ts_Normal_Sagital.x = 1;  ts_Normal_Sagital.y =  0; ts_Normal_Sagital.z =  0;
+        ts_Up_Sagital.x     = 1;  ts_Up_Sagital.y     =  0; ts_Up_Sagital.z     =  0;
+
+        ts_Normal_Coronal.x = 0;  ts_Normal_Coronal.y =  0; ts_Normal_Coronal.z = -1;
+        ts_Up_Coronal.x     = 0;  ts_Up_Coronal.y     =  1; ts_Up_Coronal.z     =  0;
+        break;
+    }
+  }
+
+  free(ps_RotatedSerie);
 
   if (pll_Viewers == NULL)
   {
@@ -787,21 +900,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     /*--------------------------------------------------------------------------.
      | AXIAL VIEWER WIDGET                                                      |
      '--------------------------------------------------------------------------*/
-    Vector3D ts_Pivot;
-    Vector3D ts_Normal;
-    Vector3D ts_Up;
-
-    ts_Pivot = memory_serie_GetPivotpoint(serie);
-
-    ts_Normal.x = 0;
-    ts_Normal.y = 0;
-    ts_Normal.z = 1;
-
-    ts_Up.x = 0;
-    ts_Up.y = 1;
-    ts_Up.z = 0;
-
-    viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
+    viewer = viewer_new (ps_Serie, ts_ActiveMask, NULL, ts_Normal_Axial, ts_Pivot, ts_Up_Axial);
     if (viewer != NULL)
     {
       viewer_set_orientation (viewer, ORIENTATION_AXIAL);
@@ -812,6 +911,8 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
       viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
       viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
+      v_viewer_set_image_orientation_direction(viewer, pc_Axial_Top, pc_Axial_Bottom, pc_Axial_Left, pc_Axial_Right);
+
       if (ts_ActiveDrawTool != NULL)
         viewer_set_active_painter (viewer, ts_ActiveDrawTool);
 
@@ -821,16 +922,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     /*--------------------------------------------------------------------------.
      | SAGITAL VIEWER WIDGET                                                    |
      '--------------------------------------------------------------------------*/
-
-    ts_Normal.x = 1;
-    ts_Normal.y = 0;
-    ts_Normal.z = 0;
-
-    ts_Up.x = 0;
-    ts_Up.y = 0;
-    ts_Up.z = 1;
-
-    viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
+    viewer = viewer_new (ps_Serie, ts_ActiveMask, NULL, ts_Normal_Sagital, ts_Pivot, ts_Up_Sagital);
     if (viewer != NULL)
     {
       viewer_set_orientation (viewer, ORIENTATION_SAGITAL);
@@ -841,6 +933,8 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
       viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
       viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
+      v_viewer_set_image_orientation_direction(viewer, pc_Sagital_Top, pc_Sagital_Bottom, pc_Sagital_Left, pc_Sagital_Right);
+
       if (ts_ActiveDrawTool != NULL)
         viewer_set_active_painter (viewer, ts_ActiveDrawTool);
 
@@ -850,16 +944,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     /*--------------------------------------------------------------------------.
      | CORONAL VIEWER WIDGET                                                    |
      '--------------------------------------------------------------------------*/
-
-    ts_Normal.x = 0;
-    ts_Normal.y = 1;
-    ts_Normal.z = 0;
-
-    ts_Up.x = 0;
-    ts_Up.y = 1;
-    ts_Up.z = 0;
-
-    viewer = viewer_new (serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
+    viewer = viewer_new (ps_Serie, ts_ActiveMask, NULL, ts_Normal_Coronal, ts_Pivot, ts_Up_Coronal);
     if (viewer != NULL)
     {
       viewer_set_orientation (viewer, ORIENTATION_CORONAL);
@@ -869,6 +954,8 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
       viewer_set_callback (viewer, "focus-change", &gui_mainwindow_update_viewer_positions);
       viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
       viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
+
+      v_viewer_set_image_orientation_direction(viewer, pc_Coronal_Top, pc_Coronal_Bottom, pc_Coronal_Left, pc_Coronal_Right);
 
       if (ts_ActiveDrawTool != NULL)
         viewer_set_active_painter (viewer, ts_ActiveDrawTool);
@@ -900,6 +987,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     {
     case VIEWPORT_TYPE_AXIAL:
       gtk_widget_set_visible (GTK_WIDGET (axial_embed), TRUE);
+
       break;
     case VIEWPORT_TYPE_SAGITAL:
       gtk_widget_set_visible (GTK_WIDGET (sagital_embed), TRUE);
@@ -918,11 +1006,11 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
 
     gui_mainwindow_save_undo_step (hbox_viewers, NULL);
 
-    // Display a slider for time series if applicable.
-    if (serie->num_time_series > 1)
+    // Display a slider for time ps_Series if applicable.
+    if (ps_Serie->num_time_series > 1)
     {
       gtk_scale_clear_marks (GTK_SCALE (timeline));
-      gtk_range_set_range (GTK_RANGE (timeline), 1, serie->num_time_series);
+      gtk_range_set_range (GTK_RANGE (timeline), 1, ps_Serie->num_time_series);
       gtk_range_set_value (GTK_RANGE (timeline), 1);
       gtk_widget_show (timeline);
     }
@@ -935,65 +1023,50 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     List *viewers = list_nth (pll_Viewers, 1);
     while (viewers != NULL)
     {
-      viewer_set_active_layer_serie (viewers->data, serie);
+      viewer_set_active_layer_serie (viewers->data, ps_Serie);
       viewers = list_next (viewers);
     }
   }
   else
   {
-    Vector3D ts_Pivot;
     Vector3D ts_Normal;
     Vector3D ts_Up;
-
-    ts_Pivot = memory_serie_GetPivotpoint(serie);
 
     List *temp = list_nth (pll_Viewers, 1);
     while (temp != NULL)
     {
       Viewer* list_viewer = temp->data;
 
-
       switch (VIEWER_ORIENTATION (list_viewer))
       {
         case ORIENTATION_AXIAL:
-          ts_Up.x = 0;
-          ts_Up.y = 1;
-          ts_Up.z = 0;
+          ts_Up = ts_Up_Axial;
+          ts_Normal = ts_Normal_Axial;
 
-          ts_Normal.x = 0;
-          ts_Normal.y = 0;
-          ts_Normal.z = 1;
+          v_viewer_set_image_orientation_direction(list_viewer, pc_Axial_Top, pc_Axial_Bottom, pc_Axial_Left, pc_Axial_Right);
           break;
         case ORIENTATION_SAGITAL:
-          ts_Up.x = 0;
-          ts_Up.y = 0;
-          ts_Up.z = 1;
-
-          ts_Normal.x = 1;
-          ts_Normal.y = 0;
-          ts_Normal.z = 0;
+          ts_Up = ts_Up_Sagital;
+          ts_Normal = ts_Normal_Sagital;
+          v_viewer_set_image_orientation_direction(list_viewer, pc_Sagital_Top, pc_Sagital_Bottom, pc_Sagital_Left, pc_Sagital_Right);
           break;
         case ORIENTATION_CORONAL:
-          ts_Up.x = 0;
-          ts_Up.y = 1;
-          ts_Up.z = 0;
-
-          ts_Normal.x = 0;
-          ts_Normal.y = 1;
-          ts_Normal.z = 0;
+          ts_Up = ts_Up_Coronal;
+          ts_Normal = ts_Normal_Coronal;
+          v_viewer_set_image_orientation_direction(list_viewer, pc_Coronal_Top, pc_Coronal_Bottom, pc_Coronal_Left, pc_Coronal_Right);
           break;
         default:
           break;
       }
 
-      viewer_initialize (list_viewer, serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
+
+      viewer_initialize (list_viewer, ps_Serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
 
       viewer_refresh_data (list_viewer);
       viewer_redraw (list_viewer, REDRAW_ALL);
 
       temp = temp->next;
     }
-
   }
 }
 
