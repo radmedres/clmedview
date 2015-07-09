@@ -313,7 +313,7 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
   int translated_value;
   unsigned int array_items = lut->table_len / sizeof (unsigned int);
 
-  for (counter = 0; counter < range; counter++)
+  for (counter = 0; counter <= range; counter++)
   {
     translated_value = counter * f_Slope + f_Offset;
 
