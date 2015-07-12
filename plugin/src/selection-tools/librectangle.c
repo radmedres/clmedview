@@ -5,7 +5,7 @@
 #include <math.h>
 #include <assert.h>
 
-#include "lib-common-unused.h"
+#include "libcommon-unused.h"
 
 // Including a C file is the intended behavior here. The functions in
 // plugin-interface should be compiled into the shared library to avoid

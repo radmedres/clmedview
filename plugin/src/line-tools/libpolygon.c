@@ -3,15 +3,15 @@
 #include <string.h>
 #include <assert.h>
 
-#include "lib-common-unused.h"
+#include "libcommon-unused.h"
 
 // Including a C file is the intended behavior here. The functions in
 // plugin-interface should be compiled into the shared library to avoid
 // linking or runtime complexities.
 #include "plugin-interface.c"
 
-#include "lib-common-debug.c"
-#include "lib-common-list.c"
+#include "src/libcommon-debug.c"
+#include "src/libcommon-list.c"
 
 static Coordinate *ac_1 = NULL;
 static Coordinate *ac_2 = NULL;

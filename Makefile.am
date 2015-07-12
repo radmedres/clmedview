@@ -17,102 +17,88 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-SUBDIRS                 = . plugin
 ACLOCAL_AMFLAGS         = -I m4
 AUTOMAKE_OPTIONS 	= subdir-objects
-AM_CFLAGS 		= $(gtk_CFLAGS) $(glib_CFLAGS) $(zlib_CFLAGS) \
-                          $(clutter_CFLAGS) \
-                          $(cluttergtk_CFLAGS) $(uuid_CFLAGS) -Iinclude/ \
-                         -Ilib/lib-common/include/ -Iplugin/
+SUBDIRS                 = libcommon/                                           \
+                          libconfiguration/                                    \
+                          libmemory/                                           \
+                          libpixeldata/                                        \
+                          libviewer/                                           \
+                          libio/                                               \
+                          plugin/                                              \
+                          .
 
-bin_PROGRAMS 		= clmedview
+AM_CFLAGS               = $(gtk_CFLAGS)                                        \
+                          $(glib_CFLAGS)                                       \
+                          $(clutter_CFLAGS)                                    \
+                          $(cluttergtk_CFLAGS)                                 \
+                          $(uuid_CFLAGS)                                       \
+                          $(zlib_CFLAGS)                                       \
+                          -Ilibcommon/include/                                 \
+                          -Ilibconfiguration/include/                          \
+                          -Ilibpixeldata/include/                              \
+                          -Ilibviewer/include/                                 \
+                          -Ilibmemory/include/                                 \
+                          -Ilibio/include/                                     \
+                          -Iplugin/
 
-INCLUDE_SOURCES 	= include/lib-pixeldata.h \
-			  include/lib-pixeldata-plugin.h \
-			  include/lib-viewer.h \
-			  include/lib-common.h \
-			  include/lib-memory.h \
-			  include/lib-common-history.h \
-			  include/lib-lib-io-dicom.h \
-			  include/lib-lib-io-niftii.h \
-			  include/lib-memory-io.h \
-			  include/lib-memory-patient.h \
-			  include/lib-memory-study.h \
-			  include/lib-memory-serie.h \
-			  include/lib-memory-slice.h \
-			  include/lib-memory-tree.h \
-			  include/lib-common-list.h \
-			  include/lib-common-tree.h \
-			  include/lib-common-debug.h \
-			  include/lib-common-unused.h \
-			  include/lib-common-algebra.h \
-			  include/lib-configuration.h
+EXTERNAL_LIBS           = $(gtk_LIBS)                                          \
+                          $(glib_LIBS)                                         \
+                          $(zlib_LIBS)                                         \
+                          $(uuid_LIBS)                                         \
+                          $(clutter_LIBS)                                      \
+                          $(cluttergtk_LIBS) 
 
-PLUGIN_FILES		= plugin/Makefile.am \
-			  plugin/plugin-interface.h \
-			  plugin/plugin-interface.c \
-			  plugin/src/brushes/Makefile.am \
-			  plugin/src/brushes/plugin-brush-interface.h \
-			  plugin/src/brushes/libpen.c \
-			  plugin/src/brushes/libfill.c \
-			  plugin/src/brushes/libsobel.c \
-			  plugin/src/line-tools/Makefile.am \
-			  plugin/src/line-tools/plugin-line-interface.h \
-			  plugin/src/line-tools/libpolygon.c \
-			  plugin/src/selection-tools/Makefile.am \
-			  plugin/src/selection-tools/plugin-select-interface.h \
-			  plugin/src/selection-tools/librectangle.c
+COMMON_LIBS             = libcommon/libcommon-algebra.la                       \
+                          libcommon/libcommon-debug.la                         \
+                          libcommon/libcommon-history.la                       \
+                          libcommon/libcommon-list.la                          \
+                          libcommon/libcommon-tree.la
+
+CONFIGURATION_LIBS      = libconfiguration/libconfiguration.la
+
+PIXELDATA_LIBS          = libpixeldata/libpixeldata.la                         \
+			  libpixeldata/libpixeldata-plugin.la
+
+VIEWER_LIBS             = libviewer/libviewer.la
+
+MEMORY_LIBS             = libmemory/libmemory-patient.la                       \
+                          libmemory/libmemory-serie.la                         \
+                          libmemory/libmemory-slice.la                         \
+                          libmemory/libmemory-study.la                         \
+                          libmemory/libmemory-tree.la                          \
+			  libmemory/libmemory-io.la
+
+IO_LIBS                 = libio/libio-dicom.la                                 \
+                          libio/libio-nifti.la
 
 LUT_FILES               = luts/*.lut
 
-DOXYGEN_FILES           = doc/Doxyfile doc/custom.css doc/footer.html \
-                          doc/doxygen/html/background.png \
-                          doc/images/component-diagram.dia \
+DOXYGEN_FILES           = doc/Doxyfile doc/custom.css doc/footer.html          \
+                          doc/doxygen/html/background.png                      \
+                          doc/images/component-diagram.dia                     \
                           doc/clmedview.texi
 
-LIB_IO_DICOM_SOURCES    = lib/lib-io-dicom/lib-io-dicom.c \
-                          lib/lib-io-dicom/znzlib.c \
-                          lib/lib-io-dicom/zzio.c \
-                          lib/lib-io-dicom/zz.c
+clmedview_SOURCES	= source/main.c                                        \
+                          source/gui/mainwindow.c                              \
+                          source/gui/mainwindow.h
 
-
-
-LIB_IO_NIFTI_SOURCES    = lib/lib-io-nifti/lib-io-nifti.c
-
-LIB_MEMORY_SOURCES	= lib/lib-memory/lib-memory-tree.c \
-			  lib/lib-memory/lib-memory-patient.c \
-			  lib/lib-memory/lib-memory-study.c \
-			  lib/lib-memory/lib-memory-serie.c \
-			  lib/lib-memory/lib-memory-slice.c \
-			  lib/lib-memory/lib-memory-io.c
-
-LIB_COMMON_SOURCES	= lib/lib-common/lib-common-list.c \
-			  lib/lib-common/lib-common-tree.c \
-			  lib/lib-common/lib-common-history.c \
-			  lib/lib-common/lib-common-algebra.c \
-			  lib/lib-common/lib-common-debug.c
-
-LIB_PIXELDATA_SOURCES	= lib/lib-pixeldata/lib-pixeldata.c \
-			  lib/lib-pixeldata/lib-pixeldata-plugin.c
-
-LIB_VIEWER_SOURCES	= lib/lib-viewer/lib-viewer.c
-
-
-LIB_CONFIGURATION_SOURCES = lib/lib-configuration/lib-configuration.c
-
-clmedview_SOURCES	= source/main.c \
-			  source/gui/mainwindow.c \
-			  source/gui/mainwindow.h \
-			  $(INCLUDE_SOURCES) $(LIB_MEMORY_SOURCES) \
-                          $(LIB_IO_DICOM_SOURCES) $(LIB_IO_NIFTI_SOURCES) \
-			  $(LIB_COMMON_SOURCES) $(LIB_PIXELDATA_SOURCES) \
-			  $(LIB_VIEWER_SOURCES) $(LIB_CONFIGURATION_SOURCES)
-
-clmedview_LDFLAGS       = -fdata-sections -ffunction-sections -Wl,--gc-sections
-clmedview_LDADD         = $(gtk_LIBS) $(glib_LIBS) $(zlib_LIBS) $(uuid_LIBS) \
-                          $(clutter_LIBS) $(cluttergtk_LIBS) -lm -ldl
+clmedview_LDFLAGS       = -static-libtool-libs
+clmedview_LDADD         = $(EXTERNAL_LIBS)                                     \
+                          $(COMMON_LIBS)                                       \
+                          $(CONFIGURATION_LIBS)                                \
+                          $(PIXELDATA_LIBS)                                    \
+                          $(MEMORY_LIBS)                                       \
+                          $(IO_LIBS)                                           \
+                          $(VIEWER_LIBS)                                       \
+                          -lm -ldl
 
 dist_data_DATA          = $(PLUGIN_FILES) $(DOXYGEN_FILES) $(LUT_FILES)
+
+bin_PROGRAMS 		= clmedview
+
+# Be silent unless VERBOSE is defined.
+$(VERBOSE).SILENT:
 
 libtool: $(LIBTOOL_DEPS)
 	$(SHELL) ./config.status libtool
@@ -136,19 +122,13 @@ if ENABLE_MTRACE_OPTION
 AM_CFLAGS              += -DENABLE_MTRACE
 endif
 
-clean-local: docs-clean plugins-clean
-
-plugins:
-	@cd plugin/; make;
-
-plugins-clean:
-	@cd plugin/; make clean
+clean-local: docs-clean
 
 gcov-clean:
-	@rm -rf *.gcno *.gcda */*.gcno */*.gcda */*/*.gcno */*/*.gcda
+	@$(RM) -rf *.gcno *.gcda */*.gcno */*.gcda */*/*.gcno */*/*.gcda
 
 docs-preprocess-images:
-	@cd doc/images/; dia component-diagram.dia -e component-diagram.eps; \
+	@cd doc/images/; dia component-diagram.dia -e component-diagram.eps;   \
 	ps2pdf -dEPSCrop component-diagram.eps component-diagram.pdf
 
 docs: docs-preprocess-images
@@ -165,15 +145,4 @@ docs-clean:
 	-@mkdir -p doc/doxygen/html/;
 	-@mv background.png doc/doxygen/html/;
 
-tests:
-	@echo "Compiling tests.."
-	@echo ""
-	@cd test/; make > /dev/null
-	@cd test/; bin/lib-memory-history
-	@echo ""
-	@cd test/; bin/lib-common-list
-	@echo ""
-	@cd test/; bin/lib-common-tree
-	@echo ""
-
-.PHONY: gcov-clean docs-doxygen docs-clean plugins plugins-clean tests
+.PHONY: gcov-clean docs-doxygen docs-clean

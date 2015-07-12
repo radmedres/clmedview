@@ -34,11 +34,17 @@ AC_SUBST([LIBTOOL_DEPS])
 
 AC_HEADER_STDC
 AC_CHECK_HEADERS([stdio.h])
-AC_CONFIG_FILES([Makefile
+AC_CONFIG_FILES([libcommon/Makefile
+		 libconfiguration/Makefile
+		 libpixeldata/Makefile
+		 libviewer/Makefile
+		 libmemory/Makefile
+		 libio/Makefile
                  plugin/Makefile
                  plugin/src/brushes/Makefile
                  plugin/src/line-tools/Makefile
-                 plugin/src/selection-tools/Makefile])
+                 plugin/src/selection-tools/Makefile
+		 Makefile])
 
 case $host in
 *-linux*)
@@ -92,6 +98,5 @@ PKG_CHECK_MODULES([clutter], [clutter-1.0])
 PKG_CHECK_MODULES([cluttergtk], [clutter-gtk-1.0])
 PKG_CHECK_MODULES([zlib], [zlib])
 PKG_CHECK_MODULES([uuid], [uuid])
-
 
 AC_OUTPUT

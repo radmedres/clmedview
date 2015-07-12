@@ -26,8 +26,8 @@
 #include <mcheck.h>
 #endif
 
-#include "lib-configuration.h"
-#include "lib-memory.h"
+#include "libconfiguration.h"
+#include "libmemory.h"
 #include "gui/mainwindow.h"
 
 // VERSION should be provided by the build system, otherwise define it here.

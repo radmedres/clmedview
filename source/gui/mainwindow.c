@@ -18,22 +18,22 @@
  */
 
 #include "mainwindow.h"
-#include "lib-viewer.h"
-#include "lib-pixeldata-plugin.h"
+#include "libviewer.h"
+#include "libpixeldata-plugin.h"
 
-#include "lib-common-list.h"
-#include "lib-common-history.h"
-#include "lib-common-tree.h"
-#include "lib-common-debug.h"
-#include "lib-common-unused.h"
+#include "libcommon-list.h"
+#include "libcommon-history.h"
+#include "libcommon-tree.h"
+#include "libcommon-debug.h"
+#include "libcommon-unused.h"
 
-#include "lib-memory.h"
-#include "lib-memory-patient.h"
-#include "lib-memory-study.h"
-#include "lib-memory-serie.h"
-#include "lib-memory-slice.h"
-#include "lib-memory-tree.h"
-#include "lib-configuration.h"
+#include "libmemory.h"
+#include "libmemory-patient.h"
+#include "libmemory-study.h"
+#include "libmemory-serie.h"
+#include "libmemory-slice.h"
+#include "libmemory-tree.h"
+#include "libconfiguration.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -192,7 +192,6 @@ GtkWidget *properties_lookup_table_combo;
 GtkWidget *timeline;
 GtkWidget *treeview;
 GtkTreeStore *sidebar_TreeStore;
-GdkRGBA header_bg_color;
 
 // Application-local stuff
 List *pll_Viewers;
@@ -299,9 +298,6 @@ gui_mainwindow_new (char *file)
   }
 
   config = configuration_get_default ();
-
-  // Set the default sidebar title header background color.
-  gdk_rgba_parse (&header_bg_color, "#cfcfcf");
 
   /*--------------------------------------------------------------------------.
    | LOAD LOOKUP TABLES                                                       |
@@ -698,7 +694,7 @@ gui_mainwindow_file_load (void* data)
 
     free (window_title);
 
-    pt_Serie=pt_memory_io_load_file(&config->active_study,filename);
+    pt_Serie=pt_memory_io_load_file((Tree **)&config->active_study,filename);
 
     if (pt_Serie != NULL)
     {
@@ -724,7 +720,6 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
 {
   Serie *ps_Serie ;
   unsigned long long ull_groupID;
-  Tree *p_Iter=NULL;
 
   if (pt_Serie == NULL) return;
   if (pt_Serie->type != TREE_TYPE_SERIE) return;
@@ -748,7 +743,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     ts_ActiveMask = pll_MaskSerie->data;
   }
 
-  if (ts_ActiveMask->group_id != config->active_layer->group_id)
+  if (ts_ActiveMask->group_id != ((Serie *)config->active_layer)->group_id)
   {
     // search for masks in serie tree
     ps_Serie = pt_Serie->data;
@@ -789,7 +784,6 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   char *pc_Coronal_Top, *pc_Coronal_Bottom, *pc_Coronal_Left, *pc_Coronal_Right;
 
   Serie *ps_RotatedSerie = memory_serie_new("test","test");
-  ts_Matrix4x4 ta_RotationAroundAxis, ta_TMP;
 
   Vector3D ts_Normal_Axial;
   Vector3D ts_Normal_Sagital;
@@ -888,6 +882,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
         ts_Normal_Coronal.x = 0;  ts_Normal_Coronal.y =  0; ts_Normal_Coronal.z = -1;
         ts_Up_Coronal.x     = 0;  ts_Up_Coronal.y     =  1; ts_Up_Coronal.z     =  0;
         break;
+      default: break;
     }
   }
 
@@ -2355,7 +2350,7 @@ gui_mainwindow_layer_manager_refresh (Tree *pt_Series)
    | ADD ORIGINAL SERIES                                                      |
    '--------------------------------------------------------------------------*/
 
-  assert (CONFIGURATION_ACTIVE_SERIE (config)->type == TREE_TYPE_SERIE);
+  assert (((Tree *)CONFIGURATION_ACTIVE_SERIE (config))->type == TREE_TYPE_SERIE);
 
   if (ps_Serie != NULL)
   {
@@ -2396,9 +2391,6 @@ gui_mainwindow_layer_manager_new ()
 
   GtkWidget *layers_title_lbl = gtk_label_new ("");
   gtk_label_set_markup (GTK_LABEL (layers_title_lbl), "<b>Layers</b>");
-  gtk_widget_override_background_color (layers_title_lbl,
-					GTK_STATE_FLAG_NORMAL,
-					&header_bg_color);
 
   gtk_box_pack_start (GTK_BOX (vbox_layer_manager), layers_title_lbl, 0, 0, 0);
   gtk_box_pack_start (GTK_BOX (vbox_layer_manager), layer_manager, 1, 1, 0);
@@ -2606,9 +2598,6 @@ gui_mainwindow_sidebar_new ()
 
   GtkWidget *patients_title_lbl = gtk_label_new ("");
   gtk_label_set_markup (GTK_LABEL (patients_title_lbl), "<b>Files</b>");
-  gtk_widget_override_background_color (patients_title_lbl,
-					GTK_STATE_FLAG_NORMAL,
-					&header_bg_color);
 
   gtk_box_pack_start (GTK_BOX (vbox_sidebar), patients_title_lbl, FALSE, FALSE, 0);
   gtk_box_pack_start (GTK_BOX (vbox_sidebar), scrolled, TRUE, TRUE, 0);
@@ -2724,9 +2713,6 @@ gui_mainwindow_properties_manager_new ()
 
   GtkWidget *properties_title_lbl = gtk_label_new ("");
   gtk_label_set_markup (GTK_LABEL (properties_title_lbl), "<b>Properties</b>");
-  gtk_widget_override_background_color (properties_title_lbl,
-					GTK_STATE_FLAG_NORMAL,
-					&header_bg_color);
 
   GtkWidget *opacity_lbl = gtk_label_new ("Opacity");
   gtk_widget_set_halign (opacity_lbl, GTK_ALIGN_START);

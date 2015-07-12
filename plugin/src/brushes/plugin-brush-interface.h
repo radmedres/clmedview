@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include "plugin-interface.h"
-#include "lib-pixeldata.h"
+#include "libpixeldata.h"
 
 /**
  * @file   plugin/src/brushes/plugin-brush-interface.h

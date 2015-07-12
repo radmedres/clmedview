@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-#include "lib-pixeldata.h"
+#include "libpixeldata.h"
 
 
 /**

@@ -6,8 +6,8 @@ extern "C" {
 #endif
 
 #include "plugin-interface.h"
-#include "lib-pixeldata.h"
-#include "lib-common-list.h"
+#include "libpixeldata.h"
+#include "libcommon-list.h"
 
 
 /**

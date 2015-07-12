@@ -20,8 +20,8 @@
 #ifndef GUI_H
 #define GUI_H
 
-#include "lib-viewer.h"
-#include "lib-memory-io.h"
+#include "libviewer.h"
+#include "libmemory-io.h"
 #include <gtk/gtk.h>
 
 
