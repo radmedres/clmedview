@@ -112,30 +112,31 @@ i16_memory_io_isFile(const char *path)
   return S_ISREG(statbuf.st_mode);
 }
 
-Tree *pt_memory_io_load_file_nifti (Tree **ppt_study, char *pc_path)
+Tree *pt_memory_io_load_file_nifti (char *pc_path)
 {
   char *pc_filename=NULL;
 
   Tree *pt_patient=NULL;
+  Tree *pt_study=NULL;
   Tree *pt_serie=NULL;
 
   Patient *ps_patient = NULL;
-  Study *ps_study = NULL;
-  Serie *ps_serie = NULL;
+  Study   *ps_study = NULL;
+  Serie   *ps_serie = NULL;
 
   pc_filename = basename(pc_path);
 
-  if (*ppt_study==NULL)
-  {
-    ps_patient=memory_patient_new("unknown");
-    pt_patient=tree_append(NULL,ps_patient,TREE_TYPE_PATIENT);
+	ps_patient=memory_patient_new("unknown");
+	strncpy(ps_patient->c_patientID,ps_patient->name,sizeof(ps_patient->c_patientID));
+	pt_patient=tree_append(NULL,ps_patient,TREE_TYPE_PATIENT);
 
-    ps_study=memory_study_new ("unknown");
-    *ppt_study=tree_append_child(pt_patient, ps_study, TREE_TYPE_STUDY);
-  }
+	ps_study=memory_study_new ("unknown");
+	strncpy(ps_study->c_studyInstanceUID, ps_study->name, sizeof(ps_study->c_studyInstanceUID));
+  pt_study=tree_append_child(pt_patient, ps_study, TREE_TYPE_STUDY);
 
   ps_serie = memory_serie_new (pc_filename, pc_path);
-  pt_serie = tree_append_child (*ppt_study, ps_serie, TREE_TYPE_SERIE);
+  strncpy(ps_serie->c_serieInstanceUID, ps_serie->name, sizeof(ps_serie->c_serieInstanceUID));
+  pt_serie = tree_append_child (pt_study, ps_serie, TREE_TYPE_SERIE);
 
   switch (memory_io_niftii_file_type (pc_path))
   {
@@ -179,19 +180,14 @@ Tree *pt_memory_io_load_file_nifti (Tree **ppt_study, char *pc_path)
 
 }
 
-Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
+Tree *pt_memory_io_load_file_dicom (char *pc_path)
 {
   Patient *ps_patient = NULL;
-  Patient *patient=NULL;
+  Study   *ps_study = NULL;
+  Serie   *ps_serie=NULL;
 
-  Study *ps_study = NULL;
-  Study *study=NULL;
-  Serie *ps_serie=NULL;
-  Serie *serie=NULL;
-
-  Tree *patientTreeIterator=NULL;
-  Tree *studyTreeIterator=NULL;
-  Tree *serieTreeIterator=NULL;
+  Tree *pt_patient=NULL;
+  Tree *pt_study=NULL;
   Tree *pt_serie=NULL;
 
   DIR *p_dicomDirectory;
@@ -212,9 +208,7 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
   short int i16_TemporalPositionIdentifier=0;
   short int i16_StackPositionIdentifier=0;
   short int i16_NumberOfReconstructions=0;
-  short int b_StudyExists=0;
-  short int b_SerieExists=0;
-  short int b_PatientExists=0;
+
   short int i16_Cnt=0;
   short int i16_timeFrameCnt=0;
 
@@ -226,7 +220,6 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
   te_DCM_ComplexImageComponent e_DCM_CIC;
 
   // Build list of all files
-
   // Check weather path is a path or a directory
   pc_dirName = (i16_memory_io_isFile(pc_path)) ? dirname(pc_path) : pc_path;
   p_dicomDirectory = opendir (pc_dirName);
@@ -236,10 +229,9 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
     return 0;
   }
 
-  ps_patient = memory_patient_new ("TEST");
-  ps_study = memory_study_new("TEST");
-
-  ps_serie = memory_serie_new("TEST",NULL);
+  ps_patient = memory_patient_new ("unknown");
+  ps_study = memory_study_new("unknown");
+  ps_serie = memory_serie_new("unknown",NULL);
 
   p_dirEntry = readdir (p_dicomDirectory);
   pll_dicomFilesIter = pll_dicomFiles;
@@ -261,6 +253,10 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
       if ( ps_ReferenceFileProps == NULL)
       {
         //first time passing this loop, refer to first read file
+        pt_patient = tree_append (pt_patient, ps_patient, TREE_TYPE_PATIENT);
+        pt_study = tree_append_child (pt_patient, ps_study, TREE_TYPE_STUDY);
+        pt_serie=tree_append_child (pt_study, ps_serie, TREE_TYPE_SERIE);
+
         ps_ReferenceFileProps = ps_dicomFile;
       }
 
@@ -288,7 +284,7 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
       {
         i16_MaximumReferenceOrderValue = ps_dicomFile->i16_relativeOrderNumber;
       }
-
+ 
       i16_NumberOfSlices++;
 
       pll_dicomFilesIter = list_append(pll_dicomFilesIter, ps_dicomFile);
@@ -298,82 +294,6 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
 
   closedir (p_dicomDirectory);
 
-  //Check if patient exists
-  patientTreeIterator=tree_nth(*patient_tree,1);
-  while (patientTreeIterator != NULL)
-  {
-    patient=(Patient * )(patientTreeIterator->data);
-
-    if (strcmp(patient->c_patientID,ps_patient->c_patientID) == 0)
-    {
-      b_PatientExists=1;
-      *patient_tree = patientTreeIterator;
-      // Patient exists
-      break;
-    }
-    patientTreeIterator=tree_next(patientTreeIterator);
-  }
-
-  if (!b_PatientExists)
-  {
-    *patient_tree = tree_append (*patient_tree, ps_patient, TREE_TYPE_PATIENT);
-  }
-
-  studyTreeIterator=tree_nth((*patient_tree)->child,1);
-  while (studyTreeIterator != NULL)
-  {
-    study=(Study * )(studyTreeIterator->data);
-
-    if (strcmp(study->c_studyInstanceUID,ps_study->c_studyInstanceUID) == 0)
-    {
-      b_StudyExists=1;
-      studyTreeIterator = (*patient_tree)->child;
-      break;
-    }
-    studyTreeIterator=tree_next(studyTreeIterator);
-  }
-
-  if (!b_StudyExists)
-  {
-    studyTreeIterator = tree_append_child (*patient_tree, ps_study, TREE_TYPE_STUDY);
-  }
-
-  serieTreeIterator=tree_nth(studyTreeIterator->child,1);
-  while (serieTreeIterator != NULL)
-  {
-    serie=(Serie *)(studyTreeIterator->data);
-
-    if (strcmp(serie->c_serieInstanceUID,ps_serie->c_serieInstanceUID) == 0)
-    {
-      b_SerieExists=1;
-      pt_serie=serieTreeIterator;
-      break;
-    }
-    serieTreeIterator=tree_next(serieTreeIterator);
-  }
-
-  if (!b_SerieExists)
-  {
-     pt_serie=tree_append_child (studyTreeIterator, ps_serie, TREE_TYPE_SERIE);
-  }
-  else
-  {
-    pll_dicomFiles = pll_dicomFilesIter;
-    // clean up all mess
-    ts_dicom_FileProperties *ps_dicomFile;
-    pll_dicomFilesIter = list_nth(pll_dicomFiles,1);
-    while (pll_dicomFilesIter->next != NULL)
-    {
-      ps_dicomFile=(ts_dicom_FileProperties*)(pll_dicomFilesIter->data);
-
-      free(ps_dicomFile->pc_Filename), ps_dicomFile->pc_Filename = NULL;
-      free(ps_dicomFile), ps_dicomFile = NULL;
-      pll_dicomFilesIter = list_next(pll_dicomFilesIter);
-    }
-    list_free(pll_dicomFiles);
-
-    return NULL;
-  }
 
   ps_serie->matrix.i16_z=(ps_serie->matrix.i16_z==0) ? i16_NumberOfSlices/ps_serie->num_time_series : 1;
   i16_NumberOfReconstructions=(short int)(ps_serie->matrix.i16_z)/(i16_MaximumReferenceOrderValue - i16_MinimumReferenceOrderValue + 1);
@@ -462,7 +382,6 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
               ps_serie->t_ScannerSpaceIJKtoXYZ = tda_algebra_matrix_4x4_multiply(&ts_LPS_RAS,&ps_serie->t_ScannerSpaceIJKtoXYZ);
             }
 
-
             i16_NumberOfSlices++;
 
             if (pll_dicomFilesIter != pll_dicomFiles)
@@ -478,27 +397,6 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
     }
   }
 
-  ps_serie->i16_QuaternionCode=1; //NIFTI_XFORM_SCANNER_ANAT
-  ps_serie->t_ScannerSpaceXYZtoIJK = tda_algebra_matrix_4x4_inverse(&ps_serie->t_ScannerSpaceIJKtoXYZ);
-
-  ps_serie->pt_RotationMatrix = &ps_serie->t_ScannerSpaceIJKtoXYZ;
-  ps_serie->pt_InverseMatrix = &ps_serie->t_ScannerSpaceXYZtoIJK;
-
-  ps_serie->i16_StandardSpaceCode=0;
-  ps_serie->raw_data_type=MEMORY_TYPE_UINT16;
-  ps_serie->u8_AxisUnits=0;
-
-
-  ps_serie->ps_Quaternion = calloc (1, sizeof (ts_Quaternion));
-  *ps_serie->ps_Quaternion = ts_algebra_quaternion_MatrixToQuaternion(&ps_serie->t_ScannerSpaceIJKtoXYZ, &ps_serie->d_Qfac);
-
-  ps_serie->ps_QuaternationOffset = calloc (1, sizeof (ts_Quaternion));
-
-
-  ps_serie->ps_QuaternationOffset->I = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][0];
-  ps_serie->ps_QuaternationOffset->J = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][1];
-  ps_serie->ps_QuaternationOffset->K = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][2];
-
   // clear everything
   pll_dicomFilesIter = list_nth(pll_dicomFiles,1);
   while (pll_dicomFilesIter->next != NULL)
@@ -510,6 +408,25 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
     pll_dicomFilesIter = list_next(pll_dicomFilesIter);
   }
   list_free(pll_dicomFiles);
+
+  ps_serie->i16_QuaternionCode=1; //NIFTI_XFORM_SCANNER_ANAT
+  ps_serie->t_ScannerSpaceXYZtoIJK = tda_algebra_matrix_4x4_inverse(&ps_serie->t_ScannerSpaceIJKtoXYZ);
+
+  ps_serie->pt_RotationMatrix = &ps_serie->t_ScannerSpaceIJKtoXYZ;
+  ps_serie->pt_InverseMatrix = &ps_serie->t_ScannerSpaceXYZtoIJK;
+
+  ps_serie->i16_StandardSpaceCode=0;
+  ps_serie->raw_data_type=MEMORY_TYPE_UINT16;
+  ps_serie->u8_AxisUnits=0;
+
+  ps_serie->ps_Quaternion = calloc (1, sizeof (ts_Quaternion));
+  *ps_serie->ps_Quaternion = ts_algebra_quaternion_MatrixToQuaternion(&ps_serie->t_ScannerSpaceIJKtoXYZ, &ps_serie->d_Qfac);
+
+  ps_serie->ps_QuaternationOffset = calloc (1, sizeof (ts_Quaternion));
+
+  ps_serie->ps_QuaternationOffset->I = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][0];
+  ps_serie->ps_QuaternationOffset->J = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][1];
+  ps_serie->ps_QuaternationOffset->K = ps_serie->t_ScannerSpaceIJKtoXYZ.af_Matrix[3][2];
 
   memory_serie_set_upper_and_lower_borders_from_data(ps_serie);
 
@@ -523,8 +440,26 @@ Tree *pt_memory_io_load_file_dicom (Tree **patient_tree, char *pc_path)
 /*                                                                                                    */
 Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
 {
-  Tree *pt_SerieTree=NULL;
-  Tree *pt_patient=NULL
+  Patient *ps_new_patient = NULL;
+  Study   *ps_new_study = NULL;
+  Serie   *ps_new_serie = NULL;
+
+  Patient *ps_tmp_patient = NULL;
+  Study   *ps_tmp_study = NULL;
+  Serie   *ps_tmp_serie = NULL;
+
+  Tree *pt_new_patient=NULL;
+  Tree *pt_new_study=NULL;
+  Tree *pt_new_serie=NULL;
+
+  Tree *pt_patientIter=NULL;
+  Tree *pt_studyIter=NULL;
+  Tree *pt_serieIter=NULL;
+
+  unsigned char b_PatientExists;
+  unsigned char b_StudyExists;
+  unsigned char b_SerieExists;
+
   debug_functions ();
 
   if (pc_path == NULL)
@@ -535,33 +470,115 @@ Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
   // check wheater it is a niftii
   if (memory_io_niftii_file_type(pc_path) != MUMC_FILETYPE_NOT_KNOWN)
   {
-    pt_SerieTree = pt_memory_io_load_file_nifti(&(*ppt_study),pc_path);
+    pt_new_serie = pt_memory_io_load_file_nifti(pc_path);
   }
   else
   {
     // maybe a dicom?
-    pt_patient=((*ppt_study) == NULL)?NULL:(*ppt_study)->parent;
-    pt_SerieTree = pt_memory_io_load_file_dicom(&pt_patient, pc_path);
+    pt_new_serie = pt_memory_io_load_file_dicom(pc_path);
   }
 
-/*  if (pt_SerieTree != NULL)
+  if (pt_new_serie == NULL)
   {
-    ps_Serie = pt_SerieTree->data;
-
-    MemoryImageOrientation e_Orientation;
-
-    v_memory_serie_MatrixToOrientation(ps_Serie->pt_RotationMatrix, &ps_Serie->e_ImageDirection_I, &ps_Serie->e_ImageDirection_J, &ps_Serie->e_ImageDirection_K);
-    e_Orientation = e_memory_serie_ConvertImageDirectionToOrientation(ps_Serie->e_ImageDirection_I, ps_Serie->e_ImageDirection_J, ps_Serie->e_ImageDirection_K);
-
-    printf("%s\n",pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I));
-    printf("%s\n",pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J));
-    printf("%s\n",pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K));
-
+    return NULL;
   }
-*/
+
+  pt_new_study = pt_new_serie->parent;
+  pt_new_patient = pt_new_study->parent;
+
+  ps_new_patient = (Patient *)(pt_new_patient->data);
+  ps_new_study = (Study *)(pt_new_study->data);
+  ps_new_serie = (Serie *)(pt_new_serie->data);
 
 
-  return pt_SerieTree;
+  // Check wheather patient, study and serie exists. If so,
+  pt_patientIter = (*ppt_study != NULL) ? (*ppt_study)->parent : NULL;
+
+
+
+
+  //Check if patient exists
+  pt_patientIter=tree_nth(pt_patientIter,1);
+  while (pt_patientIter != NULL)
+  {
+    ps_tmp_patient=(Patient * )(pt_patientIter->data);
+
+    if (strcmp(ps_tmp_patient->c_patientID,ps_new_patient->c_patientID) == 0)
+    {
+      b_PatientExists=1;
+
+      memory_patient_destroy(ps_new_patient);
+      tree_remove(pt_new_patient);
+
+      pt_new_patient = pt_patientIter;
+      ps_new_patient = (Patient *)(pt_new_patient->data);
+      // Patient exists
+      break;
+    }
+    pt_patientIter=tree_next(pt_patientIter);
+  }
+
+  if (!b_PatientExists)
+  {
+    tree_remove(pt_new_patient);
+    pt_patientIter = (*ppt_study != NULL) ? (*ppt_study)->parent : NULL;
+    pt_new_patient = tree_append (pt_patientIter, ps_new_patient, TREE_TYPE_PATIENT);
+  }
+
+  //Check if Study exists
+  pt_studyIter=tree_nth(pt_new_patient->child,1);
+  while (pt_studyIter != NULL)
+  {
+    ps_tmp_study=(Study * )(pt_studyIter->data);
+
+    if (strcmp(ps_tmp_study->c_studyInstanceUID,ps_new_study->c_studyInstanceUID) == 0)
+    {
+      b_StudyExists=1;
+      memory_study_destroy(ps_new_study);
+      tree_remove(pt_new_study);
+
+      pt_new_study = pt_studyIter;
+      ps_new_study = (Study*)(pt_new_study->data);
+      break;
+    }
+    pt_studyIter=tree_next(pt_studyIter);
+  }
+
+  if (!b_StudyExists)
+  {
+    tree_remove(pt_new_study);
+    pt_new_study = tree_append_child (pt_new_patient, ps_new_study, TREE_TYPE_STUDY);
+  }
+
+  pt_serieIter=tree_nth(pt_new_study->child,1);
+  while (pt_serieIter != NULL)
+  {
+    ps_tmp_serie=(Serie *)(pt_studyIter->data);
+
+    if (strcmp(ps_tmp_serie->c_serieInstanceUID,ps_new_serie->c_serieInstanceUID) == 0)
+    {
+      b_SerieExists=1;
+      memory_serie_destroy(ps_new_serie);
+      tree_remove(pt_new_serie);
+
+      pt_new_serie = pt_serieIter;
+      ps_new_serie = (Serie *)(pt_new_serie->data);
+      break;
+    }
+    pt_serieIter=tree_next(pt_serieIter);
+  }
+
+  if (!b_SerieExists)
+  {
+    tree_remove(pt_new_serie);
+    pt_new_serie=tree_append_child (pt_new_study, ps_new_serie, TREE_TYPE_SERIE);
+  }
+  else
+  {
+    pt_new_serie= NULL;
+  }
+
+  return pt_new_serie;
 }
 
 short int memory_io_save_file (Serie *serie, const char *path)

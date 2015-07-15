@@ -771,22 +771,24 @@ memory_io_niftii_save (Serie *serie, const char *pc_File, const char *pc_ImageFi
   ps_Header->qoffset_y = serie->ps_QuaternationOffset->J;
   ps_Header->qoffset_z = serie->ps_QuaternationOffset->K;
 
+  ps_Header->pixdim[0] = serie->d_Qfac;
+
   ps_Header->sform_code = serie->i16_StandardSpaceCode;
 
   ps_Header->srow_x[0] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][0];
-  ps_Header->srow_x[1] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][1];
-  ps_Header->srow_x[2] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][2];
-  ps_Header->srow_x[3] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][3];
+  ps_Header->srow_x[1] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][0];
+  ps_Header->srow_x[2] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][0];
+  ps_Header->srow_x[3] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][0];
 
-  ps_Header->srow_y[0] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][0];
+  ps_Header->srow_y[0] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][1];
   ps_Header->srow_y[1] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][1];
-  ps_Header->srow_y[2] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][2];
-  ps_Header->srow_y[3] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][3];
+  ps_Header->srow_y[2] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][1];
+  ps_Header->srow_y[3] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][1];
 
-  ps_Header->srow_z[0] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][0];
-  ps_Header->srow_z[1] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][1];
+  ps_Header->srow_z[0] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[0][2];
+  ps_Header->srow_z[1] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[1][2];
   ps_Header->srow_z[2] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][2];
-  ps_Header->srow_z[3] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[2][3];
+  ps_Header->srow_z[3] = serie->t_StandardSpaceIJKtoXYZ.af_Matrix[3][2];
 
 
   ps_Header->datatype = i16_NIFTII_ConvertMemoryDataTypeToNIFTII(serie->data_type);

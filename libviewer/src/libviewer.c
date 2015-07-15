@@ -1772,6 +1772,8 @@ viewer_add_overlay_serie (Viewer *resources, Serie *serie)
   if (serie->i32_MaximumValue < 16)
   {
     overlay_lut = pixeldata_lookup_table_get_default_mask();
+    i32_windowWidth = 15;
+    i32_windowLevel = 8;
   }
   else if (serie->i32_MaximumValue < 255)
   {

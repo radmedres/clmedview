@@ -812,6 +812,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   {
     switch (e_Orientation)
     {
+      case ORIENTATION_UNKNOWN :
       case ORIENTATION_AXIAL :
         pc_Axial_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
         pc_Axial_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);

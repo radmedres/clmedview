@@ -730,7 +730,7 @@ char *pc_memory_serie_direction_string( te_MemoryImageDirection e_ImageDirection
         case DIRECTION_A2P :  return "Anterior-to-Posterior";
         case DIRECTION_I2S :  return "Inferior-to-Superior";
         case DIRECTION_S2I :  return "Superior-to-Inferior";
-        default: break;
+        case DIRECTION_ERROR:  return "Unknown-to-Unknown";
       }
 
     case DIRECTION_PART_FIRST :
@@ -742,7 +742,7 @@ char *pc_memory_serie_direction_string( te_MemoryImageDirection e_ImageDirection
         case DIRECTION_A2P :  return "A";
         case DIRECTION_I2S :  return "I";
         case DIRECTION_S2I :  return "S";
-        default: break;
+        case DIRECTION_ERROR:  return "Unknown-to-Unknown";
       }
 
     case DIRECTION_PART_LAST  :
@@ -754,7 +754,7 @@ char *pc_memory_serie_direction_string( te_MemoryImageDirection e_ImageDirection
         case DIRECTION_A2P :  return "P";
         case DIRECTION_I2S :  return "S";
         case DIRECTION_S2I :  return "I";
-        default: break;
+        case DIRECTION_ERROR:  return "Unknown-to-Unknown";
       }
   }
   return "Unknown";
