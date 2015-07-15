@@ -23,7 +23,8 @@ histogram_set_serie (Histogram *histogram, Serie *serie)
 
   /* Allocate memory for the histogram data. */
   int shift = abs(histogram->minimum.x);
-  histogram->data = calloc (sizeof (int), histogram->maximum.x + shift);
+  histogram->data_len = histogram->maximum.x + shift;
+  histogram->data = calloc (sizeof (int), histogram->data_len);
 
   void **data = serie->data;
 
@@ -37,7 +38,6 @@ histogram_set_serie (Histogram *histogram, Serie *serie)
   {
     data_index = 0;
 
-    //printf ("index = %u\n", index);
     switch (serie->data_type)
     {
       case MEMORY_TYPE_INT8    : data_index = *((unsigned char *)data) + shift; break;
@@ -77,7 +77,10 @@ histogram_draw (Histogram *histogram, cairo_t *cr, int width, int height, int x,
   if (histogram == NULL || cr == NULL) return;
 
   const int padding = 10;
-  
+
+  /*--------------------------------------------------------------------------.
+   | DRAW BACKGROUND                                                          |
+   '--------------------------------------------------------------------------*/
   cairo_rectangle (cr,
 		   x + padding,
 		   y + padding,
@@ -88,6 +91,29 @@ histogram_draw (Histogram *histogram, cairo_t *cr, int width, int height, int x,
   cairo_fill (cr);
 
   cairo_stroke (cr);
+
+  /*--------------------------------------------------------------------------.
+   | DRAW MARKERS                                                             |
+   '--------------------------------------------------------------------------*/
+  cairo_set_source_rgba (cr, 0, 0, 0, 1);
+  cairo_set_line_width (cr, 1);
+
+  unsigned int rows;
+  unsigned int num_rows = 10;
+  unsigned int row_height = height / num_rows;
+  for (rows = 0; rows < num_rows; rows++)
+  {
+    cairo_move_to (cr, 0 + padding, rows * row_height + padding);
+    cairo_line_to (cr, 10 + padding, rows * row_height + padding);
+  }
+
+  cairo_stroke (cr);
+
+  /*--------------------------------------------------------------------------.
+   | DRAW DATA                                                                |
+   '--------------------------------------------------------------------------*/
+
+  /* ... work in progress. */
 }
 
 void

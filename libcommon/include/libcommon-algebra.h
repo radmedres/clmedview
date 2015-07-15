@@ -188,6 +188,13 @@ Vector3D ts_algebra_vector_Rotation_around_Y_Axis (Vector3D *ps_Vector, float f_
 Vector3D ts_algebra_vector_Rotation_around_Z_Axis (Vector3D *ps_Vector, float f_angle);
 
 
+/**
+ * Function to get the matrix's 3x3 derminant.
+ * @param[in] ps_RotationsMatrix    The rotation matrix.
+ *
+ * @return The 3x3 matrix determinant.
+ */
+float f_algebra_matrix_3x3_Determinant(ts_Matrix3x3 *ps_RotationsMatrix);
 
 /**
  * Function that convert a quaternion to a translation matrix.

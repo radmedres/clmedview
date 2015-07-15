@@ -44,7 +44,9 @@
 typedef struct
 {
   char *title;
+
   int *data;
+  unsigned int data_len;
 
   Coordinate minimum;
   Coordinate maximum;

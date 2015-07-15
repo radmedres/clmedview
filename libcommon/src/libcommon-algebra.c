@@ -460,8 +460,6 @@ ts_Quaternion ts_algebra_quaternion_MatrixToQuaternion(ts_Matrix4x4 *pt_Matrix, 
 
   double xd,yd,zd , a,b,c,d ;
 
-  ts_Matrix3x3 P,Q ;
-
   /* [ r11 r12 r13 v1 ] */
   /* [ r21 r22 r23 v2 ] */
   /* [ r31 r32 r33 v3 ] */
