@@ -724,7 +724,6 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
 {
   Serie *ps_Serie ;
   unsigned long long ull_groupID;
-  Tree *p_Iter=NULL;
 
   if (pt_Serie == NULL) return;
   if (pt_Serie->type != TREE_TYPE_SERIE) return;
@@ -789,7 +788,6 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   char *pc_Coronal_Top, *pc_Coronal_Bottom, *pc_Coronal_Left, *pc_Coronal_Right;
 
   Serie *ps_RotatedSerie = memory_serie_new("test","test");
-  ts_Matrix4x4 ta_RotationAroundAxis, ta_TMP;
 
   Vector3D ts_Normal_Axial;
   Vector3D ts_Normal_Sagital;
@@ -807,6 +805,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   {
     switch (e_Orientation)
     {
+      case ORIENTATION_UNKNOWN :
       case ORIENTATION_AXIAL :
         pc_Axial_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
         pc_Axial_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);

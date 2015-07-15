@@ -284,7 +284,7 @@ Tree *pt_memory_io_load_file_dicom (char *pc_path)
       {
         i16_MaximumReferenceOrderValue = ps_dicomFile->i16_relativeOrderNumber;
       }
-
+ 
       i16_NumberOfSlices++;
 
       pll_dicomFilesIter = list_append(pll_dicomFilesIter, ps_dicomFile);
@@ -381,7 +381,6 @@ Tree *pt_memory_io_load_file_dicom (char *pc_path)
 
               ps_serie->t_ScannerSpaceIJKtoXYZ = tda_algebra_matrix_4x4_multiply(&ts_LPS_RAS,&ps_serie->t_ScannerSpaceIJKtoXYZ);
             }
-
 
             i16_NumberOfSlices++;
 
