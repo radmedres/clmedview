@@ -43,7 +43,7 @@ short int b_NIFTII_WriteImageToFile (const char* pc_FileName, int i32_BytesToWri
 void v_NIFTII_convert_data_big_to_little_endian(Serie *serie);
 void v_NIFTII_swap_4bytes( size_t n , void *ar );
 void v_NIFTII_swap_2bytes( size_t n , void *ar );
-void v_NIFTII_swap_header( struct nifti_1_header *h , int is_nifti );
+void v_NIFTII_swap_header( struct nifti_1_header *h /*, int is_nifti*/ );
 
 
 MemoryDataType
@@ -412,7 +412,7 @@ void v_NIFTII_swap_4bytes( size_t n , void *ar )
   return ;
 }
 
-void v_NIFTII_swap_header( struct nifti_1_header *h , int is_nifti )
+void v_NIFTII_swap_header( struct nifti_1_header *h /*, int is_nifti*/ )
 {
 
    /* if ANALYZE, swap as such and return */
@@ -565,7 +565,7 @@ memory_io_niftii_load (Serie *serie, const char *pc_Filename, const char *pc_Ima
 
   if (ps_Header->sizeof_hdr == 1543569408)
   {
-    v_NIFTII_swap_header(ps_Header,0);
+    v_NIFTII_swap_header(ps_Header);
     i16_wasSwapped=1;
   }
 

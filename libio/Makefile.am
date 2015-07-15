@@ -3,7 +3,8 @@ AM_CFLAGS                     = -Iinclude/                                     \
                                 -I../libcommon/include/                        \
                                 -I../libmemory/include/                        \
                                 -Isrc/nifti/include/                           \
-                                -Isrc/dicom/include/
+                                -Isrc/dicom/include/                           \
+                                -DHAVE_ZLIB=1
 
 lib_LTLIBRARIES               = libio-dicom.la libio-nifti.la
 
