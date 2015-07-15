@@ -638,46 +638,51 @@ pixeldata_lookup_table_load_from_file (const char *filename)
 
 
 short int
-pixeldata_lookup_table_load_from_directory (const char *path)
+pixeldata_lookup_table_load_from_directory (const char *pc_path)
 {
+  DIR *ps_directory;
+  struct dirent **pps_listOfNames;
+
+  char *pc_extension;
+  char *pc_fullpath;
+
+  short int i16_NumberOfFiles;
+  short int i16_fileCnt;
+
   debug_functions ();
 
-  if (path == NULL) return 0;
+  if (pc_path == NULL) return 0;
 
-  DIR* directory;
-  if ((directory = opendir (path)) == NULL) return 0;
+  if ((ps_directory = opendir (pc_path)) == NULL) return 0;
 
-  struct dirent* entry;
-  while ((entry = readdir (directory)) != NULL)
+  i16_NumberOfFiles = scandir(pc_path, &pps_listOfNames, NULL, alphasort);
+  if (i16_NumberOfFiles < 0)
   {
-    // Don't process files starting with a dot, '.' and '..'.
-    if (entry->d_name[0] == '.') continue;
-
-    DIR* test = opendir (entry->d_name);
-    if (test != NULL)
+    closedir (ps_directory);
+    return 0;
+  }
+  else
+  {
+    for(i16_fileCnt=0; i16_fileCnt<i16_NumberOfFiles; i16_fileCnt++)
     {
-      closedir (test);
-      continue;
+      pc_extension = strrchr (pps_listOfNames[i16_fileCnt]->d_name, '.');
+
+      if ((pps_listOfNames[i16_fileCnt]->d_name[0] != '.') && (strcmp (pc_extension, ".lut") == 0))
+      {
+        pc_fullpath = calloc (1, strlen (pc_path) + strlen (pps_listOfNames[i16_fileCnt]->d_name) + 2);
+
+        sprintf (pc_fullpath, "%s%c%s", pc_path, PATH_SEPARATOR, pps_listOfNames[i16_fileCnt]->d_name);
+
+        pixeldata_lookup_table_load_from_file (pc_fullpath);
+
+        free (pc_fullpath), pc_fullpath = NULL;
+        free(pps_listOfNames[i16_fileCnt]);
+      }
     }
-    else
-    {
-      // Only process .so or .dll files. Anything else cannot be a plug-in.
-      const char *extension = strrchr (entry->d_name, '.');
-      if (strcmp (extension, ".lut")) continue;
-
-      // Load the plug-in.
-      char *full_path = calloc (1, strlen (path) + strlen (entry->d_name) + 2);
-
-      sprintf (full_path, "%s%c%s", path, PATH_SEPARATOR, entry->d_name);
-
-      pixeldata_lookup_table_load_from_file (full_path);
-      free (full_path), full_path = NULL;
-
-      // TODO: Sort the plugins..
-    }
+    free(pps_listOfNames);
   }
 
-  closedir (directory);
+  closedir (ps_directory);
 
   return 1;
 }
