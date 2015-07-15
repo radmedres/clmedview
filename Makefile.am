@@ -25,6 +25,7 @@ SUBDIRS                 = libcommon/                                           \
                           libpixeldata/                                        \
                           libviewer/                                           \
                           libio/                                               \
+                          libhistogram/                                        \
                           plugin/                                              \
                           .
 
@@ -32,6 +33,7 @@ AM_CFLAGS               = $(gtk_CFLAGS)                                        \
                           $(glib_CFLAGS)                                       \
                           $(clutter_CFLAGS)                                    \
                           $(cluttergtk_CFLAGS)                                 \
+                          $(cairo_CFLAGS)                                      \
                           $(uuid_CFLAGS)                                       \
                           $(zlib_CFLAGS)                                       \
                           -Ilibcommon/include/                                 \
@@ -40,14 +42,16 @@ AM_CFLAGS               = $(gtk_CFLAGS)                                        \
                           -Ilibviewer/include/                                 \
                           -Ilibmemory/include/                                 \
                           -Ilibio/include/                                     \
-                          -Iplugin/
+                          -Ilibhistogram/include/                              \
+                          -Iplugin/include/
 
 EXTERNAL_LIBS           = $(gtk_LIBS)                                          \
                           $(glib_LIBS)                                         \
                           $(zlib_LIBS)                                         \
                           $(uuid_LIBS)                                         \
                           $(clutter_LIBS)                                      \
-                          $(cluttergtk_LIBS) 
+                          $(cluttergtk_LIBS)                                   \
+                          $(cairo_LIBS)
 
 COMMON_LIBS             = libcommon/libcommon-algebra.la                       \
                           libcommon/libcommon-debug.la                         \
@@ -72,6 +76,8 @@ MEMORY_LIBS             = libmemory/libmemory-patient.la                       \
 IO_LIBS                 = libio/libio-dicom.la                                 \
                           libio/libio-nifti.la
 
+HISTOGRAM_LIBS          = libhistogram/libhistogram.la
+
 LUT_FILES               = luts/*.lut
 
 DOXYGEN_FILES           = doc/Doxyfile doc/custom.css doc/footer.html          \
@@ -91,6 +97,7 @@ clmedview_LDADD         = $(EXTERNAL_LIBS)                                     \
                           $(MEMORY_LIBS)                                       \
                           $(IO_LIBS)                                           \
                           $(VIEWER_LIBS)                                       \
+                          $(HISTOGRAM_LIBS)                                    \
                           -lm -ldl
 
 dist_data_DATA          = $(PLUGIN_FILES) $(DOXYGEN_FILES) $(LUT_FILES)

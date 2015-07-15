@@ -793,9 +793,9 @@ viewer_draw_mask (Viewer *resources, Coordinate ts_MousePosition, PixelAction te
   }
 
   Plugin *plugin = resources->ts_ActivePainter;
-  if (plugin->fp_Callback == NULL)
+  if (plugin->apply == NULL)
   {
-    debug_warning ("The active painter doesn't have a callback.", NULL);
+    debug_warning ("The active painter is broken.", NULL);
     return;
   }
 
@@ -815,49 +815,18 @@ viewer_draw_mask (Viewer *resources, Coordinate ts_MousePosition, PixelAction te
 
     command->plugin = resources->ts_ActivePainter;
     command->coordinate = ts_PixelPosition;
-    command->size = plugin->i32_Size;
-    command->value = plugin->i32_Value;
+    command->size = *(unsigned int *)plugin->get_property (plugin->meta, "size");
+    command->value = *(unsigned int *)plugin->get_property (plugin->meta, "value");
     command->action = te_Action;
 
     resources->pll_Replay = list_append (resources->pll_Replay, command);
   }
 
-  switch (plugin->te_Type)
-  {
-    case PLUGIN_TYPE_BRUSH:
-      {
-	pixeldata_apply_brush (resources->ps_Original, resources->ps_ActiveMask,
-			       resources->ps_ActiveSelection, resources->ts_PreviousDrawCoordinate,
-			       ts_PixelPosition, plugin->i32_Size, plugin->i32_Value, te_Action,
-			       plugin->fp_Callback);
-      }
-      break;
-    case PLUGIN_TYPE_SELECTION:
-      {
-        Coordinate ts_InitialPixelPosition;
-        ts_InitialPixelPosition = viewer_get_image_pixel_position (resources, resources->ts_InitialDrawCoordinate);
-
-        ts_InitialPixelPosition.x = abs (ts_InitialPixelPosition.x);
-        ts_InitialPixelPosition.y = abs (ts_InitialPixelPosition.y);
-
-        ((PluginSelection *)plugin)->fp_Callback (resources->ps_Original, resources->ps_ActiveMask,
-                                                  resources->ps_ActiveSelection, ts_InitialPixelPosition,
-                                                  ts_PixelPosition, plugin->i32_Value, te_Action);
-      }
-      break;
-    case PLUGIN_TYPE_LINE:
-      {
-        ((PluginLine *)plugin)->fp_Callback (resources->ps_Original, resources->ps_ActiveMask,
-                                             resources->ps_ActiveSelection, ts_PixelPosition,
-                                             &resources->pll_PolygonPoints, plugin->i32_Value, te_Action);
-      }
-      break;
-    default:
-      {
-        debug_warning ("Encountered an unsupported plugin type.", NULL);
-      }
-      break;
-  }
+  plugin->set_property (plugin->meta, "action", &te_Action);
+  plugin->apply (plugin->meta, resources->ps_Original,
+		 resources->ps_ActiveMask,
+		 resources->ps_ActiveSelection,
+		 ts_PixelPosition);
 
   resources->ts_PreviousDrawCoordinate = ts_PixelPosition;
 
@@ -2275,44 +2244,15 @@ viewer_replay_recording (Viewer *resources)
       continue;
     }
 
-    switch (plugin->te_Type)
-    {
-      case PLUGIN_TYPE_BRUSH:
-      {
-	pixeldata_apply_brush (resources->ps_Original, resources->ps_ActiveMask,
-			       resources->ps_ActiveSelection, command->prev_coordinate,
-			       command->coordinate, command->size, command->value,
-                               command->action, plugin->fp_Callback);
-      }
-      break;
-      case PLUGIN_TYPE_SELECTION:
-      {
-        Coordinate ts_InitialPixelPosition;
-        ts_InitialPixelPosition = viewer_get_image_pixel_position (resources, resources->ts_InitialDrawCoordinate);
+    plugin->set_property (plugin->meta, "size", &command->size);
+    plugin->set_property (plugin->meta, "value", &command->value);
+    plugin->set_property (plugin->meta, "action", &command->action);
 
-        ts_InitialPixelPosition.x = abs (ts_InitialPixelPosition.x);
-        ts_InitialPixelPosition.y = abs (ts_InitialPixelPosition.y);
-
-        ((PluginSelection *)plugin)->fp_Callback (resources->ps_Original, resources->ps_ActiveMask,
-                                                  resources->ps_ActiveSelection, command->prev_coordinate,
-                                                  command->coordinate, command->value, command->action);
-      }
-      break;
-      /*
-      case PLUGIN_TYPE_LINE:
-      {
-        ((PluginLine *)plugin)->fp_Callback (resources->ps_Original, resources->ps_ActiveMask,
-                                             resources->ps_ActiveSelection, command->coordinate,
-                                             &resources->pll_PolygonPoints, plugin->i32_Value, te_Action);
-      }
-      break;
-      */
-      default:
-      {
-        debug_warning ("Encountered an unsupported plugin type.", NULL);
-      }
-      break;
-    }
+    plugin->apply (plugin->meta,
+		   resources->ps_Original,
+		   resources->ps_ActiveMask,
+		   resources->ps_ActiveSelection,
+		   command->coordinate);
 
     commands = list_next (commands);
   }

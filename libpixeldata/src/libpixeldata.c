@@ -321,7 +321,7 @@ pixeldata_apply_lookup_table (PixelData *pixeldata)
     {
       display_lookup_table[counter] = 0;
     }
-    else if (translated_value >= array_items)
+    else if (translated_value >= (int)abs(array_items))
     {
       display_lookup_table[counter] = color_lookup_table[array_items - 1];
     }

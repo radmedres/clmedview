@@ -35,78 +35,45 @@ pixeldata_plugin_load_file (List *pll_PluginList, const char *pc_Filename)
 {
   debug_functions ();
 
-  void *pv_LibHandle;
-  void (*fp_GetMetaData)(char **, unsigned char **, int*, PluginType*);
-  char *pc_LoadError;
-
-  char *pc_PluginName;
-  unsigned char *pc_PluginIcon;
-  int i32_PluginVersion;
-  PluginType te_PluginType;
-  
-  pv_LibHandle = dlopen (pc_Filename, RTLD_LAZY);
-  if (!pv_LibHandle)
-  {
-    fprintf (stderr, "%s\n", dlerror());
-  }
-
-  fp_GetMetaData = dlsym (pv_LibHandle, "CLM_Plugin_Metadata");
-  if ((pc_LoadError = dlerror()) != NULL)
-  {
-    fprintf (stderr, "%s\n", pc_LoadError);
-    return NULL;
-  }
-
   Plugin *plugin = calloc (1, sizeof (Plugin));
-  if (plugin == NULL)
-  {
-    dlclose (pv_LibHandle);
-    return NULL;
-  }
-  
-  fp_GetMetaData (&pc_PluginName, &pc_PluginIcon, &i32_PluginVersion, &te_PluginType);
-  if (te_PluginType != PLUGIN_TYPE_BRUSH
-      && te_PluginType != PLUGIN_TYPE_SELECTION
-      && te_PluginType != PLUGIN_TYPE_LINE)
-  {
-    free (plugin);
-    dlclose (pv_LibHandle);
-    return NULL;
-  }
+  if (plugin == NULL) return NULL;
 
-  plugin->te_Type = te_PluginType;
-  plugin->pc_Name = pc_PluginName;
-  plugin->pc_Icon = pc_PluginIcon;
-  plugin->i32_Size = 1;
-  plugin->i32_Value = 1;
+  char *error_message = NULL;
+  
+  plugin->handle = dlopen (pc_Filename, RTLD_LAZY);
+  if (!plugin->handle) goto preload_error;
+
+  plugin->get_metadata = dlsym (plugin->handle, "plugin_get_metadata");
+  if ((error_message = dlerror()) != NULL) goto load_error;
+
+  plugin->apply = dlsym (plugin->handle, "plugin_apply");
+  if ((error_message = dlerror()) != NULL) goto load_error;
+
+  plugin->set_property = dlsym (plugin->handle, "plugin_set_property");
+  if ((error_message = dlerror()) != NULL) goto load_error;
+
+  plugin->get_property = dlsym (plugin->handle, "plugin_get_property");
+  if ((error_message = dlerror()) != NULL) goto load_error;
+
+  plugin->destroy = dlsym (plugin->handle, "plugin_destroy");
+  if ((error_message = dlerror()) != NULL) goto load_error;
+
+  plugin->get_metadata (&(plugin->meta));
+  if (plugin->meta == NULL)
+  {
+    dlclose (plugin->handle);
+    free (plugin);
+    return NULL;
+  }
 
   pll_PluginList = list_prepend (pll_PluginList, plugin);
-
-  char *pc_CallbackSymbolName = NULL;
-  switch (te_PluginType)
-  {
-    case PLUGIN_TYPE_BRUSH:
-      pc_CallbackSymbolName = "CLM_Plugin_Brush_Apply";
-    break;
-    case PLUGIN_TYPE_SELECTION:
-      pc_CallbackSymbolName = "CLM_Plugin_Selection_Apply";
-    break;
-    case PLUGIN_TYPE_LINE:
-      pc_CallbackSymbolName = "CLM_Plugin_Line_Apply";
-    break;
-    default:
-    break;
-  }
-
-  plugin->fp_Callback = dlsym (pv_LibHandle, pc_CallbackSymbolName);
-  if ((pc_LoadError = dlerror()) != NULL)
-  {
-    fprintf (stderr, "%s\n", pc_LoadError);
-  }
-  
-  plugin->v_LibraryHandler = pv_LibHandle;
-
   return pll_PluginList;
+
+ preload_error:
+  error_message = dlerror();
+ load_error:
+  debug_error ("%s", error_message);
+  return NULL;
 }
 
 
@@ -116,17 +83,8 @@ pixeldata_plugin_destroy (void *data)
   debug_functions ();
 
   Plugin *plugin = data;
-  dlclose (plugin->v_LibraryHandler);
-
-  free (plugin->pc_Name);
-  plugin->pc_Name = NULL;
-
-  free (plugin->pc_Icon);
-  plugin->pc_Icon = NULL;
-
-  plugin->fp_Callback = NULL;
-  plugin->v_LibraryHandler = NULL;
-
+  plugin->destroy (plugin->meta);
+  dlclose (plugin->handle);
   free (plugin);
 }
 
@@ -159,7 +117,8 @@ pixeldata_plugin_load_from_directory (const char *path, List **ppll_PluginList)
     {
       // Only process .so or .dll files. Anything else cannot be a plug-in.
       const char *extension = strrchr (entry->d_name, '.');
-
+      if (extension == NULL) continue;
+      
       #ifdef WIN32
       if (strcmp (extension, ".dll")) continue;
       #else
@@ -168,12 +127,7 @@ pixeldata_plugin_load_from_directory (const char *path, List **ppll_PluginList)
 
       // Load the plug-in.
       char *full_path = calloc (1, strlen (path) + strlen (entry->d_name) + 2);
-
-      #ifdef WIN32
-      sprintf (full_path, "%s\\%s", path, entry->d_name);
-      #else
-      sprintf (full_path, "%s/%s", path, entry->d_name);
-      #endif
+      sprintf (full_path, "%s%s", path, entry->d_name);
 
       *ppll_PluginList = pixeldata_plugin_load_file (*ppll_PluginList, full_path);
       free (full_path), full_path = NULL;

@@ -27,7 +27,7 @@
 
 
 /**
- * @file   include/lib-pixeldata-plugin.h
+ * @file   include/libpixeldata-plugin.h
  * @brief  A plug-in interface to manipulate pixel data.
  * @author Marc Geerlings, Jos Slenter, Roel Janssen
  */
@@ -44,66 +44,53 @@
 
 
 /**
- * This linked list is a generalisation for plug-ins.
- * The fp_Callback is specified as a pointer to void because it has the same
- * size as the specific callback handler.
+ * A container to provide access to the data and the functions of a plugin.
  */
 typedef struct
 {
-  PluginType te_Type;
-  char *pc_Name;
-  unsigned char *pc_Icon;
-  void *fp_Callback;
-  void *v_LibraryHandler;
-  int i32_Size;
-  int i32_Value;
+  /**
+   * All plugin data is contained in a data structure. Not all fields are known
+   * at compile time, so don't access the fields directory. Instead use the 
+   * 'get_property' and 'set_property' function pointers below.
+   */
+  PluginMetaData *meta;
+
+  /**
+   * A function pointer to obtain the metadata of the plugin.
+   */
+  void (*get_metadata) (PluginMetaData **);
+
+  /**
+   * A function pointer to the 'apply' function.
+   */
+  void (*apply) (PluginMetaData *, PixelData *, PixelData *, PixelData *, Coordinate);
+
+  /**
+   * A function pointer to the 'set_property' function. Depending on the
+   * property you try to set, it is interpreted as a certain type.
+   */
+  bool (*set_property) (PluginMetaData *, const char *, void *);
+
+  /**
+   * A function pointer to the 'get_property' function. Depending on the
+   * property you ask for, a value is returned.
+   */
+  void* (*get_property) (PluginMetaData *, const char *);
+
+  /**
+   * A function pointer to the 'destroy' function. Use this before unloading
+   * the symbols, so that the plugin has the chance to clean up its internal
+   * state.
+   */
+  void (*destroy) (PluginMetaData *);
+
+  /**
+   * A handle to unload the symbols of the plugin. Please call the 'destroy'
+   * function first to avoid memory leaks in the plug in.
+   */
+  void *handle;
+
 } Plugin;
-
-
-/**
- * This linked list can contain dynamically loaded brushes.
- */
-typedef struct
-{
-  PluginType te_Type;
-  char *pc_Name;
-  unsigned char *pc_Icon;
-  void (*fp_Callback) (PixelData*, PixelData*, PixelData*, Coordinate, unsigned int, PixelAction);
-  void *v_LibraryHandler;
-  int i32_Size;
-  int i32_Value;
-} PluginBrush;
-
-
-/**
- * This linked list can contain dynamically loaded selection tools.
- */
-typedef struct
-{
-  PluginType te_Type;
-  char *pc_Name;
-  unsigned char *pc_Icon;
-  void (*fp_Callback) (PixelData*, PixelData*, PixelData*, Coordinate, Coordinate, unsigned int, PixelAction);
-  void *v_LibraryHandler;
-  int i32_Size;
-  int i32_Value;
-} PluginSelection;
-
-
-/**
- * This linked list can contain dynamically loaded line tools.
- */
-typedef struct
-{
-  PluginType te_Type;
-  char *pc_Name;
-  unsigned char *pc_Icon;
-  void (*fp_Callback) (PixelData*, PixelData*, PixelData*, Coordinate, List**, unsigned int, PixelAction);
-  void *v_LibraryHandler;
-  int i32_Size;
-  int i32_Value;
-} PluginLine;
-
 
 /**
  * This function can load a shared object that contains a brush function.

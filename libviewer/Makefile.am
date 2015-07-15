@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS              = subdir-objects
 AM_CFLAGS                     = -Iinclude/                                     \
-                                -I../plugin/                                   \
+                                -I../plugin/include/                           \
                                 -I../libcommon/include/                        \
                                 -I../libmemory/include/                        \
                                 -I../libpixeldata/include/                     \

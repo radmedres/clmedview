@@ -1,22 +1,9 @@
-#include "plugin-brush-interface.h"
+#include "plugin-interface.h"
+#include "plugin-interface-brush.h"
+
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-
-// A marker for unused arguments.
-#ifdef __GNUC__
-#define UNUSED __attribute__((__unused__))
-#else
-#define UNUSED
-#endif
-
-// Including a C file is the intended behavior here. The functions in
-// plugin-interface should be compiled into the shared library to avoid
-// linking or runtime complexities.
-#include "plugin-interface.c"
-
 
 void v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
                               Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
@@ -29,53 +16,124 @@ void v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelD
 void v_PixelData_handleFLOAT32 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
                                 Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
 
+void v_PixelData_SobelEdgeDetection (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
+				     Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
 
 void
-CLM_Plugin_Metadata (char **name, unsigned char **icon, int *version, PluginType *type)
+plugin_get_metadata (PluginMetaData **metadata)
 {
-  *name = calloc (1, 12);
-  memcpy (*name, "sobel-brush", 11);
-  *version = 1;
-  *type = PLUGIN_TYPE_BRUSH;
+  if (metadata == NULL) return;
+  PluginMetaData *meta = *metadata;
 
-  // The icon can be exported with GIMP as "C source file".
-  *icon = calloc (1, 16 * 16 * 4 + 2);
-  memcpy (*icon,
-    "YYY\377YYY\377YYY\377YYY\377YYY\377YYY\377YYY\377YYY\377YYY\377YYY\377YY"
-    "Y\377YYY\377YYY\377YYY\377YYY\377YYY\377WWW\377WWW\274XXX\200XXX\200XXX\200"
-    "XXX\200XXX\200XXX\200XXX\200XXX\200XXX\200XXX\200XXX\200XXX\200WWW\274WW"
-    "W\377UUU\377VVV\206\200\200\200\2\377\377\377\0\377\377\377\0\377\377\377"
-    "\0fff\5\377\377\377\0\377\377\377\0\377\377\377\0SSS(\377\377\377\0III\7"
-    "\377\377\377\0TTTyUUU\377RRR\377QQQ\215UUU'\377\377\377\0\377\377\377\0\377"
-    "\377\377\0TTTC\377\377\377\0\377\377\377\0]]]\13RRRg\200\200\200\2RRR>@@"
-    "@\4RRR\211RRR\377PPP\377QQQ\215QQQXLLL\33\377\377\377\0UUU\30PPP\220\377"
-    "\377\377\0\377\377\377\0QQQLPPP\245RRR8PPP}NNN.QQQ\215PPP\377NNN\377NNN\215"
-    "NNN\212NNNRMMM\24NNN|NNN\327UUU\17UUU\14NNN\220NNN\343NNN\200OOO\274NNN_"
-    "NNN\215NNN\377LLL\377LLL\215LLL\274LLL\211MMM\264LLL\307LLL\371LLLrLLLWL"
-    "LL\320LLL\377MMM\334LLL\353LLL\220LLL\215LLL\377JJJ\377JJJ\215JJJ\355JJJ"
-    "\301JJJ\360JJJ\377JJJ\377JJJ\336JJJ\252JJJ\377JJJ\377JJJ\377JJJ\376JJJ\307"
-    "JJJ\215JJJ\377GGG\377GGG\215GGG\377GGG\376GGG\377GGG\377GGG\377GGG\377GG"
-    "G\364GGG\377GGG\377GGG\377GGG\377GGG\375GGG\215GGG\377EEE\377EEE\215EEE\377"
-    "EEE\377EEE\377EEE\377EEE\377EEE\377EEE\377EEE\377EEE\377EEE\377EEE\377EE"
-    "E\377EEE\215EEE\377CCC\377CCC\206CCC\250CCC\250CCC\250CCC\250CCC\250CCC\250"
-    "CCC\250CCC\250CCC\250CCC\250CCC\250CCC\250CCC\206CCC\377AAA\377BBBx\377\377"
-    "\377\0\377\377\377\0\377\377\377\0\377\377\377\0\377\377\377\0\377\377\377"
-    "\0\377\377\377\0\377\377\377\0\377\377\377\0\377\377\377\0\377\377\377\0"
-    "\377\377\377\0BBBxAAA\377???\377@@@x\377\377\377\0\377\377\377\0>>>_<<<&"
-    "\377\377\377\0\377\377\377\0\377\377\377\0\377\377\377\0???UAAA/\377\377"
-    "\377\0\377\377\377\0@@@x???\377===\377>>>x>>>\204===\270===\345===\312=="
-    "=\270===\270===\270===\270===\340===\316===\270===~>>>x===\377:::\377:::"
-    "\274999\216;;;\224;;;\224;;;\224;;;\224;;;\224;;;\224;;;\224;;;\224;;;\224"
-    ";;;\224:::\215:::\274:::\377888\377888\377888\377888\377888\377888\37788"
-    "8\377888\377888\377888\377888\377888\377888\377888\377888\377888\377",
-    16 * 16 * 4 + 1);
+  if (meta == NULL)
+    meta = calloc (1, sizeof (PluginMetaData));
+
+  meta->name = calloc (6, sizeof (char));
+  meta->name = memcpy (meta->name, "sobel", 6);
+
+  meta->version = 2;
+
+  meta->properties = calloc (1, sizeof (PluginBrushProperties));
+  if (meta->properties != NULL)
+  {
+    PluginBrushProperties *properties = meta->properties;
+    properties->size = 10;
+    properties->value = 1;
+    properties->action = 1;
+  }
+
+  *metadata = meta;
 }
 
 
-/* GIMP RGBA C-Source image dump (sobel.c) */
+void
+plugin_apply (PluginMetaData *metadata, PixelData *original,
+	      PixelData *mask, PixelData *selection,
+	      Coordinate point)
+{
+  if (metadata == NULL || original == NULL || mask == NULL) return;
 
-void v_PixelData_SobelEdgeDetection (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                                     Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action)
+  PluginBrushProperties *properties = metadata->properties;
+  if (properties == NULL) return;
+
+  v_PixelData_SobelEdgeDetection (original, mask, selection, point, properties->value, properties->action);
+}
+
+
+void *
+plugin_get_property (PluginMetaData *metadata, const char *property)
+{
+  if (metadata == NULL)
+    return NULL;
+
+  PluginBrushProperties *properties = metadata->properties;
+  if (properties == NULL)
+    return NULL;
+
+  if (!strcmp ("name", property))
+    return &(metadata->name);
+
+  else if (!strcmp ("size", property))
+    return &(properties->size);
+
+  else if (!strcmp ("value", property))
+    return &(properties->value);
+
+  else if (!strcmp ("action", property))
+    return &(properties->action);
+
+  return NULL;
+}
+
+
+bool
+plugin_set_property (PluginMetaData *metadata, const char *property,
+		     void *value)
+{
+  if (metadata == NULL)
+    return false;
+
+  PluginBrushProperties *properties = metadata->properties;
+  if (properties == NULL)
+    return false;
+
+  if (!strcmp ("size", property))
+    {
+      if (*(unsigned int *)value < 10) return false;
+      properties->size = *(unsigned int *)value;
+    }
+
+  else if (!strcmp ("value", property))
+    properties->value = *(unsigned int *)value;
+
+  else if (!strcmp ("action", property))
+    properties->action = *(PixelAction*)value;
+
+  else
+    return false;
+
+  return true;
+}
+
+
+void
+plugin_destroy (PluginMetaData *metadata)
+{
+  if (metadata == NULL) return;
+
+  free (metadata->name);
+  metadata->name = NULL;
+
+  free (metadata->properties);
+  metadata->properties = NULL;
+
+  free (metadata);
+}
+
+
+void
+v_PixelData_SobelEdgeDetection (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
+				Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action)
 {
   Slice *slice = PIXELDATA_ACTIVE_SLICE (ps_Original);
   assert (slice != NULL);
@@ -100,22 +158,6 @@ void v_PixelData_SobelEdgeDetection (PixelData *ps_Original, PixelData *ps_Mask,
     default                  : assert (NULL != NULL); break;
   }
 }
-
-
-void
-CLM_Plugin_Brush_Apply (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                        Coordinate ts_Point, UNUSED unsigned int ui32_BrushScale, unsigned int ui32_DrawValue,
-                        PixelAction te_Action)
-{
-  // Filter out invalid requests.
-  if (ps_Original == NULL || ps_Mask == NULL) return;
-
-  // Apply the sobel edge detection algorithm.
-  v_PixelData_SobelEdgeDetection (ps_Original, ps_Mask, ps_Selection, ts_Point, ui32_DrawValue, te_Action);
-}
-
-
-
 
 
 void
@@ -170,7 +212,7 @@ v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
     {
       ts_BlobCount.x = ts_Point.x + X_Cnt;
 
-      CLM_Plugin_GetPixelAtPoint (ps_Original, ts_BlobCount, &(u8_tempImage[Y_Cnt + 5][X_Cnt + 5]));
+      plugin_get_voxel_at_point (ps_Original, ts_BlobCount, &(u8_tempImage[Y_Cnt + 5][X_Cnt + 5]));
       u32_AvarageValue += u8_tempImage[Y_Cnt + 5][X_Cnt + 5];
     }
   }
@@ -308,7 +350,7 @@ v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
 
       if (u8_tempImage[Y_Cnt+5][X_Cnt+5] > u32_AvarageValue)
       {
-        CLM_Plugin_DrawPixelAtPoint (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
+        plugin_set_voxel_at_point (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
       }
       /* DO NOT ERASE AUTOMATICALLY
          --------------------------
@@ -374,7 +416,7 @@ v_PixelData_handleUINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData 
     {
       ts_BlobCount.x = ts_Point.x + X_Cnt;
 
-      CLM_Plugin_GetPixelAtPoint (ps_Original, ts_BlobCount, &(u16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
+      plugin_get_voxel_at_point (ps_Original, ts_BlobCount, &(u16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
       u32_AvarageValue += u16_tempImage[Y_Cnt + 5][X_Cnt + 5];
     }
   }
@@ -511,7 +553,7 @@ v_PixelData_handleUINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData 
 
       if (u16_tempImage[Y_Cnt+5][X_Cnt+5] > u32_AvarageValue)
       {
-        CLM_Plugin_DrawPixelAtPoint (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
+        plugin_set_voxel_at_point (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
       }
       /* DO NOT ERASE AUTOMATICALLY
          --------------------------
@@ -581,7 +623,7 @@ v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
     {
       ts_BlobCount.x = ts_Point.x + X_Cnt;
 
-      CLM_Plugin_GetPixelAtPoint (ps_Original, ts_BlobCount, &(i16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
+      plugin_get_voxel_at_point (ps_Original, ts_BlobCount, &(i16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
       i32_AvarageValue += i16_tempImage[Y_Cnt + 5][X_Cnt + 5];
     }
   }
@@ -719,7 +761,7 @@ v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
 
       if (i16_tempImage[Y_Cnt+5][X_Cnt+5] > i32_AvarageValue)
       {
-        CLM_Plugin_DrawPixelAtPoint (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
+        plugin_set_voxel_at_point (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
       }
       /* DO NOT ERASE AUTOMATICALLY
          --------------------------
@@ -785,7 +827,7 @@ v_PixelData_handleFLOAT32 (PixelData *ps_Original, PixelData *ps_Mask, PixelData
     {
       ts_BlobCount.x = ts_Point.x + X_Cnt;
 
-      CLM_Plugin_GetPixelAtPoint (ps_Original, ts_BlobCount, &(f_tempImage[Y_Cnt + 5][X_Cnt + 5]));
+      plugin_get_voxel_at_point (ps_Original, ts_BlobCount, &(f_tempImage[Y_Cnt + 5][X_Cnt + 5]));
       f_AvarageValue += f_tempImage[Y_Cnt + 5][X_Cnt + 5];
     }
   }
@@ -923,7 +965,7 @@ v_PixelData_handleFLOAT32 (PixelData *ps_Original, PixelData *ps_Mask, PixelData
 
       if (f_tempImage[Y_Cnt+5][X_Cnt+5] > f_AvarageValue)
       {
-        CLM_Plugin_DrawPixelAtPoint (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
+        plugin_set_voxel_at_point (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
       }
       /* DO NOT ERASE AUTOMATICALLY
          --------------------------

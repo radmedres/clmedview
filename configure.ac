@@ -40,10 +40,8 @@ AC_CONFIG_FILES([libcommon/Makefile
 		 libviewer/Makefile
 		 libmemory/Makefile
 		 libio/Makefile
+		 libhistogram/Makefile
                  plugin/Makefile
-                 plugin/src/brushes/Makefile
-                 plugin/src/line-tools/Makefile
-                 plugin/src/selection-tools/Makefile
 		 Makefile])
 
 case $host in
@@ -96,6 +94,7 @@ PKG_CHECK_MODULES([glib], [glib-2.0])
 PKG_CHECK_MODULES([gtk], [gtk+-3.0])
 PKG_CHECK_MODULES([clutter], [clutter-1.0])
 PKG_CHECK_MODULES([cluttergtk], [clutter-gtk-1.0])
+PKG_CHECK_MODULES([cairo], [cairo])
 PKG_CHECK_MODULES([zlib], [zlib])
 PKG_CHECK_MODULES([uuid], [uuid])
 

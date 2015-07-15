@@ -20,6 +20,8 @@
 #include "mainwindow.h"
 #include "libviewer.h"
 #include "libpixeldata-plugin.h"
+#include "libconfiguration.h"
+//#include "libhistogram.h"
 
 #include "libcommon-list.h"
 #include "libcommon-history.h"
@@ -33,7 +35,6 @@
 #include "libmemory-serie.h"
 #include "libmemory-slice.h"
 #include "libmemory-tree.h"
-#include "libconfiguration.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,14 +69,12 @@
 #define ICON_TERMINAL_SHOW    "system-run-symbolic"
 
 #ifdef WIN32
-#define PLUGIN_PATH_SELECTION "plugin\\selection-tools\\"
-#define PLUGIN_PATH_LINE      "plugin\\line-tools\\"
-#define PLUGIN_PATH_BRUSHES   "plugin\\brushes\\"
+#define PLUGIN_PATH           "plugin\\"
+#define PLUGIN_ICON_PATH      "icons\\"
 #define LOOKUP_TABLES_PATH    "luts\\"
 #else
-#define PLUGIN_PATH_SELECTION "plugin/selection-tools/"
-#define PLUGIN_PATH_LINE      "plugin/line-tools/"
-#define PLUGIN_PATH_BRUSHES   "plugin/brushes/"
+#define PLUGIN_PATH           "plugin/"
+#define PLUGIN_ICON_PATH      "icons/"
 #define LOOKUP_TABLES_PATH    "luts/"
 #endif
 
@@ -191,6 +190,7 @@ GtkWidget *properties_opacity_scale;
 GtkWidget *properties_lookup_table_combo;
 GtkWidget *timeline;
 GtkWidget *treeview;
+//GtkWidget *histogram_drawarea;
 GtkTreeStore *sidebar_TreeStore;
 
 // Application-local stuff
@@ -202,7 +202,7 @@ Viewer *ts_ActiveViewer;
 GuiViewportType te_DisplayType = VIEWPORT_TYPE_UNDEFINED;
 
 Configuration *config;
-
+//Histogram *histogram;
 
 /******************************************************************************
  * FUNCTION IMPLEMENTATIONS
@@ -476,6 +476,10 @@ gui_mainwindow_new (char *file)
 		    NULL);
 
   /*--------------------------------------------------------------------------.
+   | HISTOGRAM                                                                |
+   '--------------------------------------------------------------------------*/
+
+  /*--------------------------------------------------------------------------.
    | CONTAINERS                                                               |
    '--------------------------------------------------------------------------*/
   // Main content packing
@@ -490,7 +494,7 @@ gui_mainwindow_new (char *file)
   gtk_box_pack_start (GTK_BOX (vbox_mainarea), hbox_mainmenu, 0, 0, 0);
   gtk_box_pack_start (GTK_BOX (vbox_mainarea), hbox_viewers, 1, 1, 0);
   gtk_box_pack_start (GTK_BOX (vbox_mainarea), timeline, 0, 0, 0);
-
+  
   gtk_widget_set_no_show_all (timeline, TRUE);
   gtk_widget_hide (timeline);
 
@@ -710,6 +714,13 @@ gui_mainwindow_file_load (void* data)
 
       gui_mainwindow_views_activate (views_combo, (void *)te_DisplayType);
       gtk_tree_view_expand_all(GTK_TREE_VIEW(treeview));
+      /*
+      if (histogram == NULL)
+	histogram = histogram_new ();
+
+      histogram_set_serie (histogram, ps_Serie);
+      gtk_widget_queue_draw (histogram_drawarea);
+      */
     }
   }
 }
@@ -1569,9 +1580,25 @@ gui_mainwindow_select_tool (GtkWidget *widget, void *data)
     viewers = viewers->next;
   }
 
-  if (inp_brush_size != NULL)
-    gtk_spin_button_set_value (GTK_SPIN_BUTTON (inp_brush_size),
-                               ts_ActiveDrawTool->i32_Size);
+  
+  unsigned int *size = ts_ActiveDrawTool->get_property (ts_ActiveDrawTool->meta, "size");
+  if (size != NULL)
+  {
+    gtk_spin_button_set_value (GTK_SPIN_BUTTON (inp_brush_size), *size);
+  }
+
+  unsigned int *value = ts_ActiveDrawTool->get_property (ts_ActiveDrawTool->meta, "value");
+  if (value != NULL)
+  {
+    gtk_spin_button_set_value (GTK_SPIN_BUTTON (inp_brush_value), *value);
+  }
+
+  gtk_widget_set_sensitive (inp_brush_size, (size != NULL));
+  gtk_widget_set_sensitive (inp_brush_value, (value != NULL));
+
+  /*--------------------------------------------------------------------------.
+   | HANDLE RELIEF SETTINGS                                                   |
+   '--------------------------------------------------------------------------*/
 
   if (btn_ActiveDrawTool != NULL)
     gtk_button_set_relief (GTK_BUTTON (btn_ActiveDrawTool), GTK_RELIEF_NONE);
@@ -1592,7 +1619,11 @@ gui_mainwindow_set_brush_size (UNUSED GtkWidget* widget, UNUSED void* data)
 
   int size = gtk_spin_button_get_value (GTK_SPIN_BUTTON (inp_brush_size));
   Plugin *plugin = ts_ActiveDrawTool;
-  plugin->i32_Size = size;
+  if (!plugin->set_property (plugin->meta, "size", &size))
+  {
+    unsigned int *plugin_size = plugin->get_property (plugin->meta, "size");
+    gtk_spin_button_set_value (GTK_SPIN_BUTTON (inp_brush_size), *plugin_size);
+  }
 }
 
 
@@ -1609,7 +1640,7 @@ gui_mainwindow_set_brush_value (UNUSED GtkWidget* widget, UNUSED void* data)
   while (plugins != NULL)
   {
     Plugin *plugin = plugins->data;
-    plugin->i32_Value = value;
+    plugin->set_property (plugin->meta, "value", &value);
     plugins = list_next (plugins);
   }
 }
@@ -1665,39 +1696,37 @@ gui_mainwindow_add_plugin (Plugin *plugin, GtkWidget *box)
 {
   debug_functions ();
 
-  GtkWidget *btn_selection;
-  if (plugin->pc_Icon != NULL)
+  char **icon_name;
+  char *icon_path;
+
+  icon_name = plugin->get_property (plugin->meta, "name");
+  icon_path = calloc (1, strlen (PLUGIN_ICON_PATH) + strlen (*icon_name) + 5);
+  sprintf (icon_path, PLUGIN_ICON_PATH "%s.png", *icon_name);
+  
+  GtkWidget *btn_plugin;
+  if (access (icon_path, F_OK) == 0)
   {
-    btn_selection = gtk_button_new ();
-    GdkPixbuf *pix_selection = gdk_pixbuf_new_from_data (plugin->pc_Icon,
-							 GDK_COLORSPACE_RGB,
-                                                         TRUE,
-							 8,
-							 16,
-							 16,
-							 16 * 4,
-							 NULL,
-							 NULL);
+    btn_plugin = gtk_button_new ();
 
-    GtkWidget *img_selection = gtk_image_new_from_pixbuf (pix_selection);
-    gtk_button_set_image (GTK_BUTTON (btn_selection), img_selection);
-    g_object_unref (pix_selection);
-
-    gtk_button_set_relief (GTK_BUTTON (btn_selection), GTK_RELIEF_NONE);
+    GtkWidget *img_plugin = gtk_image_new_from_file (icon_path);
+    gtk_button_set_image (GTK_BUTTON (btn_plugin), img_plugin);
+    gtk_button_set_relief (GTK_BUTTON (btn_plugin), GTK_RELIEF_NONE);
   }
   else
   {
-    btn_selection = gtk_button_new_with_label (plugin->pc_Name);
+    btn_plugin = gtk_button_new_with_label (*icon_name);
   }
 
-  gtk_box_pack_start (GTK_BOX (box), btn_selection, 0, 0, 0);
-  gtk_widget_show (btn_selection);
+  free (icon_path);
+  
+  gtk_box_pack_start (GTK_BOX (box), btn_plugin, 0, 0, 0);
+  gtk_widget_show (btn_plugin);
 
-  g_signal_connect (btn_selection, "clicked",
+  g_signal_connect (btn_plugin, "clicked",
 		    G_CALLBACK (gui_mainwindow_select_tool),
 		    plugin);
 
-  gui_mainwindow_select_tool (btn_selection, plugin);
+  gui_mainwindow_select_tool (btn_plugin, plugin);
 }
 
 
@@ -1713,30 +1742,28 @@ gui_mainwindow_toolbar_new ()
    '--------------------------------------------------------------------------*/
   List *pll_PluginList = NULL;
 
-  pixeldata_plugin_load_from_directory (PLUGIN_PATH_LINE, &pll_PluginList);
-  pixeldata_plugin_load_from_directory (PLUGIN_PATH_SELECTION, &pll_PluginList);
-  pixeldata_plugin_load_from_directory (PLUGIN_PATH_BRUSHES, &pll_PluginList);
+  pixeldata_plugin_load_from_directory (PLUGIN_PATH, &pll_PluginList);
 
   /*--------------------------------------------------------------------------.
    | SET STANDARD BRUSH STUFF                                                 |
    '--------------------------------------------------------------------------*/
   GtkWidget* lbl_brush_size = gtk_label_new ("");
-  gtk_label_set_markup (GTK_LABEL (lbl_brush_size), "<b>Brush size:</b>");
+  gtk_label_set_markup (GTK_LABEL (lbl_brush_size), "<b>Size:</b>");
   inp_brush_size = gtk_spin_button_new_with_range (1.0, 500.0, 1.0);
 
-  gtk_box_pack_start (GTK_BOX (hbox_toolbar), lbl_brush_size, 0, 0, 10);
-  gtk_box_pack_start (GTK_BOX (hbox_toolbar), inp_brush_size, 0, 0, 10);
+  gtk_box_pack_start (GTK_BOX (hbox_toolbar), lbl_brush_size, 0, 0, 5);
+  gtk_box_pack_start (GTK_BOX (hbox_toolbar), inp_brush_size, 0, 0, 5);
 
   g_signal_connect (inp_brush_size, "value-changed",
 		    G_CALLBACK (gui_mainwindow_set_brush_size),
 		    NULL);
 
   GtkWidget* lbl_brush_value = gtk_label_new ("");
-  gtk_label_set_markup (GTK_LABEL (lbl_brush_value), "<b>Brush value:</b>");
+  gtk_label_set_markup (GTK_LABEL (lbl_brush_value), "<b>Value:</b>");
   inp_brush_value = gtk_spin_button_new_with_range (1.0, 255.0, 1.0);
 
-  gtk_box_pack_start (GTK_BOX (hbox_toolbar), lbl_brush_value, 0, 0, 10);
-  gtk_box_pack_start (GTK_BOX (hbox_toolbar), inp_brush_value, 0, 0, 10);
+  gtk_box_pack_start (GTK_BOX (hbox_toolbar), lbl_brush_value, 0, 0, 5);
+  gtk_box_pack_start (GTK_BOX (hbox_toolbar), inp_brush_value, 0, 0, 5);
 
   g_signal_connect (inp_brush_value, "value-changed",
 		    G_CALLBACK (gui_mainwindow_set_brush_value),
@@ -1758,6 +1785,15 @@ gui_mainwindow_toolbar_new ()
   return hbox_toolbar;
 }
 
+/*
+gboolean
+gui_mainwindow_histogram_draw (UNUSED GtkWidget *widget, cairo_t *cr)
+{
+  if (histogram == NULL) return FALSE;
+  histogram_draw (histogram, cr, 200, 300, 0, 0);
+  return TRUE;
+}
+*/
 
 /******************************************************************************
  * LAYER MANAGER (SIDE BAR)
@@ -2392,9 +2428,18 @@ gui_mainwindow_layer_manager_new ()
   GtkWidget *layers_title_lbl = gtk_label_new ("");
   gtk_label_set_markup (GTK_LABEL (layers_title_lbl), "<b>Layers</b>");
 
+  /*
+  histogram_drawarea = gtk_drawing_area_new ();
+  gtk_widget_set_size_request (histogram_drawarea, 200, 200);
+
+  g_signal_connect (G_OBJECT (histogram_drawarea), "draw",
+                    G_CALLBACK (gui_mainwindow_histogram_draw), NULL);
+  */
+
   gtk_box_pack_start (GTK_BOX (vbox_layer_manager), layers_title_lbl, 0, 0, 0);
   gtk_box_pack_start (GTK_BOX (vbox_layer_manager), layer_manager, 1, 1, 0);
   gtk_box_pack_start (GTK_BOX (vbox_layer_manager), hbox_properties, 0, 0, 0);
+  /* gtk_box_pack_start (GTK_BOX (vbox_layer_manager), histogram_drawarea, 0, 0, 0); */
 
   g_signal_connect (layer_manager, "row-selected", G_CALLBACK (gui_mainwindow_set_active_layer), NULL);
 
