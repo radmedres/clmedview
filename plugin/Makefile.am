@@ -36,3 +36,10 @@ all-local: $(lib_LTLIBRARIES)
 	@cp .libs/sobel.so .
 	@$(RM) polygon.so
 	@cp .libs/polygon.so .
+
+clean-local:
+	@$(RM) pen.so
+	@$(RM) empty.so
+	@$(RM) fill.so
+	@$(RM) sobel.so
+	@$(RM) polygon.so
