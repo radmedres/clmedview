@@ -546,6 +546,8 @@ viewer_redraw_child_series (Viewer *resources, List *pll_Series, int i32_Width,
 {
   pll_Series = list_nth (pll_Series, 1);
 
+  printf ("Number of children: %u\n", list_length (pll_Series));
+
   ClutterActor *child;
   PixelData *ps_Data;
 
@@ -617,6 +619,7 @@ viewer_redraw (Viewer *resources, RedrawMode redraw_mode)
                                                       (redraw_mode == REDRAW_ALL));
 
     clutter_actor_add_child (resources->c_Actor, c_BaseImage);
+
     /*------------------------------------------------------------------------.
      | APPLY PARENT SETTINGS                                                  |
      '------------------------------------------------------------------------*/
@@ -1149,7 +1152,7 @@ viewer_set_optimal_fit (Viewer *resources)
   }
 }
 
-void v_viewer_set_image_orientation_direction(Viewer *pt_Viewport, char *pc_Top, char *pc_Bottom, char *pc_Left, char *pc_Right)
+void viewer_set_image_orientation_direction(Viewer *pt_Viewport, char *pc_Top, char *pc_Bottom, char *pc_Left, char *pc_Right)
 {
   if (pt_Viewport == NULL)
   {
@@ -1237,10 +1240,6 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
   resources->ts_ScaledPlane.width = slice->matrix.i16_x * slice->f_ScaleFactorX;
   resources->ts_ScaledPlane.height = slice->matrix.i16_y * slice->f_ScaleFactorY;
 
-
-
-
-
   // Set up the display slice resources for the mask.
   viewer_add_mask_serie (resources, ts_Mask);
   resources->ps_ActiveMask = list_last (resources->pll_MaskSeries)->data;
@@ -1251,7 +1250,6 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
     viewer_add_overlay_serie (resources, pll_Overlays->data);
     pll_Overlays = list_next (pll_Overlays);
   }
-
 
   /*--------------------------------------------------------------------------.
    | CLUTTER AND GTK INITALIZATION                                            |
@@ -1286,16 +1284,11 @@ viewer_initialize (Viewer *resources, Serie *ts_Original, Serie *ts_Mask, List *
   f_StartPositionY = (f_StageHeight - f_ActorHeight) / 2;
   clutter_actor_set_position(resources->c_Actor, f_StartPositionX, f_StartPositionY );
 
-
-
-
   /*--------------------------------------------------------------------------.
    | CLUTTER-GTK PARTS                                                        |
    '--------------------------------------------------------------------------*/
 
   viewer_set_slice (resources, 0);
-
-
 }
 
 Viewer*
@@ -1521,6 +1514,17 @@ viewer_add_mask_serie (Viewer *resources, Serie *serie)
 {
   debug_functions ();
 
+  /* Avoid adding a duplicate serie. */
+  if (resources == NULL) return;
+
+  List *mask_layers = resources->pll_MaskSeries;
+  while (mask_layers != NULL)
+  {
+    PixelData *data = mask_layers->data;
+    if (data->serie->id == serie->id) return;
+    mask_layers = list_next (mask_layers);
+  }
+  
   // Set up the display slice resources for the mask.
   Slice *mask_slice = memory_slice_new (serie);
   assert (mask_slice != NULL);

@@ -154,8 +154,6 @@ typedef struct Viewer
   ClutterActor *c_SliceOrientationLeft; /*< A ClutterText layer to display orientatiosn info. */
   ClutterActor *c_SliceOrientationRight; /*< A ClutterText layer to display orientatiosn info. */
 
-
-
   Plane ts_OriginalPlane; /*< The width and height of the original data. */
   Plane ts_ScaledPlane; /*< The ts_OriginalPlane size with voxel scaling. */
   Coordinate ts_ViewPortCoordinates; /*< The previous coordinate. */
@@ -287,7 +285,7 @@ Viewer* viewer_new (Serie *ts_Original, Serie *ts_Mask, List *pll_Overlays,
                     Vector3D ts_UpVector);
 
 
-void v_viewer_set_image_orientation_direction(Viewer *pt_Viewport, char *pc_Top, char *pc_Bottom, char *pc_Left, char *pc_Right);
+void viewer_set_image_orientation_direction(Viewer *pt_Viewport, char *pc_Top, char *pc_Bottom, char *pc_Left, char *pc_Right);
 
 /**
  * This function creates a clutter stage, which is a stand-alone object

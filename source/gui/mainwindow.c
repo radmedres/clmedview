@@ -794,8 +794,6 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   char *pc_Sagital_Top = NULL, *pc_Sagital_Bottom = NULL, *pc_Sagital_Left = NULL, *pc_Sagital_Right = NULL;
   char *pc_Coronal_Top = NULL, *pc_Coronal_Bottom = NULL, *pc_Coronal_Left = NULL, *pc_Coronal_Right = NULL;
 
-  Serie *ps_RotatedSerie = memory_serie_new("test","test");
-
   Vector3D ts_Normal_Axial;
   Vector3D ts_Normal_Sagital;
   Vector3D ts_Normal_Coronal;
@@ -898,8 +896,6 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     }
   }
 
-  free(ps_RotatedSerie);
-
   if (pll_Viewers == NULL)
   {
     Viewer *viewer = NULL;
@@ -918,7 +914,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
       viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
       viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
-      v_viewer_set_image_orientation_direction(viewer, pc_Axial_Top, pc_Axial_Bottom, pc_Axial_Left, pc_Axial_Right);
+      viewer_set_image_orientation_direction(viewer, pc_Axial_Top, pc_Axial_Bottom, pc_Axial_Left, pc_Axial_Right);
 
       if (ts_ActiveDrawTool != NULL)
         viewer_set_active_painter (viewer, ts_ActiveDrawTool);
@@ -940,7 +936,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
       viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
       viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
-      v_viewer_set_image_orientation_direction(viewer, pc_Sagital_Top, pc_Sagital_Bottom, pc_Sagital_Left, pc_Sagital_Right);
+      viewer_set_image_orientation_direction(viewer, pc_Sagital_Top, pc_Sagital_Bottom, pc_Sagital_Left, pc_Sagital_Right);
 
       if (ts_ActiveDrawTool != NULL)
         viewer_set_active_painter (viewer, ts_ActiveDrawTool);
@@ -962,7 +958,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
       viewer_set_callback (viewer, "window-level-change", &gui_mainwindow_update_viewer_wwwl);
       viewer_set_callback (viewer, "handle-change", &gui_mainwindow_update_handle_position);
 
-      v_viewer_set_image_orientation_direction(viewer, pc_Coronal_Top, pc_Coronal_Bottom, pc_Coronal_Left, pc_Coronal_Right);
+      viewer_set_image_orientation_direction(viewer, pc_Coronal_Top, pc_Coronal_Bottom, pc_Coronal_Left, pc_Coronal_Right);
 
       if (ts_ActiveDrawTool != NULL)
         viewer_set_active_painter (viewer, ts_ActiveDrawTool);
@@ -1050,22 +1046,21 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
           ts_Up = ts_Up_Axial;
           ts_Normal = ts_Normal_Axial;
 
-          v_viewer_set_image_orientation_direction(list_viewer, pc_Axial_Top, pc_Axial_Bottom, pc_Axial_Left, pc_Axial_Right);
+          viewer_set_image_orientation_direction(list_viewer, pc_Axial_Top, pc_Axial_Bottom, pc_Axial_Left, pc_Axial_Right);
           break;
         case ORIENTATION_SAGITAL:
           ts_Up = ts_Up_Sagital;
           ts_Normal = ts_Normal_Sagital;
-          v_viewer_set_image_orientation_direction(list_viewer, pc_Sagital_Top, pc_Sagital_Bottom, pc_Sagital_Left, pc_Sagital_Right);
+          viewer_set_image_orientation_direction(list_viewer, pc_Sagital_Top, pc_Sagital_Bottom, pc_Sagital_Left, pc_Sagital_Right);
           break;
         case ORIENTATION_CORONAL:
           ts_Up = ts_Up_Coronal;
           ts_Normal = ts_Normal_Coronal;
-          v_viewer_set_image_orientation_direction(list_viewer, pc_Coronal_Top, pc_Coronal_Bottom, pc_Coronal_Left, pc_Coronal_Right);
+          viewer_set_image_orientation_direction(list_viewer, pc_Coronal_Top, pc_Coronal_Bottom, pc_Coronal_Left, pc_Coronal_Right);
           break;
         default:
           break;
       }
-
 
       viewer_initialize (list_viewer, ps_Serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
 
