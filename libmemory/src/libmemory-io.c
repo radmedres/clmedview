@@ -440,6 +440,10 @@ Tree *pt_memory_io_load_file_dicom (char *pc_path)
 /*                                                                                                    */
 Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
 {
+  debug_functions ();
+
+  if (ppt_study == NULL) return NULL;
+
   Patient *ps_new_patient = NULL;
   Study   *ps_new_study = NULL;
   Serie   *ps_new_serie = NULL;
@@ -456,11 +460,9 @@ Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
   Tree *pt_studyIter=NULL;
   Tree *pt_serieIter=NULL;
 
-  unsigned char b_PatientExists;
-  unsigned char b_StudyExists;
-  unsigned char b_SerieExists;
-
-  debug_functions ();
+  unsigned char b_PatientExists = 0;
+  unsigned char b_StudyExists = 0;
+  unsigned char b_SerieExists = 0;
 
   if (pc_path == NULL)
   {
@@ -501,7 +503,7 @@ Tree *pt_memory_io_load_file (Tree **ppt_study, char *pc_path)
   pt_patientIter=tree_nth(pt_patientIter,1);
   while (pt_patientIter != NULL)
   {
-    ps_tmp_patient=(Patient * )(pt_patientIter->data);
+    ps_tmp_patient=(Patient *)(pt_patientIter->data);
 
     if (strcmp(ps_tmp_patient->c_patientID,ps_new_patient->c_patientID) == 0)
     {
