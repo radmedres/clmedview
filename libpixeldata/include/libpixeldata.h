@@ -317,27 +317,6 @@ unsigned char pixeldata_get_alpha (PixelData *pixeldata);
 
 
 /**
- * This function sets the mask to active on a line defined by two coordinates.
- *
- * @param ps_Original       The PixelData of the original image.
- * @param ps_Mask           The PixelData of the mask to draw onto.
- * @param ps_Selection      The PixelData of the selection mask.
- * @param ts_Start          The start coordinate.
- * @param ts_End            The end coordinate.
- * @param ui32_BrushScale   The scaling factor for the brush.
- * @param ui32_BrushValue   The value for the brush.
- * @param te_Action         The action to apply.
- * @param fp_BrushCallback  The brush callback function.
- */
-void pixeldata_apply_brush (PixelData *ps_Original, PixelData *ps_Mask,
-			    PixelData *ps_Selection, Coordinate ts_Start,
-			    Coordinate ts_End, unsigned int ui32_BrushScale,
-			    unsigned int ui32_BrushValue, PixelAction te_Action,
-			    void (*fp_BrushCallback)(PixelData*, PixelData*, PixelData*,
-						     Coordinate, unsigned int, unsigned int, PixelAction));
-
-
-/**
  * This function loads a LUT file. The format for the file should be:
  * Index, Red, Green, Blue
  *

@@ -39,53 +39,6 @@
 #define PATH_SEPARATOR '/'
 #endif
 
-/* --------------------------------------------------------------------------
- * LOCAL FUNCTIONS
- * -------------------------------------------------------------------------- */
-
-static void
-pixeldata_bresenham_line (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-			  Coordinate ts_Start, Coordinate ts_End, unsigned int ui32_BrushScale,
-			  unsigned int ui32_DrawValue, PixelAction te_Action,
-                          void (*fp_BrushCallback)(PixelData*, PixelData*, PixelData*,
-                                                   Coordinate, unsigned int, unsigned int, PixelAction))
-{
-  debug_functions ();
-
-  /*--------------------------------------------------------------------------.
-   | The following is an optimized version of the bresenham line algorithm.   |
-   | It basically calculates a straight line of pixels for two given points.  |
-   | For each pixel it selects, fp_BrushCallback will be called.              |
-   '--------------------------------------------------------------------------*/
-
-  int i32_DifferenceInX = abs (ts_End.x - ts_Start.x);
-  int i32_DirectionOfX = (ts_Start.x < ts_End.x) ? 1 : -1;
-
-  int i32_DifferenceInY = abs (ts_End.y - ts_Start.y);
-  int i32_DirectionOfY = (ts_Start.y < ts_End.y) ? 1 : -1;
-
-  int i32_Error = ((i32_DifferenceInX > i32_DifferenceInY) ? i32_DifferenceInX : -i32_DifferenceInY) / 2;
-  int i32_PreviousError;
-
-  for (;;)
-  {
-    fp_BrushCallback (ps_Original, ps_Mask, ps_Selection, ts_Start, ui32_BrushScale, ui32_DrawValue, te_Action);
-    if (ts_Start.x == ts_End.x && ts_Start.y == ts_End.y) break;
-
-    i32_PreviousError = i32_Error;
-
-    if (i32_PreviousError > -i32_DifferenceInX)
-    {
-      i32_Error -= i32_DifferenceInY; ts_Start.x += i32_DirectionOfX;
-    }
-
-    if (i32_PreviousError < i32_DifferenceInY)
-    {
-      i32_Error += i32_DifferenceInX; ts_Start.y += i32_DirectionOfY;
-    }
-  }
-}
-
 
 /* --------------------------------------------------------------------------
  * PUBLIC FUNCTIONS
@@ -715,27 +668,6 @@ pixeldata_get_alpha (PixelData *pixeldata)
 {
   assert (pixeldata != NULL);
   return pixeldata->alpha;
-}
-
-
-void
-pixeldata_apply_brush (PixelData *ps_Original, PixelData *ps_Mask,
-		       PixelData *ps_Selection, Coordinate ts_Start,
-		       Coordinate ts_End, unsigned int ui32_BrushScale,
-		       unsigned int ui32_BrushValue, PixelAction te_Action,
-		       void (*fp_BrushCallback)(PixelData*, PixelData*, PixelData*,
-						Coordinate, unsigned int, unsigned int, PixelAction))
-{
-  debug_functions ();
-
-
-  if (ps_Mask == NULL) return;
-  if (fp_BrushCallback == NULL) return;
-
-  (ts_Start.x == 0 && ts_Start.y == 0)
-    ? fp_BrushCallback (ps_Original, ps_Mask, ps_Selection, ts_End, ui32_BrushScale, ui32_BrushValue, te_Action)
-    : pixeldata_bresenham_line (ps_Original, ps_Mask, ps_Selection, ts_Start, ts_End,
-				ui32_BrushScale, ui32_BrushValue, te_Action, fp_BrushCallback);
 }
 
 
