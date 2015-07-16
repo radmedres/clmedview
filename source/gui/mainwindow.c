@@ -790,9 +790,9 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   v_memory_serie_MatrixToOrientation(ps_Serie->pt_RotationMatrix, &ps_Serie->e_ImageDirection_I, &ps_Serie->e_ImageDirection_J, &ps_Serie->e_ImageDirection_K);
   e_Orientation = e_memory_serie_ConvertImageDirectionToOrientation(ps_Serie->e_ImageDirection_I, ps_Serie->e_ImageDirection_J, ps_Serie->e_ImageDirection_K);
 
-  char *pc_Axial_Top  , *pc_Axial_Bottom  , *pc_Axial_Left  , *pc_Axial_Right;
-  char *pc_Sagital_Top, *pc_Sagital_Bottom, *pc_Sagital_Left, *pc_Sagital_Right;
-  char *pc_Coronal_Top, *pc_Coronal_Bottom, *pc_Coronal_Left, *pc_Coronal_Right;
+  char *pc_Axial_Top   = NULL, *pc_Axial_Bottom   = NULL, *pc_Axial_Left   = NULL, *pc_Axial_Right   = NULL;
+  char *pc_Sagital_Top = NULL, *pc_Sagital_Bottom = NULL, *pc_Sagital_Left = NULL, *pc_Sagital_Right = NULL;
+  char *pc_Coronal_Top = NULL, *pc_Coronal_Bottom = NULL, *pc_Coronal_Left = NULL, *pc_Coronal_Right = NULL;
 
   Serie *ps_RotatedSerie = memory_serie_new("test","test");
 
