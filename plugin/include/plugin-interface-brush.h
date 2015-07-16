@@ -7,6 +7,7 @@ extern "C" {
 
 #include "plugin-interface.h"
 #include "libpixeldata.h"
+#include "libcommon.h"
 
 /**
  * @file   plugin/src/brushes/plugin-brush-interface.h
@@ -44,6 +45,7 @@ typedef struct
   unsigned int size; /*< The size of the brush to fill around a coordinate. */
   unsigned int value; /*< The value to use when brushing around. */
   PixelAction action; /*< The action to apply (draw or erase). */
+  Coordinate previous; /*< The previous coordinate to bresenham between.*/
 } PluginBrushProperties;
 
 /**

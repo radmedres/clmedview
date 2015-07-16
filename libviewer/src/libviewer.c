@@ -823,10 +823,11 @@ viewer_draw_mask (Viewer *resources, Coordinate ts_MousePosition, PixelAction te
   }
 
   plugin->set_property (plugin->meta, "action", &te_Action);
-  plugin->apply (plugin->meta, resources->ps_Original,
-		 resources->ps_ActiveMask,
-		 resources->ps_ActiveSelection,
-		 ts_PixelPosition);
+  plugin->set_property (plugin->meta, "previous-coordinate",
+			&(resources->ts_PreviousDrawCoordinate));
+
+  plugin->apply (plugin->meta, resources->ps_Original, resources->ps_ActiveMask,
+		 resources->ps_ActiveSelection, ts_PixelPosition);
 
   resources->ts_PreviousDrawCoordinate = ts_PixelPosition;
 
