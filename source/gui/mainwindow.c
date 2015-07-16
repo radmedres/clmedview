@@ -1581,6 +1581,7 @@ gui_mainwindow_select_tool (GtkWidget *widget, void *data)
     viewers = viewers->next;
   }
 
+  ts_ActiveDrawTool->set_property (ts_ActiveDrawTool->meta, "reset", NULL);
   
   unsigned int *size = ts_ActiveDrawTool->get_property (ts_ActiveDrawTool->meta, "size");
   if (size != NULL)
