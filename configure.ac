@@ -29,6 +29,9 @@ AM_SILENT_RULES([yes])
 AM_PROG_CC_C_O
 AM_PROG_AR([ar])
 
+# Adopt the new 'default' flags for AR to silence linker warnings.
+m4_divert_text([DEFAULTS], [: "${ARFLAGS=cr} ${AR_FLAGS=cr}"])
+
 LT_INIT([dlopen win32-dll])
 AC_SUBST([LIBTOOL_DEPS])
 
