@@ -5,19 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-void v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                              Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
 
-void v_PixelData_handleUINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                              Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
-void v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                              Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
+void plugin_handle_uint8 (PluginMetaData *metadata, PixelData *original, PixelData *mask, PixelData *selection, Coordinate point);
+void plugin_handle_uint16 (PluginMetaData *metadata, PixelData *original, PixelData *mask, PixelData *selection, Coordinate point);
+void plugin_handle_int16 (PluginMetaData *metadata, PixelData *original, PixelData *mask, PixelData *selection, Coordinate point);
+void plugin_handle_float32 (PluginMetaData *metadata, PixelData *original, PixelData *mask, PixelData *selection, Coordinate point);
 
-void v_PixelData_handleFLOAT32 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                                Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
-
-void v_PixelData_SobelEdgeDetection (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-				     Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action);
 
 void
 plugin_get_metadata (PluginMetaData **metadata)
@@ -47,16 +40,37 @@ plugin_get_metadata (PluginMetaData **metadata)
 
 
 void
-plugin_apply (PluginMetaData *metadata, PixelData *original,
-	      PixelData *mask, PixelData *selection,
-	      Coordinate point)
+plugin_apply (PluginMetaData *metadata, PixelData *original, PixelData *mask, PixelData *selection, Coordinate point)
 {
   if (metadata == NULL || original == NULL || mask == NULL) return;
 
   PluginBrushProperties *properties = metadata->properties;
   if (properties == NULL) return;
 
-  v_PixelData_SobelEdgeDetection (original, mask, selection, point, properties->value, properties->action);
+  Slice *slice = PIXELDATA_ACTIVE_SLICE (original);
+  if (slice == NULL) return; 
+
+  unsigned int boundary = properties->size / 2;
+  
+  if (point.x > (slice->matrix.i16_x - boundary)
+      || point.x < boundary
+      || point.y > (slice->matrix.i16_y - boundary)
+      || point.y < boundary)
+  {
+    return;
+  }
+
+  switch (original->serie->data_type)
+  {
+    case MEMORY_TYPE_UINT8  : plugin_handle_uint8 (metadata, original, mask, selection, point); break;
+    case MEMORY_TYPE_INT16  : plugin_handle_int16 (metadata, original, mask, selection, point); break;
+    case MEMORY_TYPE_UINT16 : plugin_handle_uint16 (metadata, original, mask, selection, point); break;
+    case MEMORY_TYPE_INT32  : break;
+    case MEMORY_TYPE_UINT32 : break;
+    case MEMORY_TYPE_FLOAT32: plugin_handle_float32 (metadata, original, mask, selection, point); break;
+    case MEMORY_TYPE_FLOAT64: break;
+    default: break;
+  }
 }
 
 
@@ -107,7 +121,7 @@ plugin_set_property (PluginMetaData *metadata, const char *property,
     properties->value = *(unsigned int *)value;
 
   else if (!strcmp ("action", property))
-    properties->action = *(PixelAction*)value;
+    properties->action = *(PixelAction *)value;
 
   else
     return false;
@@ -132,51 +146,15 @@ plugin_destroy (PluginMetaData *metadata)
 
 
 void
-v_PixelData_SobelEdgeDetection (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-				Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action)
+plugin_handle_uint8 (PluginMetaData *metadata, PixelData *original, PixelData *mask, PixelData *selection, Coordinate point)
 {
-  Slice *slice = PIXELDATA_ACTIVE_SLICE (ps_Original);
+  PluginBrushProperties *properties = metadata->properties;
+
+  Slice *slice = PIXELDATA_ACTIVE_SLICE (original);
   assert (slice != NULL);
-
-  // Boundary check for a 10x10 local image.
-  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
-      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
-  {
-    return;
-  }
-
-  switch (ps_Original->serie->data_type)
-  {
-    case MEMORY_TYPE_UINT8   : v_PixelData_handleUINT8(ps_Original, ps_Mask, ps_Selection, ts_Point, ui32_DrawValue, te_Action); break;
-
-    case MEMORY_TYPE_INT16   : v_PixelData_handleINT16(ps_Original, ps_Mask, ps_Selection, ts_Point, ui32_DrawValue, te_Action); break;
-    case MEMORY_TYPE_INT32   : break;
-    case MEMORY_TYPE_UINT16  : v_PixelData_handleUINT16(ps_Original, ps_Mask, ps_Selection, ts_Point, ui32_DrawValue, te_Action); break;
-    case MEMORY_TYPE_UINT32  : break;
-    case MEMORY_TYPE_FLOAT32 : v_PixelData_handleFLOAT32(ps_Original, ps_Mask, ps_Selection, ts_Point, ui32_DrawValue, te_Action); break;
-    case MEMORY_TYPE_FLOAT64 : break;
-    default                  : assert (NULL != NULL); break;
-  }
-}
-
-
-void
-v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                         Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action)
-{
-  Slice *slice = PIXELDATA_ACTIVE_SLICE (ps_Original);
-  assert (slice != NULL);
-
-  // Boundary check for a 10x10 local image.
-  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
-      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
-  {
-    return;
-  }
 
   int X_Cnt, Y_Cnt;
   Coordinate ts_BlobCount;
-
   int i32_tempValue;
 
   /* DECLARATIONS FOR INT16 */
@@ -206,13 +184,13 @@ v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
 
   for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
   {
-    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+    ts_BlobCount.y = (point.y + Y_Cnt);
 
     for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
     {
-      ts_BlobCount.x = ts_Point.x + X_Cnt;
+      ts_BlobCount.x = point.x + X_Cnt;
 
-      plugin_get_voxel_at_point (ps_Original, ts_BlobCount, &(u8_tempImage[Y_Cnt + 5][X_Cnt + 5]));
+      plugin_get_voxel_at_point (original, ts_BlobCount, &(u8_tempImage[Y_Cnt + 5][X_Cnt + 5]));
       u32_AvarageValue += u8_tempImage[Y_Cnt + 5][X_Cnt + 5];
     }
   }
@@ -342,42 +320,27 @@ v_PixelData_handleUINT8 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
 
   for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
   {
-    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+    ts_BlobCount.y = (point.y + Y_Cnt);
 
     for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
     {
-      ts_BlobCount.x = ts_Point.x + X_Cnt;
+      ts_BlobCount.x = point.x + X_Cnt;
 
       if (u8_tempImage[Y_Cnt+5][X_Cnt+5] > u32_AvarageValue)
       {
-        plugin_set_voxel_at_point (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
+        plugin_set_voxel_at_point (mask, selection, ts_BlobCount, properties->value, properties->action);
       }
-      /* DO NOT ERASE AUTOMATICALLY
-         --------------------------
-      else
-      {
-        short int *pi16_SelectionPosition = ((short int *)*ppv_SelectionDataCounter + ts_BlobCount.y + ts_BlobCount.x);
-        short int *pi16_ImagePosition = ((short int *)*ppv_ImageDataCounter + ts_BlobCount.y + ts_BlobCount.x);
-        *pi16_ImagePosition = 0 & *pi16_SelectionPosition;
-      }
-      */
     }
   }
 }
 
 void
-v_PixelData_handleUINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                         Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action)
+plugin_handle_uint16 (PluginMetaData *metadata, PixelData *original, PixelData *mask, PixelData *selection, Coordinate point)
 {
-  Slice *slice = PIXELDATA_ACTIVE_SLICE (ps_Original);
-  assert (slice != NULL);
+  PluginBrushProperties *properties = metadata->properties;
 
-  // Boundary check for a 10x10 local image.
-  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
-      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
-  {
-    return;
-  }
+  Slice *slice = PIXELDATA_ACTIVE_SLICE (original);
+  assert (slice != NULL);
 
   int X_Cnt, Y_Cnt;
   Coordinate ts_BlobCount;
@@ -410,13 +373,13 @@ v_PixelData_handleUINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData 
 
   for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
   {
-    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+    ts_BlobCount.y = (point.y + Y_Cnt);
 
     for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
     {
-      ts_BlobCount.x = ts_Point.x + X_Cnt;
+      ts_BlobCount.x = point.x + X_Cnt;
 
-      plugin_get_voxel_at_point (ps_Original, ts_BlobCount, &(u16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
+      plugin_get_voxel_at_point (original, ts_BlobCount, &(u16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
       u32_AvarageValue += u16_tempImage[Y_Cnt + 5][X_Cnt + 5];
     }
   }
@@ -545,42 +508,32 @@ v_PixelData_handleUINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData 
 
   for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
   {
-    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+    ts_BlobCount.y = (point.y + Y_Cnt);
 
     for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
     {
-      ts_BlobCount.x = ts_Point.x + X_Cnt;
+      ts_BlobCount.x = point.x + X_Cnt;
 
       if (u16_tempImage[Y_Cnt+5][X_Cnt+5] > u32_AvarageValue)
       {
-        plugin_set_voxel_at_point (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
+        plugin_set_voxel_at_point (mask, selection, ts_BlobCount, properties->value, properties->action);
       }
-      /* DO NOT ERASE AUTOMATICALLY
-         --------------------------
-      else
-      {
-        short int *pi16_SelectionPosition = ((short int *)*ppv_SelectionDataCounter + ts_BlobCount.y + ts_BlobCount.x);
-        short int *pi16_ImagePosition = ((short int *)*ppv_ImageDataCounter + ts_BlobCount.y + ts_BlobCount.x);
-        *pi16_ImagePosition = 0 & *pi16_SelectionPosition;
-      }
-      */
     }
   }
 }
 
 
-
-
 void
-v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                         Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action)
+plugin_handle_int16 (PluginMetaData *metadata, PixelData *original, PixelData *mask, PixelData *selection, Coordinate point)
 {
-  Slice *slice = PIXELDATA_ACTIVE_SLICE (ps_Original);
+  PluginBrushProperties *properties = metadata->properties;
+
+  Slice *slice = PIXELDATA_ACTIVE_SLICE (original);
   assert (slice != NULL);
 
   // Boundary check for a 10x10 local image.
-  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
-      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
+  if ((point.x > (slice->matrix.i16_x - 5)) || (point.x < 5)
+      || (point.y > (slice->matrix.i16_y - 5)) || (point.y < 5))
   {
     return;
   }
@@ -617,13 +570,13 @@ v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
 
   for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
   {
-    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+    ts_BlobCount.y = (point.y + Y_Cnt);
 
     for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
     {
-      ts_BlobCount.x = ts_Point.x + X_Cnt;
+      ts_BlobCount.x = point.x + X_Cnt;
 
-      plugin_get_voxel_at_point (ps_Original, ts_BlobCount, &(i16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
+      plugin_get_voxel_at_point (original, ts_BlobCount, &(i16_tempImage[Y_Cnt + 5][X_Cnt + 5]));
       i32_AvarageValue += i16_tempImage[Y_Cnt + 5][X_Cnt + 5];
     }
   }
@@ -753,40 +706,31 @@ v_PixelData_handleINT16 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *
 
   for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
   {
-    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+    ts_BlobCount.y = (point.y + Y_Cnt);
 
     for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
     {
-      ts_BlobCount.x = ts_Point.x + X_Cnt;
+      ts_BlobCount.x = point.x + X_Cnt;
 
       if (i16_tempImage[Y_Cnt+5][X_Cnt+5] > i32_AvarageValue)
       {
-        plugin_set_voxel_at_point (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
+        plugin_set_voxel_at_point (mask, selection, ts_BlobCount, properties->value, properties->action);
       }
-      /* DO NOT ERASE AUTOMATICALLY
-         --------------------------
-      else
-      {
-        short int *pi16_SelectionPosition = ((short int *)*ppv_SelectionDataCounter + ts_BlobCount.y + ts_BlobCount.x);
-        short int *pi16_ImagePosition = ((short int *)*ppv_ImageDataCounter + ts_BlobCount.y + ts_BlobCount.x);
-        *pi16_ImagePosition = 0 & *pi16_SelectionPosition;
-      }
-      */
     }
   }
 }
 
-
 void
-v_PixelData_handleFLOAT32 (PixelData *ps_Original, PixelData *ps_Mask, PixelData *ps_Selection,
-                              Coordinate ts_Point, unsigned char ui32_DrawValue, PixelAction te_Action)
+plugin_handle_float32 (PluginMetaData *metadata, PixelData *original, PixelData *mask, PixelData *selection, Coordinate point)
 {
-  Slice *slice = PIXELDATA_ACTIVE_SLICE (ps_Original);
+  PluginBrushProperties *properties = metadata->properties;
+
+  Slice *slice = PIXELDATA_ACTIVE_SLICE (original);
   assert (slice != NULL);
 
   // Boundary check for a 10x10 local image.
-  if ((ts_Point.x > (slice->matrix.i16_x - 5)) || (ts_Point.x < 5)
-      || (ts_Point.y > (slice->matrix.i16_y - 5)) || (ts_Point.y < 5))
+  if ((point.x > (slice->matrix.i16_x - 5)) || (point.x < 5)
+      || (point.y > (slice->matrix.i16_y - 5)) || (point.y < 5))
   {
     return;
   }
@@ -821,13 +765,13 @@ v_PixelData_handleFLOAT32 (PixelData *ps_Original, PixelData *ps_Mask, PixelData
 
   for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
   {
-    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+    ts_BlobCount.y = (point.y + Y_Cnt);
 
     for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
     {
-      ts_BlobCount.x = ts_Point.x + X_Cnt;
+      ts_BlobCount.x = point.x + X_Cnt;
 
-      plugin_get_voxel_at_point (ps_Original, ts_BlobCount, &(f_tempImage[Y_Cnt + 5][X_Cnt + 5]));
+      plugin_get_voxel_at_point (original, ts_BlobCount, &(f_tempImage[Y_Cnt + 5][X_Cnt + 5]));
       f_AvarageValue += f_tempImage[Y_Cnt + 5][X_Cnt + 5];
     }
   }
@@ -957,25 +901,16 @@ v_PixelData_handleFLOAT32 (PixelData *ps_Original, PixelData *ps_Mask, PixelData
 
   for (Y_Cnt = -5; Y_Cnt < 5; Y_Cnt++)
   {
-    ts_BlobCount.y = (ts_Point.y + Y_Cnt);
+    ts_BlobCount.y = (point.y + Y_Cnt);
 
     for (X_Cnt = -5; X_Cnt < 5; X_Cnt++)
     {
-      ts_BlobCount.x = ts_Point.x + X_Cnt;
+      ts_BlobCount.x = point.x + X_Cnt;
 
       if (f_tempImage[Y_Cnt+5][X_Cnt+5] > f_AvarageValue)
       {
-        plugin_set_voxel_at_point (ps_Mask, ps_Selection, ts_BlobCount, ui32_DrawValue, te_Action);
+        plugin_set_voxel_at_point (mask, selection, ts_BlobCount, properties->value, properties->action);
       }
-      /* DO NOT ERASE AUTOMATICALLY
-         --------------------------
-      else
-      {
-        short int *pi16_SelectionPosition = ((short int *)*ppv_SelectionDataCounter + ts_BlobCount.y + ts_BlobCount.x);
-        short int *pi16_ImagePosition = ((short int *)*ppv_ImageDataCounter + ts_BlobCount.y + ts_BlobCount.x);
-        *pi16_ImagePosition = 0 & *pi16_SelectionPosition;
-      }
-      */
     }
   }
 }
