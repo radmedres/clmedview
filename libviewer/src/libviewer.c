@@ -546,8 +546,6 @@ viewer_redraw_child_series (Viewer *resources, List *pll_Series, int i32_Width,
 {
   pll_Series = list_nth (pll_Series, 1);
 
-  printf ("Number of children: %u\n", list_length (pll_Series));
-
   ClutterActor *child;
   PixelData *ps_Data;
 
@@ -2294,3 +2292,15 @@ viewer_replay_recording_over_time (Viewer *resources)
   viewer_redraw (resources, REDRAW_ALL);
 }
 
+Coordinate
+viewer_get_voxel_position (Viewer *resources)
+{ 
+  Coordinate position;
+  position.x = 0;
+  position.y = 0;
+
+  if (resources != NULL)
+    position = viewer_get_image_pixel_position (resources, resources->ts_CurrentMousePosition);
+
+  return position;
+}

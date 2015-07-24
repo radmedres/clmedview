@@ -657,6 +657,15 @@ void viewer_replay_recording_over_time (Viewer *resources);
 void viewer_set_window_level_for_serie (Viewer *resources, Serie *serie, int i32_windowWidth, int i32_windowLevel);
 
 /**
+ * Retrieves the last known voxel position inside the displayed image.
+ *
+ * @param resources  The viewer to get the pixel position of.
+ *
+ * @return A Coordinate containing the X and Y position.
+ */
+Coordinate viewer_get_voxel_position (Viewer *resources);
+
+/**
  * @}
  */
 
