@@ -136,7 +136,11 @@ gcov-clean:
 
 docs-preprocess-images:
 	@cd doc/images/; dia component-diagram.dia -e component-diagram.eps;   \
-	ps2pdf -dEPSCrop component-diagram.eps component-diagram.pdf
+	ps2pdf -dEPSCrop component-diagram.eps component-diagram.pdf;          \
+	dia grel-mechanism.dia -e grel-mechanism.eps;                          \
+	ps2pdf -dEPSCrop grel-mechanism.eps grel-mechanism.pdf;                \
+	dia grel-sequence-diagram.dia -e grel-sequence-diagram.eps;            \
+	ps2pdf -dEPSCrop grel-sequence-diagram.eps grel-sequence-diagram.pdf
 
 docs: docs-preprocess-images
 	@texi2pdf -q doc/clmedview.texi -o doc/clmedview.pdf
@@ -151,5 +155,6 @@ docs-clean:
 	-@$(RM) -rf doc/doxygen/;
 	-@mkdir -p doc/doxygen/html/;
 	-@mv background.png doc/doxygen/html/;
+	-@$(RM) -rf doc/*.aux doc/*.cp doc/*.fn doc/*.ky doc/*.log doc/*.pg doc/*.toc doc/*.tp doc/*.vr
 
 .PHONY: gcov-clean docs-doxygen docs-clean
