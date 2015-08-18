@@ -72,13 +72,11 @@ typedef struct
   void *active_serie; /*< The active serie element in the tree. */
 
 //  Tree *active_original; /*< The active original serie in the tree. */
-  /* Tree *active_mask; / *< The active mask serie in the tree. */
-
-  void *active_layer; /*< The active layer to apply some action on. */
+  void *active_mask_serie; /*< The active mask serie in the tree. */
 
   void *draw_tools; /*< A list of all loaded draw tools. */
   void *lookup_tables; /*< A list of lookup tables. */
-  /* List *active_draw_tool; / *< The active draw tool element in the list. */
+  void *active_draw_tool; /*< The active draw tool element in the list. */
 
   unsigned char key_bindings[14]; /*< An array with key bindings. */
 
@@ -103,45 +101,33 @@ typedef struct
 
 
 /**
- * Returns the active original serie in the memory tree.
- */
-//#define CONFIGURATION_ACTIVE_ORIGINAL(c)   c->active_original
-
-
-/**
  * Returns the active mask serie in the memory tree.
  */
-//#define CONFIGURATION_ACTIVE_MASK(c)       c->active_mask
+#define CONFIGURATION_ACTIVE_MASK_SERIE(c) c->active_mask_serie
 
 
 /**
  * Returns a list of loaded draw tools.
  */
-#define CONFIGURATION_DRAW_TOOLS(c)        c->draw_tools
+#define CONFIGURATION_PLUGINS(c)           c->draw_tools
 
 
 /**
  * Returns the active draw tool list item.
  */
-#define CONFIGURATION_ACTIVE_DRAW_TOOL(c)  c->active_draw_tool
+#define CONFIGURATION_ACTIVE_PLUGIN(c)     c->active_draw_tool
 
 
 /**
  * Returns the bound character for a key.
  */
-#define CONFIGURATION_KEY(c,k) c->key_bindings[k]
+#define CONFIGURATION_KEY(c,k)             c->key_bindings[k]
 
 
 /**
  * Returns a list of lookup tables.
  */
-#define CONFIGURATION_LOOKUP_TABLES(c) c->lookup_tables
-
-
-/**
- * Returns the active layer.
- */
-#define CONFIGURATION_ACTIVE_LAYER(c) c->active_layer
+#define CONFIGURATION_LOOKUP_TABLES(c)     c->lookup_tables
 
 
 /**
