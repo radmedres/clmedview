@@ -71,7 +71,6 @@
 #define ICON_RESET            "view-refresh-symbolic"
 #define ICON_SIDEBAR_HIDE     "go-previous-symbolic"
 #define ICON_SIDEBAR_SHOW     "go-next-symbolic"
-#define ICON_TERMINAL_SHOW    "system-run-symbolic"
 
 #ifdef WIN32
 #define PLUGIN_PATH           "plugin\\"
@@ -189,7 +188,6 @@ GtkWidget *chk_auto_close;
 GtkWidget *inp_brush_size;
 GtkWidget *inp_brush_value;
 GtkWidget *sidebar;
-GtkWidget *terminal;
 GtkWidget *layer_manager;
 GtkWidget *axial_embed;
 GtkWidget *sagital_embed;
@@ -208,8 +206,6 @@ GtkTreeStore *sidebar_TreeStore;
 // Application-local stuff
 List *pll_Viewers;
 List *pll_History;
-Serie *ts_ActiveMask;
-Plugin *ts_ActiveDrawTool;
 Viewer *ts_ActiveViewer;
 GuiViewportType te_DisplayType = VIEWPORT_TYPE_UNDEFINED;
 
@@ -559,14 +555,15 @@ gui_mainwindow_save_undo_step (UNUSED GtkWidget *widget, UNUSED void *data)
 {
   debug_functions ();
 
-  assert (ts_ActiveMask != NULL);
+  Serie *mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
+  if (mask == NULL) return FALSE;
 
   unsigned long ul64_SerieSize;
-  ul64_SerieSize = ts_ActiveMask->matrix.i16_x * ts_ActiveMask->matrix.i16_y *
-    ts_ActiveMask->matrix.i16_z * memory_serie_get_memory_space (ts_ActiveMask);
+  ul64_SerieSize = mask->matrix.i16_x * mask->matrix.i16_y *
+    mask->matrix.i16_z * memory_serie_get_memory_space (mask);
 
   pll_History = common_history_save_state (pll_History,
-					   ts_ActiveMask->data,
+					   mask->data,
 					   ul64_SerieSize);
 
   return FALSE;
@@ -731,14 +728,14 @@ gui_mainwindow_file_load (void* data)
 void
 gui_mainwindow_load_serie (Tree *pt_Serie)
 {
-  Serie *ps_Serie ;
+  Serie *ps_Serie;
   unsigned long long ull_groupID;
 
   if (pt_Serie == NULL) return;
   if (pt_Serie->type != TREE_TYPE_SERIE) return;
 
-  config->active_serie = pt_Serie->data;
-  config->active_study = tree_parent(pt_Serie);
+  CONFIGURATION_ACTIVE_SERIE (config) = pt_Serie->data;
+  CONFIGURATION_ACTIVE_STUDY (config) = tree_parent (pt_Serie);
 
   // initialize the configuration struct.
   if (config->memory_tree == NULL)
@@ -752,12 +749,13 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     assert (pll_MaskSerie != NULL);
     assert (pll_MaskSerie->data != NULL);
 
-    ts_ActiveMask = pll_MaskSerie->data;
+    CONFIGURATION_ACTIVE_MASK_SERIE (config) = pll_MaskSerie->data;
   }
 
-  ps_Serie = (Serie *)(pt_Serie->data);
+  ps_Serie = pt_Serie->data;
+  Serie *active_mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
 
-  if (ts_ActiveMask->group_id != ps_Serie->group_id)
+  if (active_mask->group_id != ps_Serie->group_id)
   {
     // search for masks in serie tree
     ps_Serie = pt_Serie->data;
@@ -771,7 +769,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
         ps_Serie = p_Iter->data;
         if (ps_Serie->group_id == ull_groupID)
         {
-          ts_ActiveMask = ps_Serie;
+          CONFIGURATION_ACTIVE_MASK_SERIE (config) = ps_Serie;
           break;
         }
       }
@@ -779,13 +777,11 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     }
   }
 
-  CONFIGURATION_ACTIVE_LAYER(config) = ts_ActiveMask;
-
   Tree *root_tree = tree_nth (CONFIGURATION_MEMORY_TREE (config), 1);
   gui_mainwindow_sidebar_populate (root_tree);
 
   ps_Serie = pt_Serie->data;
-  if (ps_Serie == NULL || ts_ActiveMask == NULL) return;
+  if (ps_Serie == NULL || active_mask == NULL) return;
 
   gtk_range_set_range (GTK_RANGE (timeline), 1, ps_Serie->num_time_series);
 
@@ -902,11 +898,13 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   if (pll_Viewers == NULL)
   {
     Viewer *viewer = NULL;
+    Serie *active_mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
+    Plugin *active_plugin = CONFIGURATION_ACTIVE_PLUGIN (config);
 
     /*--------------------------------------------------------------------------.
      | AXIAL VIEWER WIDGET                                                      |
      '--------------------------------------------------------------------------*/
-    viewer = viewer_new (ps_Serie, ts_ActiveMask, NULL, ts_Normal_Axial, ts_Pivot, ts_Up_Axial);
+    viewer = viewer_new (ps_Serie, active_mask, NULL, ts_Normal_Axial, ts_Pivot, ts_Up_Axial);
     if (viewer != NULL)
     {
       viewer_set_orientation (viewer, ORIENTATION_AXIAL);
@@ -919,8 +917,8 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
 
       viewer_set_image_orientation_direction(viewer, pc_Axial_Top, pc_Axial_Bottom, pc_Axial_Left, pc_Axial_Right);
 
-      if (ts_ActiveDrawTool != NULL)
-        viewer_set_active_painter (viewer, ts_ActiveDrawTool);
+      if (active_plugin != NULL)
+        viewer_set_active_painter (viewer, active_plugin);
 
       axial_embed = VIEWER_WIDGET (viewer);
     }
@@ -928,7 +926,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     /*--------------------------------------------------------------------------.
      | SAGITAL VIEWER WIDGET                                                    |
      '--------------------------------------------------------------------------*/
-    viewer = viewer_new (ps_Serie, ts_ActiveMask, NULL, ts_Normal_Sagital, ts_Pivot, ts_Up_Sagital);
+    viewer = viewer_new (ps_Serie, active_mask, NULL, ts_Normal_Sagital, ts_Pivot, ts_Up_Sagital);
     if (viewer != NULL)
     {
       viewer_set_orientation (viewer, ORIENTATION_SAGITAL);
@@ -941,8 +939,8 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
 
       viewer_set_image_orientation_direction(viewer, pc_Sagital_Top, pc_Sagital_Bottom, pc_Sagital_Left, pc_Sagital_Right);
 
-      if (ts_ActiveDrawTool != NULL)
-        viewer_set_active_painter (viewer, ts_ActiveDrawTool);
+      if (active_plugin != NULL)
+        viewer_set_active_painter (viewer, active_plugin);
 
       sagital_embed = VIEWER_WIDGET (viewer);
     }
@@ -950,7 +948,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     /*--------------------------------------------------------------------------.
      | CORONAL VIEWER WIDGET                                                    |
      '--------------------------------------------------------------------------*/
-    viewer = viewer_new (ps_Serie, ts_ActiveMask, NULL, ts_Normal_Coronal, ts_Pivot, ts_Up_Coronal);
+    viewer = viewer_new (ps_Serie, active_mask, NULL, ts_Normal_Coronal, ts_Pivot, ts_Up_Coronal);
     if (viewer != NULL)
     {
       viewer_set_orientation (viewer, ORIENTATION_CORONAL);
@@ -963,8 +961,8 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
 
       viewer_set_image_orientation_direction(viewer, pc_Coronal_Top, pc_Coronal_Bottom, pc_Coronal_Left, pc_Coronal_Right);
 
-      if (ts_ActiveDrawTool != NULL)
-        viewer_set_active_painter (viewer, ts_ActiveDrawTool);
+      if (active_plugin != NULL)
+        viewer_set_active_painter (viewer, active_plugin);
 
       coronal_embed = VIEWER_WIDGET (viewer);
     }
@@ -1008,7 +1006,6 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
       break;
     default: break;
     }
-
 
     gui_mainwindow_save_undo_step (hbox_viewers, NULL);
 
@@ -1065,7 +1062,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
           break;
       }
 
-      viewer_initialize (list_viewer, ps_Serie, ts_ActiveMask, NULL, ts_Normal, ts_Pivot, ts_Up);
+      viewer_initialize (list_viewer, ps_Serie, active_mask, NULL, ts_Normal, ts_Pivot, ts_Up);
 
       viewer_refresh_data (list_viewer);
       viewer_redraw (list_viewer, REDRAW_ALL);
@@ -1294,7 +1291,7 @@ gui_mainwindow_update_viewer_wwwl (Viewer *viewer, void *data)
   ts_ActiveViewer = viewer;
   if (data == NULL) return;
 
-  Serie *active_serie = CONFIGURATION_ACTIVE_LAYER (config);
+  Serie *active_serie = CONFIGURATION_ACTIVE_MASK_SERIE (config);
   if (active_serie == NULL) return;
 
   WWWL wwwl = *(WWWL *)data;
@@ -1496,19 +1493,21 @@ gui_mainwindow_on_key_press (UNUSED GtkWidget *widget, GdkEventKey *event,
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_UNDO)
 	   && (event->state & GDK_CONTROL_MASK))
   {
-        assert (ts_ActiveMask != NULL);
-        pll_History = common_history_load_state (pll_History,
-						 HISTORY_PREVIOUS,
-						 &ts_ActiveMask->data);
+    Serie *active_mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
+    if (active_mask != NULL)
+      pll_History = common_history_load_state (pll_History,
+					       HISTORY_PREVIOUS,
+					       &active_mask->data);
   }
 
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_REDO)
 	   && (event->state & GDK_CONTROL_MASK))
   {
-    assert (ts_ActiveMask != NULL);
-    pll_History = common_history_load_state (pll_History,
-					     HISTORY_NEXT,
-					     &ts_ActiveMask->data);
+    Serie *active_mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
+    if (active_mask != NULL)
+      pll_History = common_history_load_state (pll_History,
+					       HISTORY_NEXT,
+					       &active_mask->data);
   }
 
   /*--------------------------------------------------------------------------.
@@ -1541,6 +1540,7 @@ gui_mainwindow_on_key_release (UNUSED GtkWidget *widget, GdkEventKey *event,
   return FALSE;
 }
 
+
 gboolean
 gui_mainwindow_on_timeline_change (GtkWidget *widget, UNUSED void *data)
 {
@@ -1570,24 +1570,25 @@ gui_mainwindow_select_tool (GtkWidget *widget, void *data)
 {
   debug_functions ();
 
-  ts_ActiveDrawTool = (Plugin *)data;
+  Plugin *active_plugin = CONFIGURATION_ACTIVE_PLUGIN (config);
+  active_plugin = (Plugin *)data;
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
   {
-    viewer_set_active_painter (viewers->data, ts_ActiveDrawTool);
+    viewer_set_active_painter (viewers->data, active_plugin);
     viewers = viewers->next;
   }
 
-  ts_ActiveDrawTool->set_property (ts_ActiveDrawTool->meta, "reset", NULL);
-  
-  unsigned int *size = ts_ActiveDrawTool->get_property (ts_ActiveDrawTool->meta, "size");
+  active_plugin->set_property (active_plugin->meta, "reset", NULL);
+
+  unsigned int *size = active_plugin->get_property (active_plugin->meta, "size");
   if (size != NULL)
   {
     gtk_spin_button_set_value (GTK_SPIN_BUTTON (inp_brush_size), *size);
   }
 
-  unsigned int *value = ts_ActiveDrawTool->get_property (ts_ActiveDrawTool->meta, "value");
+  unsigned int *value = active_plugin->get_property (active_plugin->meta, "value");
   if (value != NULL)
   {
     gtk_spin_button_set_value (GTK_SPIN_BUTTON (inp_brush_value), *value);
@@ -1597,7 +1598,7 @@ gui_mainwindow_select_tool (GtkWidget *widget, void *data)
   gtk_widget_set_sensitive (inp_brush_value, (value != NULL));
 
   /*--------------------------------------------------------------------------.
-   | HANDLE RELIEF SETTINGS                                                   |
+   | HANDLE "ACTIVE" STATE                                                    |
    '--------------------------------------------------------------------------*/
 
   if (btn_ActiveDrawTool != NULL)
@@ -1615,13 +1616,13 @@ gui_mainwindow_set_brush_size (UNUSED GtkWidget* widget, UNUSED void* data)
 {
   debug_functions ();
 
-  if (ts_ActiveDrawTool == NULL) return;
+  Plugin *active_plugin = CONFIGURATION_ACTIVE_PLUGIN (config);
+  if (active_plugin == NULL) return;
 
   int size = gtk_spin_button_get_value (GTK_SPIN_BUTTON (inp_brush_size));
-  Plugin *plugin = ts_ActiveDrawTool;
-  if (!plugin->set_property (plugin->meta, "size", &size))
+  if (!active_plugin->set_property (active_plugin->meta, "size", &size))
   {
-    unsigned int *plugin_size = plugin->get_property (plugin->meta, "size");
+    unsigned int *plugin_size = active_plugin->get_property (active_plugin->meta, "size");
     gtk_spin_button_set_value (GTK_SPIN_BUTTON (inp_brush_size), *plugin_size);
   }
 }
@@ -1632,11 +1633,12 @@ gui_mainwindow_set_brush_value (UNUSED GtkWidget* widget, UNUSED void* data)
 {
   debug_functions ();
 
-  if (ts_ActiveDrawTool == NULL) return;
+  Plugin *active_plugin = CONFIGURATION_ACTIVE_PLUGIN (config);
+  if (active_plugin == NULL) return;
 
   int value = gtk_spin_button_get_value (GTK_SPIN_BUTTON (inp_brush_value));
 
-  List *plugins = CONFIGURATION_DRAW_TOOLS (config);
+  List *plugins = CONFIGURATION_PLUGINS (config);
   while (plugins != NULL)
   {
     Plugin *plugin = plugins->data;
@@ -1674,7 +1676,7 @@ gui_mainwindow_destroy ()
   list_free_all (CONFIGURATION_LOOKUP_TABLES (config),
                  pixeldata_lookup_table_destroy_item);
 
-  list_free_all (CONFIGURATION_DRAW_TOOLS (config), pixeldata_plugin_destroy);
+  list_free_all (CONFIGURATION_PLUGINS (config), pixeldata_plugin_destroy);
   list_free_all (pll_Viewers, viewer_destroy);
   list_free_all (pll_History, common_history_destroy_element);
 
@@ -1772,8 +1774,8 @@ gui_mainwindow_toolbar_new ()
   /*--------------------------------------------------------------------------.
    | ADD PLUGINS TO MENU BAR                                                  |
    '--------------------------------------------------------------------------*/
-  CONFIGURATION_DRAW_TOOLS (config) = pll_PluginList;
-  pll_PluginList = CONFIGURATION_DRAW_TOOLS (config);
+  CONFIGURATION_PLUGINS (config) = pll_PluginList;
+  pll_PluginList = CONFIGURATION_PLUGINS (config);
   while (pll_PluginList != NULL)
   {
     Plugin *plugin = pll_PluginList->data;
@@ -1863,9 +1865,9 @@ gui_mainwindow_check_extention (char *pc_String)
 gboolean gui_mainwindow_mask_add (unsigned long long ull_serieID )
 {
   debug_functions ();
-  Tree *pt_maskSerie=NULL;
-  Tree *pt_origSerie=NULL;
-  Serie *ps_maskSerie=NULL;
+  Tree *pt_maskSerie = NULL;
+  Tree *pt_origSerie = NULL;
+  Serie *ps_maskSerie = NULL;
 
   pt_origSerie = memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), ull_serieID);
   pt_maskSerie = memory_tree_add_mask_for_serie (pt_origSerie);
@@ -1879,10 +1881,8 @@ gboolean gui_mainwindow_mask_add (unsigned long long ull_serieID )
   assert (pt_maskSerie != NULL);
   assert (pt_maskSerie->data != NULL);
 
-  ps_maskSerie=(Serie*)(pt_maskSerie->data);
-
-  CONFIGURATION_ACTIVE_LAYER(config)=ps_maskSerie;
-  ts_ActiveMask = ps_maskSerie;
+  ps_maskSerie = pt_maskSerie->data;
+  CONFIGURATION_ACTIVE_MASK_SERIE (config) = ps_maskSerie;
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
@@ -1970,8 +1970,7 @@ gboolean gui_mainwindow_mask_remove (unsigned long long ull_serieID )
     return gui_mainwindow_mask_add(ps_origSerie->id);
   }
 
-  CONFIGURATION_ACTIVE_LAYER(config)=pt_iter->data;
-  ts_ActiveMask = pt_iter->data;
+  CONFIGURATION_ACTIVE_MASK_SERIE (config) = pt_iter->data;
   return TRUE;
 }
 
@@ -1998,8 +1997,7 @@ gboolean gui_mainwindow_mask_set_active (unsigned long long ull_serieID )
     return FALSE;
   }
 
-  CONFIGURATION_ACTIVE_LAYER(config)=ps_maskSerie;
-  ts_ActiveMask = ps_maskSerie;
+  CONFIGURATION_ACTIVE_MASK_SERIE (config) = ps_maskSerie;
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
@@ -2316,7 +2314,7 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
             {
 
               p_icon = gtk_icon_theme_load_icon (p_icon_theme, ICON_REMOVE, 16, 0,NULL);
-              if (ps_Mask ==  CONFIGURATION_ACTIVE_LAYER (config))
+              if (ps_Mask ==  CONFIGURATION_ACTIVE_MASK_SERIE (config))
               {
                 p_radioBtn = gtk_icon_theme_load_icon (p_icon_theme, ICON_RADIO_ENABLED, 16, 0,NULL);
               }
@@ -2331,7 +2329,7 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
               gtk_tree_store_append (sidebar_TreeStore, &SubMaskOverlayIterator, &MaskOverlayIterator);
 
 	      /* Don't show a "remove" button for the active layer. */
-	      if (ps_Mask == CONFIGURATION_ACTIVE_LAYER (config)) p_icon = NULL;
+	      if (ps_Mask == CONFIGURATION_ACTIVE_MASK_SERIE (config)) p_icon = NULL;
 
 	      gtk_tree_store_set (sidebar_TreeStore, &SubMaskOverlayIterator,
                                   SIDEBAR_ID, 13000+ps_Mask->id,
@@ -2396,7 +2394,7 @@ gui_mainwindow_sidebar_clicked (GtkTreeView       *ps_tree,
 
       if (pt_SerieTree != NULL)
       {
-        CONFIGURATION_ACTIVE_LAYER(config) = (Serie*)(pt_SerieTree->data);
+        CONFIGURATION_ACTIVE_MASK_SERIE (config) = pt_SerieTree->data;
       }
 
     }
@@ -2630,7 +2628,7 @@ gui_mainwindow_set_lookup_table (const char *lut_name)
 {
   debug_functions ();
 
-  Serie *active_serie = CONFIGURATION_ACTIVE_LAYER (config);
+  Serie *active_serie = CONFIGURATION_ACTIVE_MASK_SERIE (config);
   if (active_serie == NULL) return;
 
   List *viewers = list_nth (pll_Viewers, 1);
@@ -2665,7 +2663,7 @@ gui_mainwindow_properties_on_opacity_change (GtkWidget *widget, UNUSED void *dat
 
   unsigned char value = gtk_range_get_value (GTK_RANGE (widget));
 
-  Serie *active_serie = CONFIGURATION_ACTIVE_LAYER (config);
+  Serie *active_serie = CONFIGURATION_ACTIVE_MASK_SERIE (config);
   if (active_serie == NULL) return FALSE;
 
   List *viewers = list_nth (pll_Viewers, 1);
@@ -2760,7 +2758,7 @@ gui_mainwindow_properties_manager_refresh (unsigned long long ull_serieID)
 
   ps_serie = (Serie*)(pt_serie->data);
 
-  CONFIGURATION_ACTIVE_LAYER (config)=ps_serie;
+  CONFIGURATION_ACTIVE_MASK_SERIE (config) = ps_serie;
 
   opacity = viewer_get_opacity_for_serie (pll_Viewers->data, ps_serie);
   gtk_range_set_value (GTK_RANGE (properties_opacity_scale), opacity);
