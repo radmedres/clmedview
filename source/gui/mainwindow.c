@@ -1570,8 +1570,8 @@ gui_mainwindow_select_tool (GtkWidget *widget, void *data)
 {
   debug_functions ();
 
-  Plugin *active_plugin = CONFIGURATION_ACTIVE_PLUGIN (config);
-  active_plugin = (Plugin *)data;
+  Plugin *active_plugin = (Plugin *)data;
+  CONFIGURATION_ACTIVE_PLUGIN (config) = active_plugin;
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
