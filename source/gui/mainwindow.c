@@ -139,7 +139,6 @@ gboolean gui_mainwindow_select_tool (GtkWidget *widget, void *data);
 gboolean gui_mainwindow_sidebar_toggle (GtkWidget *widget, void *data);
 gboolean gui_mainwindow_on_timeline_change (GtkWidget *widget, void *data);
 
-/*
 gboolean gui_mainwindow_mask_load (unsigned long long ull_serieID, void *data);
 gboolean gui_mainwindow_mask_add (unsigned long long ull_serieID);
 gboolean gui_mainwindow_mask_remove (unsigned long long ull_serieID);
@@ -147,7 +146,7 @@ gboolean gui_mainwindow_mask_set_active (unsigned long long ull_serieID);
 
 gboolean gui_mainwindow_overlay_load (unsigned long long ull_serieID, void *data);
 gboolean gui_mainwindow_overlay_remove (unsigned long long ull_serieID);
-*/
+
 
 void gui_mainwindow_update_viewer_wwwl (Viewer *viewer, void *data);
 
@@ -206,7 +205,11 @@ GtkTreeStore *sidebar_TreeStore;
 // Application-local stuff
 List *pll_Viewers;
 List *pll_History;
-Viewer *ts_ActiveViewer;
+
+Viewer *ps_ActiveViewer;
+Plugin *ps_active_draw_tool;    /*< The active draw tool element in the list. */
+
+
 GuiViewportType te_DisplayType = VIEWPORT_TYPE_UNDEFINED;
 
 Configuration *config;
@@ -224,6 +227,9 @@ gui_mainwindow_redisplay_viewers (GuiActionType te_Action, ...)
 
   int width = 0;
   int height = 0;
+  List *pll_iter = NULL;
+  Viewer *ps_viewer = NULL;
+
   if (te_Action == GUI_DO_RESIZE)
   {
     va_list arguments;
@@ -239,25 +245,25 @@ gui_mainwindow_redisplay_viewers (GuiActionType te_Action, ...)
     va_end (arguments);
   }
 
-  List *temp = list_nth (pll_Viewers, 1);
-  while (temp != NULL)
+  pll_iter = list_nth (pll_Viewers, 1);
+  while (pll_iter != NULL)
   {
-    Viewer *viewer = temp->data;
-    if (te_DisplayType == VIEWPORT_TYPE_THREEWAY
-        || (short)viewer_get_orientation (viewer) == (short)te_DisplayType)
+    ps_viewer = pll_iter->data;
+    if ((te_DisplayType == VIEWPORT_TYPE_THREEWAY) ||
+        ((short)(viewer_get_orientation (ps_viewer)) == (short)(te_DisplayType)))
     {
       switch (te_Action)
       {
-      case GUI_DO_RESIZE:
-        viewer_resize (viewer, width, height);
-        break;
-      case GUI_DO_REDRAW:
-        viewer_redraw (viewer, REDRAW_ACTIVE);
-        break;
-      default: break;
+        case GUI_DO_RESIZE:
+          viewer_resize (ps_viewer, width, height);
+          break;
+        case GUI_DO_REDRAW:
+          viewer_redraw (ps_viewer, REDRAW_ACTIVE);
+          break;
+        default: break;
       }
     }
-    temp = temp->next;
+    pll_iter = pll_iter->next;
   }
 }
 
@@ -495,7 +501,7 @@ gui_mainwindow_new (char *file)
   gtk_box_pack_start (GTK_BOX (vbox_mainarea), hbox_mainmenu, 0, 0, 0);
   gtk_box_pack_start (GTK_BOX (vbox_mainarea), hbox_viewers, 1, 1, 0);
   gtk_box_pack_start (GTK_BOX (vbox_mainarea), timeline, 0, 0, 0);
-  
+
   gtk_widget_set_no_show_all (timeline, TRUE);
   gtk_widget_hide (timeline);
 
@@ -555,16 +561,20 @@ gui_mainwindow_save_undo_step (UNUSED GtkWidget *widget, UNUSED void *data)
 {
   debug_functions ();
 
-  Serie *mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
-  if (mask == NULL) return FALSE;
-
+  Tree *pt_mask;
+  Serie *ps_mask;
   unsigned long ul64_SerieSize;
-  ul64_SerieSize = mask->matrix.i16_x * mask->matrix.i16_y *
-    mask->matrix.i16_z * memory_serie_get_memory_space (mask);
 
-  pll_History = common_history_save_state (pll_History,
-					   mask->data,
-					   ul64_SerieSize);
+  pt_mask = CONFIGURATION_ACTIVE_MASK_TREE (config);
+  if (pt_mask == NULL) return FALSE;
+
+  ps_mask = (Serie*)(pt_mask->data);
+  if (ps_mask == NULL) return FALSE;
+
+  ul64_SerieSize = ps_mask->matrix.i16_x * ps_mask->matrix.i16_y *
+    ps_mask->matrix.i16_z * memory_serie_get_memory_space (ps_mask);
+
+  pll_History = common_history_save_state (pll_History, ps_mask->data, ul64_SerieSize);
 
   return FALSE;
 }
@@ -678,9 +688,10 @@ void
 gui_mainwindow_file_load (void* data)
 {
   debug_functions ();
+  Tree *pt_study=NULL;
+  Tree *pt_serie=NULL;
+  Serie *ps_serie = NULL;
 
-  Tree *pt_Serie=NULL;
-  Serie *ps_Serie = NULL;
   char* filename = NULL;
 
   // The filename can be passed by 'data'. Otherwise we need to show a
@@ -697,14 +708,15 @@ gui_mainwindow_file_load (void* data)
 
     free (window_title);
 
-    pt_Serie=pt_memory_io_load_file((Tree **)&config->active_study,filename);
+    pt_study=CONFIGURATION_ACTIVE_STUDY_TREE(config);
+    pt_serie=pt_memory_io_load_file(&pt_study,filename);
 
-    if (pt_Serie != NULL)
+    if (pt_serie != NULL)
     {
-      ps_Serie = pt_Serie->data;
-      ps_Serie->e_SerieType=SERIE_ORIGINAL;
+      ps_serie = pt_serie->data;
+      ps_serie->e_SerieType=SERIE_ORIGINAL;
 
-      gui_mainwindow_load_serie(pt_Serie);
+      gui_mainwindow_load_serie(pt_serie);
 
       gtk_widget_set_sensitive (btn_file_save, TRUE);
       gtk_widget_set_sensitive (btn_reset_viewport, TRUE);
@@ -717,7 +729,7 @@ gui_mainwindow_file_load (void* data)
       if (histogram == NULL)
 	histogram = histogram_new ();
 
-      histogram_set_serie (histogram, ps_Serie);
+      histogram_set_serie (histogram, ps_serie);
       gtk_widget_queue_draw (histogram_drawarea);
       */
     }
@@ -726,68 +738,68 @@ gui_mainwindow_file_load (void* data)
 
 
 void
-gui_mainwindow_load_serie (Tree *pt_Serie)
+gui_mainwindow_load_serie (Tree *pt_serie)
 {
-  Serie *ps_Serie;
-  unsigned long long ull_groupID;
+  Tree *pt_mask;
 
-  if (pt_Serie == NULL) return;
-  if (pt_Serie->type != TREE_TYPE_SERIE) return;
+  Serie *ps_serie;
+  Serie *ps_mask;
 
-  CONFIGURATION_ACTIVE_SERIE (config) = pt_Serie->data;
-  CONFIGURATION_ACTIVE_STUDY (config) = tree_parent (pt_Serie);
+  if (pt_serie == NULL) return;
+  if (pt_serie->data == NULL) return;
+  if (pt_serie->type != TREE_TYPE_SERIE) return;
+
+  CONFIGURATION_ACTIVE_SERIE_TREE(config) = pt_serie;
+  CONFIGURATION_ACTIVE_STUDY_TREE (config) = tree_parent (pt_serie);
 
   // initialize the configuration struct.
-  if (config->memory_tree == NULL)
+  if (CONFIGURATION_MEMORY_TREE (config) == NULL)
   {
-    config->memory_tree = tree_parent (config->active_study);
+    CONFIGURATION_MEMORY_TREE(config) = tree_parent (CONFIGURATION_ACTIVE_STUDY_TREE (config));
   }
+  ps_serie = pt_serie->data;
 
-  if (!memory_tree_serie_has_mask (pt_Serie))
-  {
-    Tree *pll_MaskSerie = memory_tree_add_mask_for_serie (pt_Serie);
-    assert (pll_MaskSerie != NULL);
-    assert (pll_MaskSerie->data != NULL);
-
-    CONFIGURATION_ACTIVE_MASK_SERIE (config) = pll_MaskSerie->data;
-  }
-
-  ps_Serie = pt_Serie->data;
-  Serie *active_mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
-
-  if (active_mask->group_id != ps_Serie->group_id)
+  if (memory_tree_serie_has_mask (pt_serie))
   {
     // search for masks in serie tree
-    ps_Serie = pt_Serie->data;
-    ull_groupID = ps_Serie->group_id;
+    // and grep the first mask with the same groupID
 
-    Tree *p_Iter = tree_nth(pt_Serie,1);
-    while (p_Iter != NULL)
+    Tree *p_iter = tree_nth(pt_serie,1);
+    while (p_iter != NULL)
     {
-      if (p_Iter->type == TREE_TYPE_SERIE_MASK)
+      if (p_iter->type == TREE_TYPE_SERIE_MASK)
       {
-        ps_Serie = p_Iter->data;
-        if (ps_Serie->group_id == ull_groupID)
+        ps_mask = p_iter->data;
+        if (ps_mask->group_id == ps_serie->group_id)
         {
-          CONFIGURATION_ACTIVE_MASK_SERIE (config) = ps_Serie;
+          pt_mask = p_iter;
           break;
         }
       }
-      p_Iter = tree_next (p_Iter);
+      p_iter = tree_next (p_iter);
     }
   }
+  else
+  {
+    pt_mask = memory_tree_add_mask_for_serie (pt_serie);
+  }
+
+
+  assert (pt_mask != NULL);
+  assert (pt_mask->data != NULL);
+  CONFIGURATION_ACTIVE_MASK_TREE (config) = pt_mask;
+
+  ps_mask = pt_mask->data;
+  if (ps_mask == NULL) return;
 
   Tree *root_tree = tree_nth (CONFIGURATION_MEMORY_TREE (config), 1);
   gui_mainwindow_sidebar_populate (root_tree);
 
-  ps_Serie = pt_Serie->data;
-  if (ps_Serie == NULL || active_mask == NULL) return;
-
-  gtk_range_set_range (GTK_RANGE (timeline), 1, ps_Serie->num_time_series);
+  gtk_range_set_range (GTK_RANGE (timeline), 1, ps_serie->num_time_series);
 
   MemoryImageOrientation e_Orientation;
-  v_memory_serie_MatrixToOrientation(ps_Serie->pt_RotationMatrix, &ps_Serie->e_ImageDirection_I, &ps_Serie->e_ImageDirection_J, &ps_Serie->e_ImageDirection_K);
-  e_Orientation = e_memory_serie_ConvertImageDirectionToOrientation(ps_Serie->e_ImageDirection_I, ps_Serie->e_ImageDirection_J, ps_Serie->e_ImageDirection_K);
+  v_memory_serie_MatrixToOrientation(ps_serie->pt_RotationMatrix, &ps_serie->e_ImageDirection_I, &ps_serie->e_ImageDirection_J, &ps_serie->e_ImageDirection_K);
+  e_Orientation = e_memory_serie_ConvertImageDirectionToOrientation(ps_serie->e_ImageDirection_I, ps_serie->e_ImageDirection_J, ps_serie->e_ImageDirection_K);
 
   char *pc_Axial_Top   = NULL, *pc_Axial_Bottom   = NULL, *pc_Axial_Left   = NULL, *pc_Axial_Right   = NULL;
   char *pc_Sagital_Top = NULL, *pc_Sagital_Bottom = NULL, *pc_Sagital_Left = NULL, *pc_Sagital_Right = NULL;
@@ -802,7 +814,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   Vector3D ts_Up_Coronal;
 
   Vector3D ts_Pivot;
-  ts_Pivot = memory_serie_GetPivotpoint(ps_Serie);
+  ts_Pivot = memory_serie_GetPivotpoint(ps_serie);
 
 
   if (e_Orientation != ORIENTATION_UNKNOWN)
@@ -811,20 +823,20 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     {
       case ORIENTATION_UNKNOWN :
       case ORIENTATION_AXIAL :
-        pc_Axial_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
-        pc_Axial_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
-        pc_Axial_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
-        pc_Axial_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+        pc_Axial_Top    = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Axial_Bottom = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Axial_Left   = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Axial_Right  = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_LAST);
 
-        pc_Sagital_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
-        pc_Sagital_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
-        pc_Sagital_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
-        pc_Sagital_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Sagital_Top    = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Sagital_Bottom = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Sagital_Left   = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Sagital_Right  = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
 
-        pc_Coronal_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
-        pc_Coronal_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
-        pc_Coronal_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
-        pc_Coronal_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+        pc_Coronal_Top    = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Coronal_Bottom = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Coronal_Left   = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Coronal_Right  = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_LAST);
 
         te_DisplayType = VIEWPORT_TYPE_AXIAL;
         ts_Normal_Axial.x   = 0;  ts_Normal_Axial.y   = 0;  ts_Normal_Axial.z   = -1;
@@ -838,20 +850,20 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
         break;
 
       case ORIENTATION_SAGITAL :
-        pc_Sagital_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
-        pc_Sagital_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
-        pc_Sagital_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
-        pc_Sagital_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+        pc_Sagital_Top    = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Sagital_Bottom = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Sagital_Left   = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Sagital_Right  = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_LAST);
 
-        pc_Axial_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
-        pc_Axial_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
-        pc_Axial_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
-        pc_Axial_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Axial_Top    = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Axial_Bottom = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+        pc_Axial_Left   = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Axial_Right  = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_LAST);
 
-        pc_Coronal_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
-        pc_Coronal_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
-        pc_Coronal_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
-        pc_Coronal_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Coronal_Top    = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Coronal_Bottom = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Coronal_Left   = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Coronal_Right  = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_LAST);
 
         te_DisplayType = VIEWPORT_TYPE_SAGITAL;
         ts_Normal_Axial.x   = 0;  ts_Normal_Axial.y   = -1; ts_Normal_Axial.z   =  0;
@@ -865,21 +877,21 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
         break;
 
       case ORIENTATION_CORONAL :
-        pc_Coronal_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
-        pc_Coronal_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
-        pc_Coronal_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
-        pc_Coronal_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Coronal_Top    = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Coronal_Bottom = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Coronal_Left   = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+        pc_Coronal_Right  = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
 
 
-        pc_Sagital_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_LAST);
-        pc_Sagital_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
-        pc_Sagital_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
-        pc_Sagital_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Sagital_Top    = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_LAST);
+        pc_Sagital_Bottom = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_J,DIRECTION_PART_FIRST);
+        pc_Sagital_Left   = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Sagital_Right  = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
 
-        pc_Axial_Top    = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_LAST);
-        pc_Axial_Bottom = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
-        pc_Axial_Left   = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
-        pc_Axial_Right  = pc_memory_serie_direction_string(ps_Serie->e_ImageDirection_I,DIRECTION_PART_LAST);
+        pc_Axial_Top    = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_LAST);
+        pc_Axial_Bottom = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_K,DIRECTION_PART_FIRST);
+        pc_Axial_Left   = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_FIRST);
+        pc_Axial_Right  = pc_memory_serie_direction_string(ps_serie->e_ImageDirection_I,DIRECTION_PART_LAST);
 
         te_DisplayType = VIEWPORT_TYPE_CORONAL;
         ts_Normal_Axial.x   = 0;  ts_Normal_Axial.y   =  1; ts_Normal_Axial.z   =  0;
@@ -898,13 +910,14 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
   if (pll_Viewers == NULL)
   {
     Viewer *viewer = NULL;
-    Serie *active_mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
-    Plugin *active_plugin = CONFIGURATION_ACTIVE_PLUGIN (config);
+
+
+    Plugin *active_plugin = ps_active_draw_tool;
 
     /*--------------------------------------------------------------------------.
      | AXIAL VIEWER WIDGET                                                      |
      '--------------------------------------------------------------------------*/
-    viewer = viewer_new (ps_Serie, active_mask, NULL, ts_Normal_Axial, ts_Pivot, ts_Up_Axial);
+    viewer = viewer_new (ps_serie, ps_mask, NULL, ts_Normal_Axial, ts_Pivot, ts_Up_Axial);
     if (viewer != NULL)
     {
       viewer_set_orientation (viewer, ORIENTATION_AXIAL);
@@ -926,7 +939,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     /*--------------------------------------------------------------------------.
      | SAGITAL VIEWER WIDGET                                                    |
      '--------------------------------------------------------------------------*/
-    viewer = viewer_new (ps_Serie, active_mask, NULL, ts_Normal_Sagital, ts_Pivot, ts_Up_Sagital);
+    viewer = viewer_new (ps_serie, ps_mask, NULL, ts_Normal_Sagital, ts_Pivot, ts_Up_Sagital);
     if (viewer != NULL)
     {
       viewer_set_orientation (viewer, ORIENTATION_SAGITAL);
@@ -948,7 +961,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     /*--------------------------------------------------------------------------.
      | CORONAL VIEWER WIDGET                                                    |
      '--------------------------------------------------------------------------*/
-    viewer = viewer_new (ps_Serie, active_mask, NULL, ts_Normal_Coronal, ts_Pivot, ts_Up_Coronal);
+    viewer = viewer_new (ps_serie, ps_mask, NULL, ts_Normal_Coronal, ts_Pivot, ts_Up_Coronal);
     if (viewer != NULL)
     {
       viewer_set_orientation (viewer, ORIENTATION_CORONAL);
@@ -1009,11 +1022,11 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
 
     gui_mainwindow_save_undo_step (hbox_viewers, NULL);
 
-    // Display a slider for time ps_Series if applicable.
-    if (ps_Serie->num_time_series > 1)
+    // Display a slider for time ps_series if applicable.
+    if (ps_serie->num_time_series > 1)
     {
       gtk_scale_clear_marks (GTK_SCALE (timeline));
-      gtk_range_set_range (GTK_RANGE (timeline), 1, ps_Serie->num_time_series);
+      gtk_range_set_range (GTK_RANGE (timeline), 1, ps_serie->num_time_series);
       gtk_range_set_value (GTK_RANGE (timeline), 1);
       gtk_widget_show (timeline);
     }
@@ -1026,7 +1039,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
     List *viewers = list_nth (pll_Viewers, 1);
     while (viewers != NULL)
     {
-      viewer_set_active_layer_serie (viewers->data, ps_Serie);
+      viewer_set_active_layer_serie (viewers->data, ps_serie);
       viewers = list_next (viewers);
     }
   }
@@ -1062,7 +1075,7 @@ gui_mainwindow_load_serie (Tree *pt_Serie)
           break;
       }
 
-      viewer_initialize (list_viewer, ps_Serie, active_mask, NULL, ts_Normal, ts_Pivot, ts_Up);
+      viewer_initialize (list_viewer, ps_serie, ps_mask, NULL, ts_Normal, ts_Pivot, ts_Up);
 
       viewer_refresh_data (list_viewer);
       viewer_redraw (list_viewer, REDRAW_ALL);
@@ -1079,7 +1092,7 @@ gui_mainwindow_reset_viewport ()
   gtk_widget_set_sensitive (btn_reset_viewport, FALSE);
 
   // Reset the viewport.
-  gui_mainwindow_load_serie (CONFIGURATION_ACTIVE_SERIE(config));
+  gui_mainwindow_load_serie (CONFIGURATION_ACTIVE_SERIE_TREE(config));
 
   // Release the "lock" for resetting the viewport.
   gtk_widget_set_sensitive (btn_reset_viewport, TRUE);
@@ -1129,23 +1142,23 @@ gui_mainwindow_file_export ()
 {
   debug_functions ();
 
-  //char* filename = gui_mainwindow_file_dialog (window, GTK_FILE_CHOOSER_ACTION_SAVE);
-  //if (filename == NULL) return FALSE;
+  Tree *p_iter;
+  Serie *ps_serie;
 
-  Tree *pt_Series = tree_child (CONFIGURATION_ACTIVE_STUDY (config));
-  while (pt_Series != NULL)
+  p_iter = tree_child (CONFIGURATION_ACTIVE_STUDY_TREE(config));
+  while (p_iter != NULL)
   {
-    Serie *serie = pt_Series->data;
+    ps_serie = p_iter->data;
 
     // Filter out the series that shouldn't be exported.
-    if (serie == NULL || pt_Series->type != TREE_TYPE_SERIE_MASK)
+    if (ps_serie == NULL || p_iter->type != TREE_TYPE_SERIE_MASK)
     {
-      pt_Series = tree_next (pt_Series);
+      p_iter = tree_next (p_iter);
       continue;
     }
 
-    memory_io_save_file (serie, serie->pc_filename);
-    pt_Series = tree_next (pt_Series);
+    memory_io_save_file (ps_serie, ps_serie->pc_filename);
+    p_iter = tree_next (p_iter);
   }
 
   gtk_label_set_text (GTK_LABEL (lbl_info), "The files have been saved.");
@@ -1195,7 +1208,7 @@ gui_mainwindow_refresh_viewers (Viewer *viewer, UNUSED void *data)
 {
   debug_functions ();
 
-  ts_ActiveViewer = viewer;
+  ps_ActiveViewer = viewer;
 
   List *temp = list_nth (pll_Viewers, 1);
   while (temp != NULL)
@@ -1216,7 +1229,7 @@ gui_mainwindow_update_viewer_positions (Viewer *viewer, void *data)
 {
   debug_functions ();
 
-  ts_ActiveViewer = viewer;
+  ps_ActiveViewer = viewer;
 
   if (viewer->b_FollowMode_Enabled)
   {
@@ -1288,23 +1301,33 @@ gui_mainwindow_update_viewer_wwwl (Viewer *viewer, void *data)
 {
   debug_functions ();
 
-  ts_ActiveViewer = viewer;
+  Tree   *pt_serie;
+  Serie  *ps_serie;
+  Viewer *list_viewer;
+
+  ps_ActiveViewer = viewer;
+
   if (data == NULL) return;
 
-  Serie *active_serie = CONFIGURATION_ACTIVE_MASK_SERIE (config);
-  if (active_serie == NULL) return;
+  pt_serie = CONFIGURATION_ACTIVE_MASK_TREE (config);
+  if (pt_serie == NULL) return;
+
+  ps_serie = pt_serie->data;
+  if (ps_serie == NULL) return;
 
   WWWL wwwl = *(WWWL *)data;
-  List *temp = list_nth (pll_Viewers, 1);
-  while (temp != NULL)
+  List *pl_iter = list_nth (pll_Viewers, 1);
+  while (pl_iter != NULL)
   {
-    Viewer* list_viewer = temp->data;
+    list_viewer = pl_iter->data;
 
     // Skip the Viewer that is calling back.
     if (VIEWER_ORIENTATION (list_viewer) != VIEWER_ORIENTATION (viewer))
-      viewer_set_window_level_for_serie (list_viewer, active_serie, wwwl.i32_windowWidth, wwwl.i32_windowLevel);
+    {
+      viewer_set_window_level_for_serie (list_viewer, ps_serie, wwwl.i32_windowWidth, wwwl.i32_windowLevel);
+    }
 
-    temp = temp->next;
+    pl_iter = pl_iter->next;
   }
 
 }
@@ -1441,6 +1464,8 @@ gui_mainwindow_on_key_press (UNUSED GtkWidget *widget, GdkEventKey *event,
 {
   debug_functions ();
   debug_events ();
+  Tree  *pt_mask;
+  Serie *ps_mask;
 
   /*--------------------------------------------------------------------------.
    | KEY RESPONSES                                                            |
@@ -1475,47 +1500,51 @@ gui_mainwindow_on_key_press (UNUSED GtkWidget *widget, GdkEventKey *event,
     gui_mainwindow_views_activate (views_combo, (void *)VIEWPORT_TYPE_THREEWAY);
 
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_TOGGLE_RECORDING)
-           && ts_ActiveViewer != NULL)
-    viewer_toggle_recording (ts_ActiveViewer);
+           && ps_ActiveViewer != NULL)
+    viewer_toggle_recording (ps_ActiveViewer);
 
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_REPLAY_RECORDING)
-           && ts_ActiveViewer != NULL)
-    viewer_replay_recording (ts_ActiveViewer);
+           && ps_ActiveViewer != NULL)
+    viewer_replay_recording (ps_ActiveViewer);
 
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_REPLAY_OVER_TIME)
-           && ts_ActiveViewer != NULL)
-    viewer_replay_recording_over_time (ts_ActiveViewer);
+           && ps_ActiveViewer != NULL)
+    viewer_replay_recording_over_time (ps_ActiveViewer);
   /*
   else if (event->keyval == CONFIGURATION_KEY (config, KEY_REPLAY_OVER_SLICES)
-           && ts_ActiveViewer != NULL)
-    viewer_replay_recording_over_slices (ts_ActiveViewer);
+           && ps_ActiveViewer != NULL)
+    viewer_replay_recording_over_slices (ps_ActiveViewer);
   */
-  else if (event->keyval == CONFIGURATION_KEY (config, KEY_UNDO)
-	   && (event->state & GDK_CONTROL_MASK))
+  else if ((event->keyval == CONFIGURATION_KEY (config, KEY_UNDO)) &&
+           (event->state & GDK_CONTROL_MASK))
   {
-    Serie *active_mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
-    if (active_mask != NULL)
-      pll_History = common_history_load_state (pll_History,
-					       HISTORY_PREVIOUS,
-					       &active_mask->data);
+    pt_mask = CONFIGURATION_ACTIVE_MASK_TREE(config);
+    if (pt_mask == NULL ) return FALSE;
+    ps_mask=pt_mask->data;
+    if (ps_mask != NULL)
+    {
+      pll_History = common_history_load_state (pll_History, HISTORY_PREVIOUS, &ps_mask->data);
+    }
   }
 
-  else if (event->keyval == CONFIGURATION_KEY (config, KEY_REDO)
-	   && (event->state & GDK_CONTROL_MASK))
+  else if ((event->keyval == CONFIGURATION_KEY (config, KEY_REDO)) &&
+           (event->state & GDK_CONTROL_MASK))
   {
-    Serie *active_mask = CONFIGURATION_ACTIVE_MASK_SERIE (config);
-    if (active_mask != NULL)
-      pll_History = common_history_load_state (pll_History,
-					       HISTORY_NEXT,
-					       &active_mask->data);
+    pt_mask = CONFIGURATION_ACTIVE_MASK_TREE(config);
+    if (pt_mask == NULL ) return FALSE;
+    ps_mask=pt_mask->data;
+    if (ps_mask != NULL)
+    {
+      pll_History = common_history_load_state (pll_History, HISTORY_NEXT, &ps_mask->data);
+    }
   }
 
   /*--------------------------------------------------------------------------.
    | OTHER STUFF                                                              |
    '--------------------------------------------------------------------------*/
 
-  if (ts_ActiveViewer != NULL)
-    viewer_on_key_press (ts_ActiveViewer, event);
+  if (ps_ActiveViewer != NULL)
+    viewer_on_key_press (ps_ActiveViewer, event);
 
   if (pll_History != NULL
       && event->keyval != CONFIGURATION_KEY (config, KEY_TOGGLE_FOLLOW))
@@ -1534,8 +1563,8 @@ gui_mainwindow_on_key_release (UNUSED GtkWidget *widget, GdkEventKey *event,
   debug_functions ();
   debug_events ();
 
-  if (ts_ActiveViewer != NULL)
-    viewer_on_key_release (ts_ActiveViewer, event);
+  if (ps_ActiveViewer != NULL)
+    viewer_on_key_release (ps_ActiveViewer, event);
 
   return FALSE;
 }
@@ -1571,7 +1600,7 @@ gui_mainwindow_select_tool (GtkWidget *widget, void *data)
   debug_functions ();
 
   Plugin *active_plugin = (Plugin *)data;
-  CONFIGURATION_ACTIVE_PLUGIN (config) = active_plugin;
+  ps_active_draw_tool = active_plugin;
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
@@ -1616,7 +1645,7 @@ gui_mainwindow_set_brush_size (UNUSED GtkWidget* widget, UNUSED void* data)
 {
   debug_functions ();
 
-  Plugin *active_plugin = CONFIGURATION_ACTIVE_PLUGIN (config);
+  Plugin *active_plugin = ps_active_draw_tool;
   if (active_plugin == NULL) return;
 
   int size = gtk_spin_button_get_value (GTK_SPIN_BUTTON (inp_brush_size));
@@ -1633,7 +1662,7 @@ gui_mainwindow_set_brush_value (UNUSED GtkWidget* widget, UNUSED void* data)
 {
   debug_functions ();
 
-  Plugin *active_plugin = CONFIGURATION_ACTIVE_PLUGIN (config);
+  Plugin *active_plugin = ps_active_draw_tool;
   if (active_plugin == NULL) return;
 
   int value = gtk_spin_button_get_value (GTK_SPIN_BUTTON (inp_brush_value));
@@ -1704,7 +1733,7 @@ gui_mainwindow_add_plugin (Plugin *plugin, GtkWidget *box)
   icon_name = plugin->get_property (plugin->meta, "name");
   icon_path = calloc (1, strlen (PLUGIN_ICON_PATH) + strlen (*icon_name) + 5);
   sprintf (icon_path, PLUGIN_ICON_PATH "%s.png", *icon_name);
-  
+
   GtkWidget *btn_plugin;
   if (access (icon_path, F_OK) == 0)
   {
@@ -1720,7 +1749,7 @@ gui_mainwindow_add_plugin (Plugin *plugin, GtkWidget *box)
   }
 
   free (icon_path);
-  
+
   gtk_box_pack_start (GTK_BOX (box), btn_plugin, 0, 0, 0);
   gtk_widget_show (btn_plugin);
 
@@ -1876,13 +1905,9 @@ gboolean gui_mainwindow_mask_add (unsigned long long ull_serieID )
   {
     return FALSE;
   }
-
-  assert (CONFIGURATION_ACTIVE_SERIE (config) != NULL);
-  assert (pt_maskSerie != NULL);
-  assert (pt_maskSerie->data != NULL);
+  CONFIGURATION_ACTIVE_MASK_TREE(config) = pt_maskSerie;
 
   ps_maskSerie = pt_maskSerie->data;
-  CONFIGURATION_ACTIVE_MASK_SERIE (config) = ps_maskSerie;
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
@@ -1891,8 +1916,6 @@ gboolean gui_mainwindow_mask_add (unsigned long long ull_serieID )
     viewer_set_active_mask_serie (viewers->data, ps_maskSerie);
     viewers = list_next (viewers);
   }
-
-
   return TRUE;
 }
 
@@ -1970,39 +1993,41 @@ gboolean gui_mainwindow_mask_remove (unsigned long long ull_serieID )
     return gui_mainwindow_mask_add(ps_origSerie->id);
   }
 
-  CONFIGURATION_ACTIVE_MASK_SERIE (config) = pt_iter->data;
+  CONFIGURATION_ACTIVE_MASK_TREE (config) = pt_iter;
   return TRUE;
 }
 
 gboolean gui_mainwindow_mask_set_active (unsigned long long ull_serieID )
 {
   debug_functions ();
-  Tree *pt_maskSerie=NULL;
-  Serie *ps_maskSerie=NULL;
-  Serie *ps_activeSerie=NULL;
+  Tree *pt_serie=NULL;
+  Tree *pt_mask=NULL;
 
-  pt_maskSerie = memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), ull_serieID);
+  Serie *ps_serie=NULL;
+  Serie *ps_mask=NULL;
+
+  pt_mask = memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), ull_serieID);
+
+  if (pt_mask == NULL) return FALSE;
+  CONFIGURATION_ACTIVE_MASK_TREE(config) = pt_mask;
+  if (ps_mask == NULL) return FALSE;
+  ps_mask=(Serie*)(pt_mask->data);
 
 
-  if (pt_maskSerie == NULL)
+  pt_serie=CONFIGURATION_ACTIVE_SERIE_TREE(config);
+  if (pt_serie == NULL) return FALSE;
+  ps_serie=(Serie*)(pt_serie->data);
+  if (ps_serie == NULL) return FALSE;
+
+  if (ps_mask->group_id != ps_serie->group_id)
   {
     return FALSE;
   }
-
-  ps_maskSerie=(Serie*)(pt_maskSerie->data);
-  ps_activeSerie=CONFIGURATION_ACTIVE_SERIE(config);
-
-  if (ps_maskSerie->group_id != ps_activeSerie->group_id)
-  {
-    return FALSE;
-  }
-
-  CONFIGURATION_ACTIVE_MASK_SERIE (config) = ps_maskSerie;
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
   {
-    viewer_set_active_mask_serie (viewers->data, ps_maskSerie);
+    viewer_set_active_mask_serie (viewers->data, ps_mask);
     viewers = list_next (viewers);
   }
 
@@ -2016,7 +2041,7 @@ gui_mainwindow_overlay_load (unsigned long long ull_serieID, void *data)
 {
   char* pc_path = NULL;
   Tree *pt_Study = NULL;
-  Tree *pt_Serie = NULL;
+  Tree *pt_serie = NULL;
 
   Serie *ps_Overlay = NULL;
   Serie *ps_Original = NULL;
@@ -2029,26 +2054,26 @@ gui_mainwindow_overlay_load (unsigned long long ull_serieID, void *data)
 
   if (pc_path != NULL)
   {
-    pt_Serie=memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), ull_serieID);
+    pt_serie=memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), ull_serieID);
 
-    if(pt_Serie == NULL)
+    if(pt_serie == NULL)
     {
       return FALSE;
     }
 
-    pt_Study=pt_Serie->parent;
+    pt_Study=pt_serie->parent;
 
-    ps_Original = pt_Serie->data;
-    pt_Serie=pt_memory_io_load_file(&pt_Study,pc_path);
+    ps_Original = pt_serie->data;
+    pt_serie=pt_memory_io_load_file(&pt_Study,pc_path);
 
-    if (pt_Serie == NULL)
+    if (pt_serie == NULL)
     {
       return FALSE;
     }
 
-    pt_Serie->type=TREE_TYPE_SERIE_OVERLAY;
+    pt_serie->type=TREE_TYPE_SERIE_OVERLAY;
 
-    ps_Overlay=(Serie *)(pt_Serie->data);
+    ps_Overlay=(Serie *)(pt_serie->data);
     ps_Overlay->e_SerieType=SERIE_OVERLAY;
     ps_Overlay->group_id = ps_Original->group_id;
 
@@ -2143,9 +2168,12 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
 
   // Populate the store.
   Tree *pll_Studies;
-  Tree *pt_Series;
+  Tree *pt_series;
   Tree *pt_Masks;
+  Tree *pt_active_mask;
   Tree *pt_Overlays;
+
+  Serie *ps_active_mask;
 
 
   GtkTreeIter PatientIterator;
@@ -2218,14 +2246,14 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
       | SERIES                                                                  |
       '------------------------------------------------------------------------*/
 
-      pt_Series = tree_child(pll_Studies);
+      pt_series = tree_child(pll_Studies);
 
-      while (pt_Series != NULL)
+      while (pt_series != NULL)
       {
-        Serie *serie = pt_Series->data;
+        Serie *serie = pt_series->data;
         if (serie == NULL)
         {
-          pt_Series = tree_next (pt_Series);
+          pt_series = tree_next (pt_series);
           continue;
         }
 
@@ -2298,10 +2326,18 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
                               SIDEBAR_OUTER, p_icon,
 			      -1);
 
+          pt_active_mask=CONFIGURATION_ACTIVE_MASK_TREE(config);
+          if (pt_active_mask == NULL) return;
+          ps_active_mask=(Serie*)(pt_active_mask->data);
+          if (ps_active_mask == NULL) return;
+
+
+
 
           pt_Masks = tree_child(pll_Studies);
           while (pt_Masks != NULL)
           {
+
 
             Serie *ps_Mask = pt_Masks ->data;
             if (ps_Mask == NULL)
@@ -2314,7 +2350,8 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
             {
 
               p_icon = gtk_icon_theme_load_icon (p_icon_theme, ICON_REMOVE, 16, 0,NULL);
-              if (ps_Mask ==  CONFIGURATION_ACTIVE_MASK_SERIE (config))
+
+              if (ps_Mask == ps_active_mask)
               {
                 p_radioBtn = gtk_icon_theme_load_icon (p_icon_theme, ICON_RADIO_ENABLED, 16, 0,NULL);
               }
@@ -2328,21 +2365,20 @@ gui_mainwindow_sidebar_populate (Tree *pll_Patients)
 
               gtk_tree_store_append (sidebar_TreeStore, &SubMaskOverlayIterator, &MaskOverlayIterator);
 
-	      /* Don't show a "remove" button for the active layer. */
-	      if (ps_Mask == CONFIGURATION_ACTIVE_MASK_SERIE (config)) p_icon = NULL;
+              /* Don't show a "remove" button for the active layer. */
+              if (ps_Mask == ps_active_mask) p_icon = NULL;
 
-	      gtk_tree_store_set (sidebar_TreeStore, &SubMaskOverlayIterator,
+              gtk_tree_store_set (sidebar_TreeStore, &SubMaskOverlayIterator,
                                   SIDEBAR_ID, 13000+ps_Mask->id,
                                   SIDEBAR_NAME, ps_Mask->name,
                                   SIDEBAR_NAME_EDIT, TRUE,
                                   SIDEBAR_INNER, p_icon,
-                                  SIDEBAR_OUTER, p_radioBtn,
-				  -1);
+                                  SIDEBAR_OUTER, p_radioBtn, -1);
             }
             pt_Masks = tree_next (pt_Masks);
           }
         }
-        pt_Series = tree_next (pt_Series);
+        pt_series = tree_next (pt_series);
       }
       pll_Studies = tree_next (pll_Studies);
     }
@@ -2360,7 +2396,7 @@ gui_mainwindow_sidebar_clicked (GtkTreeView       *ps_tree,
   short int b_SuccesfullAction=FALSE;
   const gchar *pc_columnName;
 
-  Tree *pt_SerieTree = NULL;
+  Tree *pt_serie = NULL;
 
   // Check which collum is activated
   GtkTreeIter iter;
@@ -2378,13 +2414,13 @@ gui_mainwindow_sidebar_clicked (GtkTreeView       *ps_tree,
   {
     if (ull_ID < 10000)
     {
-      pt_SerieTree=memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), ull_ID);
+      pt_serie=memory_tree_get_serie_by_id (CONFIGURATION_MEMORY_TREE (config), ull_ID);
 
-      if ((pt_SerieTree != NULL) &&
-          (pt_SerieTree->type == TREE_TYPE_SERIE) &&
-          (pt_SerieTree != CONFIGURATION_ACTIVE_SERIE(config)))
+      if ((pt_serie != NULL) &&
+          (pt_serie->type == TREE_TYPE_SERIE) &&
+          (pt_serie != CONFIGURATION_ACTIVE_SERIE_TREE(config)))
       {
-        gui_mainwindow_load_serie (pt_SerieTree);
+        gui_mainwindow_load_serie (pt_serie);
         gtk_tree_view_expand_all (GTK_TREE_VIEW (ps_tree));
 
         // Look for first mask in row and make it the default layer
@@ -2392,9 +2428,9 @@ gui_mainwindow_sidebar_clicked (GtkTreeView       *ps_tree,
 
       b_SuccesfullAction = TRUE;
 
-      if (pt_SerieTree != NULL)
+      if (pt_serie != NULL)
       {
-        CONFIGURATION_ACTIVE_MASK_SERIE (config) = pt_SerieTree->data;
+        CONFIGURATION_ACTIVE_SERIE_TREE(config) = pt_serie;
       }
 
     }
@@ -2583,7 +2619,7 @@ gui_mainwindow_sidebar_new ()
   /*--------------------------------------------------------------------------.
    | INNER COLUMN ICON                                                        |
    '--------------------------------------------------------------------------*/
- 
+
   renderer = gtk_cell_renderer_pixbuf_new ();
   column = gtk_tree_view_column_new_with_attributes ("inner", renderer,
 						     "pixbuf", SIDEBAR_INNER,
@@ -2628,13 +2664,21 @@ gui_mainwindow_set_lookup_table (const char *lut_name)
 {
   debug_functions ();
 
-  Serie *active_serie = CONFIGURATION_ACTIVE_MASK_SERIE (config);
-  if (active_serie == NULL) return;
+  Tree  *pt_serie;;
+  Serie *ps_serie;
+
+  pt_serie = CONFIGURATION_ACTIVE_MASK_TREE (config);
+  if (pt_serie == NULL) return;
+
+  ps_serie = pt_serie->data;
+
+  if (ps_serie == NULL) return;
+
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
   {
-    viewer_set_lookup_table_for_serie (viewers->data, active_serie, lut_name);
+    viewer_set_lookup_table_for_serie (viewers->data, ps_serie, lut_name);
     viewers = viewers->next;
   }
 }
@@ -2661,15 +2705,21 @@ gui_mainwindow_properties_on_opacity_change (GtkWidget *widget, UNUSED void *dat
 {
   debug_functions ();
 
-  unsigned char value = gtk_range_get_value (GTK_RANGE (widget));
+  Tree  *pt_serie;
+  Serie *ps_serie;
+  unsigned char value;
 
-  Serie *active_serie = CONFIGURATION_ACTIVE_MASK_SERIE (config);
-  if (active_serie == NULL) return FALSE;
+  pt_serie = CONFIGURATION_ACTIVE_MASK_TREE (config);
+  if (pt_serie == NULL) return;
+  ps_serie = pt_serie->data;
+  if (ps_serie == NULL) return;
+
+  value = gtk_range_get_value (GTK_RANGE (widget));
 
   List *viewers = list_nth (pll_Viewers, 1);
   while (viewers != NULL)
   {
-    viewer_set_opacity_for_serie (viewers->data, active_serie, value);
+    viewer_set_opacity_for_serie (viewers->data, ps_serie, value);
     viewers = viewers->next;
   }
 
@@ -2756,9 +2806,8 @@ gui_mainwindow_properties_manager_refresh (unsigned long long ull_serieID)
     return;
   }
 
+  CONFIGURATION_ACTIVE_MASK_TREE(config) = pt_serie;
   ps_serie = (Serie*)(pt_serie->data);
-
-  CONFIGURATION_ACTIVE_MASK_SERIE (config) = ps_serie;
 
   opacity = viewer_get_opacity_for_serie (pll_Viewers->data, ps_serie);
   gtk_range_set_value (GTK_RANGE (properties_opacity_scale), opacity);

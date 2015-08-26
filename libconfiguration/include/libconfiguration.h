@@ -24,8 +24,10 @@
 extern "C" {
 #endif
 
-//#include "lib-common-tree.h"
-//#include "lib-common-list.h"
+#include "libcommon-tree.h"
+#include "libcommon-list.h"
+
+//#include "libmemory-serie.h"
 //#include "lib-pixeldata-plugin.h"
 
 /**
@@ -67,18 +69,15 @@ extern "C" {
  */
 typedef struct
 {
-  void *memory_tree; /*< The actively maintained memory tree. */
-  void *active_study; /*< The active study element in the tree. */
-  void *active_serie; /*< The active serie element in the tree. */
+  Tree *pt_memory;              /*< The actively maintained memory tree. */
+  Tree *pt_active_study;        /*< The active study element in the tree. */
+  Tree *pt_active_serie;        /*< The active study element in the tree. */
+  Tree *pt_active_mask;         /*< The active study element in the tree. */
 
-//  Tree *active_original; /*< The active original serie in the tree. */
-  void *active_mask_serie; /*< The active mask serie in the tree. */
+  List *pl_draw_tools;          /*< A list of all loaded draw tools. */
+  List *pl_lookup_tables;       /*< A list of lookup tables. */
 
-  void *draw_tools; /*< A list of all loaded draw tools. */
-  void *lookup_tables; /*< A list of lookup tables. */
-  void *active_draw_tool; /*< The active draw tool element in the list. */
-
-  unsigned char key_bindings[14]; /*< An array with key bindings. */
+  char c_key_bindings[14]; /*< An array with key bindings. */
 
 } Configuration;
 
@@ -86,49 +85,43 @@ typedef struct
 /**
  * Returns the active memory tree.
  */
-#define CONFIGURATION_MEMORY_TREE(c)       c->memory_tree
+#define CONFIGURATION_MEMORY_TREE(c)       c->pt_memory
 
 
 /**
  * Returns the active study in the memory tree.
  */
-#define CONFIGURATION_ACTIVE_STUDY(c)      c->active_study
+#define CONFIGURATION_ACTIVE_STUDY_TREE(c) c->pt_active_study
 
 /**
  * Returns the active serie in the memory tree.
  */
-#define CONFIGURATION_ACTIVE_SERIE(c)      c->active_serie
-
+#define CONFIGURATION_ACTIVE_SERIE_TREE(c) c->pt_active_serie
 
 /**
- * Returns the active mask serie in the memory tree.
+ * Returns the active mask in the memory tree.
  */
-#define CONFIGURATION_ACTIVE_MASK_SERIE(c) c->active_mask_serie
-
+#define CONFIGURATION_ACTIVE_MASK_TREE(c)  c->pt_active_mask
 
 /**
  * Returns a list of loaded draw tools.
  */
-#define CONFIGURATION_PLUGINS(c)           c->draw_tools
-
+#define CONFIGURATION_PLUGINS(c)           c->pl_draw_tools
 
 /**
  * Returns the active draw tool list item.
  */
-#define CONFIGURATION_ACTIVE_PLUGIN(c)     c->active_draw_tool
-
+#define CONFIGURATION_ACTIVE_PLUGIN(c)     c->pl_active_draw_tool
 
 /**
  * Returns the bound character for a key.
  */
-#define CONFIGURATION_KEY(c,k)             c->key_bindings[k]
-
+#define CONFIGURATION_KEY(c,k)             c->c_key_bindings[k]
 
 /**
  * Returns a list of lookup tables.
  */
-#define CONFIGURATION_LOOKUP_TABLES(c)     c->lookup_tables
-
+#define CONFIGURATION_LOOKUP_TABLES(c)     c->pl_lookup_tables
 
 /**
  * An instance of the global configuration state.

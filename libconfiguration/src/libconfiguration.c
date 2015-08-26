@@ -34,5 +34,5 @@ configuration_init ()
   memset (&configuration_state, 0, sizeof (Configuration));
 
   // Set the default key bindings.
-  memcpy (configuration_state.key_bindings, "fazy1234gsrptv", 14);
+  memcpy (configuration_state.c_key_bindings, "fazy1234gsrptv", 14);
 }
