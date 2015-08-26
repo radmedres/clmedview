@@ -23,8 +23,6 @@ tools installed:
 * Gtk+-3.0 and GLib-2.0
 * Clutter and Clutter-Gtk
 * zlib
-* (optional) Guile 2.0
-* (optional) VTE 2.91
 
 To build the documentation you need some more programs:
 * Texinfo

@@ -1,17 +1,45 @@
 AUTOMAKE_OPTIONS 	= subdir-objects
-SUBDIRS                 = src/brushes/ src/line-tools/ src/selection-tools/
+AM_CFLAGS               = -Iinclude/                                           \
+                          -I../libcommon/include/                              \
+                          -I../libpixeldata/include/                           \
+                          -I../libmemory/include/
 
-if OS_LINUX
-LIBRARY_EXTENSION       = so
-else
-LIBRARY_EXTENSION       = dll
-endif
+lib_LTLIBRARIES         = empty.la                                             \
+                          fill.la                                              \
+                          pen.la                                               \
+                          sobel.la                                             \
+                          polygon.la
 
-all-local:
-	@mkdir -p brushes/ line-tools/ selection-tools/;
-	@cp src/brushes/.libs/lib*.$(LIBRARY_EXTENSION) brushes/.
-	@cp src/line-tools/.libs/lib*.$(LIBRARY_EXTENSION) line-tools/.
-	@cp src/selection-tools/.libs/lib*.$(LIBRARY_EXTENSION) selection-tools/.
+empty_la_LDFLAGS        = -module -no-undefined -avoid-version
+empty_la_SOURCES        = src/empty.c src/plugin-interface.c
+
+fill_la_LDFLAGS         = -module -no-undefined -avoid-version
+fill_la_SOURCES         = src/fill.c src/plugin-interface.c
+
+pen_la_LDFLAGS          = -module -no-undefined -avoid-version
+pen_la_SOURCES          = src/pen.c src/plugin-interface.c
+
+sobel_la_LDFLAGS        = -module -no-undefined -avoid-version
+sobel_la_SOURCES        = src/sobel.c src/plugin-interface.c
+
+polygon_la_LDFLAGS      = -module -no-undefined -avoid-version
+polygon_la_SOURCES      = src/polygon.c src/plugin-interface.c ../libcommon/src/libcommon-list.c
+
+all-local: $(lib_LTLIBRARIES)
+	@$(RM) pen.so
+	@cp .libs/pen.so .
+	@$(RM) empty.so
+	@cp .libs/empty.so .
+	@$(RM) fill.so
+	@cp .libs/fill.so .
+	@$(RM) sobel.so
+	@cp .libs/sobel.so .
+	@$(RM) polygon.so
+	@cp .libs/polygon.so .
 
 clean-local:
-	@rm -rf brushes/*.$(LIBRARY_EXTENSION) line-tools/*.$(LIBRARY_EXTENSION) selection-tools/*.$(LIBRARY_EXTENSION)
+	@$(RM) pen.so
+	@$(RM) empty.so
+	@$(RM) fill.so
+	@$(RM) sobel.so
+	@$(RM) polygon.so

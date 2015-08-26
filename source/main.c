@@ -26,8 +26,8 @@
 #include <mcheck.h>
 #endif
 
-#include "lib-configuration.h"
-#include "lib-memory.h"
+#include "libconfiguration.h"
+#include "libmemory.h"
 #include "gui/mainwindow.h"
 
 // VERSION should be provided by the build system, otherwise define it here.
@@ -150,14 +150,10 @@ main (int argc, char** argv)
     }
   }
 
-  int return_value = 0;
-
   if (start_gui)
     gui_mainwindow_new (file_path);
 
   #ifdef ENABLE_MTRACE
   muntrace ();
   #endif
-
-  return return_value;
 }

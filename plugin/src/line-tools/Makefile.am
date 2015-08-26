@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS 	= subdir-objects
 
-AM_CFLAGS               = -I../../../include -I../../../lib/lib-common/include/ \
-			  -I../../../lib/lib-common/ -Isrc/brushes/ -I../../
+AM_CFLAGS               = -I../../../include -Isrc/brushes/ -I../../ \
+			  -I../../../libcommon/ -I../../../libcommon/include/ -I../../../libpixeldata/include/ -I../../../libmemory/include/
 
 lib_LTLIBRARIES        = libpolygon.la
 

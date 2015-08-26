@@ -20,8 +20,8 @@
 #ifndef GUI_H
 #define GUI_H
 
-#include "lib-viewer.h"
-#include "lib-memory-io.h"
+#include "libviewer.h"
+#include "libmemory-io.h"
 #include <gtk/gtk.h>
 
 
@@ -138,6 +138,7 @@ gboolean gui_mainwindow_file_export ();
  */
 void gui_mainwindow_load_plugins_from_directory (const char* path, GtkWidget *box);
 
+//gboolean gui_mainwindow_histogram_draw (GtkWidget *widget, cairo_t *cr);
 
 /**
  *   @}

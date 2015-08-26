@@ -4,6 +4,7 @@
 *.dirstamp
 *.deps/
 *.o
+*.so
 *.lo
 *.la
 *.pdf
