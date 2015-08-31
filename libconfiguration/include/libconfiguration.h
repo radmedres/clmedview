@@ -27,7 +27,7 @@ extern "C" {
 #include "libcommon-tree.h"
 #include "libcommon-list.h"
 
-//#include "libmemory-serie.h"
+#include "libmemory-serie.h"
 //#include "lib-pixeldata-plugin.h"
 
 /**
@@ -69,13 +69,12 @@ extern "C" {
  */
 typedef struct
 {
-  Tree *pt_memory;              /*< The actively maintained memory tree. */
-  Tree *pt_active_study;        /*< The active study element in the tree. */
-  Tree *pt_active_serie;        /*< The active study element in the tree. */
-  Tree *pt_active_mask;         /*< The active study element in the tree. */
+  Tree *pt_memory;              /* The actively maintained memory tree. */
+  Tree *pt_active_study;        /* The active study tree. */
+  Tree *pt_active_serie;        /* The active serie tree. */
 
-  List *pl_draw_tools;          /*< A list of all loaded draw tools. */
-  List *pl_lookup_tables;       /*< A list of lookup tables. */
+  Serie *ps_active_serie;       /* The active serie */
+  Serie *ps_active_mask;        /* The active study */
 
   char c_key_bindings[14]; /*< An array with key bindings. */
 
@@ -87,31 +86,36 @@ typedef struct
  */
 #define CONFIGURATION_MEMORY_TREE(c)       c->pt_memory
 
-
 /**
- * Returns the active study in the memory tree.
+ * Returns the active study tree
  */
 #define CONFIGURATION_ACTIVE_STUDY_TREE(c) c->pt_active_study
 
 /**
- * Returns the active serie in the memory tree.
+ * Returns the active serie tree
  */
 #define CONFIGURATION_ACTIVE_SERIE_TREE(c) c->pt_active_serie
 
 /**
+ * Returns the active serie in the memory tree.
+ */
+#define CONFIGURATION_ACTIVE_SERIE(c)  c->ps_active_serie
+
+/**
  * Returns the active mask in the memory tree.
  */
-#define CONFIGURATION_ACTIVE_MASK_TREE(c)  c->pt_active_mask
+#define CONFIGURATION_ACTIVE_MASK(c)  c->ps_active_mask
+
 
 /**
  * Returns a list of loaded draw tools.
  */
-#define CONFIGURATION_PLUGINS(c)           c->pl_draw_tools
+//#define CONFIGURATION_PLUGINS(c)           c->pl_draw_tools
 
 /**
  * Returns the active draw tool list item.
  */
-#define CONFIGURATION_ACTIVE_PLUGIN(c)     c->pl_active_draw_tool
+//#define CONFIGURATION_ACTIVE_PLUGIN(c)     c->pl_active_draw_tool
 
 /**
  * Returns the bound character for a key.
@@ -121,7 +125,7 @@ typedef struct
 /**
  * Returns a list of lookup tables.
  */
-#define CONFIGURATION_LOOKUP_TABLES(c)     c->pl_lookup_tables
+//#define CONFIGURATION_LOOKUP_TABLES(c)     c->pl_lookup_tables
 
 /**
  * An instance of the global configuration state.
