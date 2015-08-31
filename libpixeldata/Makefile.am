@@ -2,7 +2,6 @@ AUTOMAKE_OPTIONS                = subdir-objects
 AM_CFLAGS                       = -Iinclude/                                   \
                                   -I../libmemory/include/                      \
                                   -I../libcommon/include/                      \
-                                  -I../libconfiguration/include/               \
                                   -I../plugin/include/
 
 lib_LTLIBRARIES                 = libpixeldata.la libpixeldata-plugin.la 

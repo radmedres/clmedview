@@ -1,5 +1,7 @@
 AUTOMAKE_OPTIONS              = subdir-objects
-AM_CFLAGS                     = -Iinclude/
+AM_CFLAGS                     = -Iinclude/                              \
+                                -I../libcommon/include/			\
+                                -I../libmemory/include/
 
 lib_LTLIBRARIES               = libconfiguration.la
 

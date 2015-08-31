@@ -117,6 +117,10 @@ clmedview_LDADD	       += -lshell32
 clmedview_LDFLAGS      += -mwindows -static
 endif
 
+if ENABLE_CREF_OPTION
+clmedview_LDFLAGS      += -Xlinker -Map=$(bin_PROGRAMS).map -Xlinker --cref
+endif
+
 if ENABLE_GCOV_OPTION
 AM_CFLAGS	       += -fprofile-arcs -ftest-coverage
 endif

@@ -120,7 +120,7 @@ void gui_mainwindow_file_load (void* data);
  * @param pll_Study The study to display.
  */
 void
-gui_mainwindow_load_serie (Tree *pll_Serie);
+gui_mainwindow_load_serie (Tree *pt_Serie);
 
 
 /**

@@ -21,7 +21,7 @@
 #include "libmemory-slice.h"
 #include "libmemory-serie.h"
 #include "libcommon-debug.h"
-#include "libconfiguration.h"
+
 
 #include <stdio.h>
 #include <math.h>
@@ -39,6 +39,7 @@
 #define PATH_SEPARATOR '/'
 #endif
 
+List *pl_lookup_tables=NULL;
 
 /* --------------------------------------------------------------------------
  * PUBLIC FUNCTIONS
@@ -138,8 +139,7 @@ pixeldata_set_color_lookup_table (PixelData *pixeldata, const char *name)
 
   if (pixeldata == NULL) return 0;
 
-  Configuration *config = configuration_get_default ();
-  List *tables = list_nth (CONFIGURATION_LOOKUP_TABLES (config), 1);
+  List *tables = list_nth (pl_lookup_tables, 1);
 
   while (tables != NULL)
   {
@@ -178,8 +178,7 @@ pixeldata_lookup_table_get_by_name (const char *name)
 {
   if (name == NULL) return NULL;
 
-  Configuration *config = configuration_get_default ();
-  List *tables = list_nth (CONFIGURATION_LOOKUP_TABLES (config), 1);
+  List *tables = list_nth (pl_lookup_tables, 1);
 
   while (tables != NULL)
   {
@@ -573,13 +572,7 @@ pixeldata_lookup_table_load_from_file (const char *filename)
   list_item->table = lookup_table;
   list_item->table_len = (lookup_table_len + 1) * sizeof (unsigned int);
 
-  // Add it to the global configuration.
-  Configuration *config = configuration_get_default ();
-
-  List *lookup_tables = CONFIGURATION_LOOKUP_TABLES (config);
-  lookup_tables = list_append (lookup_tables, list_item);
-
-  CONFIGURATION_LOOKUP_TABLES (config) = lookup_tables;
+  pl_lookup_tables = list_append (pl_lookup_tables, list_item);
 
   free (data);
   data = NULL;
@@ -638,6 +631,10 @@ pixeldata_lookup_table_load_from_directory (const char *pc_path)
   return 1;
 }
 
+List *pl_pixeldata_lookup_table_get_list(void)
+{
+  return pl_lookup_tables;
+}
 
 void
 pixeldata_lookup_table_destroy_item (void *data)
@@ -653,6 +650,8 @@ pixeldata_lookup_table_destroy_item (void *data)
 
   free (item);
 }
+
+
 
 
 void

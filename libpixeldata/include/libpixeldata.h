@@ -367,6 +367,14 @@ short int pixeldata_set_voxel (PixelData *mask, PixelData *selection,
  */
 short int pixeldata_get_voxel (PixelData *mask, Coordinate point, void *value);
 
+/**
+ * Returns a list pointer to the actual loaded lookup tables.
+ *
+ * @param void
+ *
+ * @return list pointer of lookuptables
+ */
+List *pl_pixeldata_lookup_table_get_list(void);
 
 /**
  * @}

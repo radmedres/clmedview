@@ -73,6 +73,12 @@ AM_CONDITIONAL([OS_LINUX], [true])
 AC_MSG_ERROR([clMedView is not (yet) supported on $host.])
 esac
 
+AC_SUBST(ENABLE_CREF_OPTION)
+AC_ARG_ENABLE([cref-map],
+AC_HELP_STRING([--enable-cref-map],
+[create a cref map to build a dependency graph @<:@default=no@:>@]),
+AM_CONDITIONAL([ENABLE_CREF_OPTION], [true]), AM_CONDITIONAL([ENABLE_CREF_OPTION], [false]))
+
 AC_SUBST(ENABLE_GCOV_OPTION)
 AC_ARG_ENABLE([gcov],
 AC_HELP_STRING([--enable-gcov],
