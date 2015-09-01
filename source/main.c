@@ -19,15 +19,12 @@
 
 #include <stdlib.h>
 #include <getopt.h>
-#include <signal.h>
-#include <unistd.h>
 
 #ifdef ENABLE_MTRACE
 #include <mcheck.h>
 #endif
 
 #include "libconfiguration.h"
-#include "libmemory.h"
 #include "gui/mainwindow.h"
 
 // VERSION should be provided by the build system, otherwise define it here.
@@ -40,24 +37,9 @@ show_help ()
 {
   puts ("\nAvailable options:\n"
         " --file, -f          A valid path to a niftii file.\n"
-        #ifdef ENABLE_GREL
-        " --enable-grel, -g   Start a GREL shell.\n"
-        #endif
         " --version, -v       Show versioning information.\n"
         " --help, -h          Show this message.\n");
 }
-
-static void
-socket_cleanup ()
-{
-  puts ("The program crashed.");
-
-  // Remove socket.
-  unlink ("clmedview.socket");
-
-  exit (1);
-}
-
 
 static void
 sanity_check ()
@@ -95,9 +77,6 @@ main (int argc, char** argv)
   mtrace ();
   #endif
 
-  // Run when program is about to crash.
-  signal(SIGSEGV, socket_cleanup);
-
   sanity_check ();
   configuration_init ();
 
@@ -114,9 +93,6 @@ main (int argc, char** argv)
   static struct option options[] =
   {
     { "file",              required_argument, 0, 'f' },
-    #ifdef ENABLE_GREL
-    { "enable-grel",       no_argument,       0, 'g' },
-    #endif
     { "help",              no_argument,       0, 'h' },
     { "version",           no_argument,       0, 'v' },
     { 0,                   0,                 0, 0 }
@@ -125,20 +101,12 @@ main (int argc, char** argv)
   while (arg != -1)
   {
     // Make sure to list all short options in the string below.
-    arg = getopt_long (argc, argv, "f:gvh", options, &index);
+    arg = getopt_long (argc, argv, "f:vh", options, &index);
     switch (arg)
     {
     case 'f':
       file_path = optarg;
       break;
-    #ifdef ENABLE_GREL
-    case 'g':
-      {
-	grel_shell_start ();
-	start_gui = 0;
-      }
-      break;
-    #endif
     case 'v':
       printf ("Version: %s\n", VERSION);
       start_gui = 0;
