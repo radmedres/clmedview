@@ -76,7 +76,7 @@ typedef struct
   Serie *ps_active_serie;       /* The active serie */
   Serie *ps_active_mask;        /* The active study */
 
-  char c_key_bindings[14]; /*< An array with key bindings. */
+  unsigned char c_key_bindings[14]; /*< An array with key bindings. */
 
 } Configuration;
 
