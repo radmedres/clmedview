@@ -104,6 +104,8 @@ dist_data_DATA          = $(PLUGIN_FILES) $(DOXYGEN_FILES) $(LUT_FILES)
 
 bin_PROGRAMS 		= clmedview
 
+CLEAN_TARGET            = docs-clean
+
 # Be silent unless VERBOSE is defined.
 $(VERBOSE).SILENT:
 
@@ -119,10 +121,12 @@ endif
 
 if ENABLE_CREF_OPTION
 clmedview_LDFLAGS      += -Xlinker -Map=$(bin_PROGRAMS).map -Xlinker --cref
+CLEAN_TARGET           += map-clean
 endif
 
 if ENABLE_GCOV_OPTION
 AM_CFLAGS	       += -fprofile-arcs -ftest-coverage
+CLEAN_TARGET           += gcov-clean
 endif
 
 if ENABLE_GPROF_OPTION
@@ -133,10 +137,16 @@ if ENABLE_MTRACE_OPTION
 AM_CFLAGS              += -DENABLE_MTRACE
 endif
 
-clean-local: docs-clean
+clean-local: $(CLEAN_TARGET)
+
+cref-graph:
+	$(SH) scripts/cref-graph.sh $(bin_PROGRAMS).map $(bin_PROGRAMS).dot
 
 gcov-clean:
 	@$(RM) -rf *.gcno *.gcda */*.gcno */*.gcda */*/*.gcno */*/*.gcda
+
+map-clean:
+	@$(RM) -f $(bin_PROGRAMS).map
 
 docs-preprocess-images:
 	@cd doc/images/; dia component-diagram.dia -e component-diagram.eps;   \

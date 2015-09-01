@@ -721,7 +721,7 @@ gui_mainwindow_file_load (void* data)
 void
 gui_mainwindow_load_serie (Tree *pt_serie)
 {
-  Tree *pt_mask;
+  Tree *pt_mask = NULL;
 
   Serie *ps_serie;
   Serie *ps_mask;
